@@ -58,7 +58,7 @@ function readJSONFile(reader, opts) {
   var str = readFirstChars(reader, 1000);
   var type = identifyJSONString(str, opts);
   var dataset, retn;
-  if (type == 'geojson') { // consider only for larger files
+  if (type == 'geojson' && false) { // consider only for larger files, DEACTIVATED
     dataset = importGeoJSONFile(reader, opts);
     retn = {
       dataset: dataset,

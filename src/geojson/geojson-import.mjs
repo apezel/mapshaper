@@ -3,6 +3,38 @@ import GeoJSON from '../geojson/geojson-common';
 import utils from '../utils/mapshaper-utils';
 import { PathImporter } from '../paths/mapshaper-path-import';
 import { copyRecord } from '../datatable/mapshaper-data-utils';
+import { getCRS } from '../geom/mapshaper-projections';
+
+
+export function GeoJSONParser(opts) {
+  var idField = opts.id_field || GeoJSON.ID_FIELD,
+      importer = new PathImporter(opts),
+      dataset;
+
+  this.parseObject = function(o) {
+    var geom, rec;
+    if (!o || !o.type) {
+      // not standard GeoJSON -- importing as null record
+      // (useful when parsing GeoJSON generated internally)
+      geom = null;
+    } else if (o.type == 'Feature') {
+      geom = o.geometry;
+      rec = o.properties || {};
+      if ('id' in o) {
+        rec[idField] = o.id;
+      }
+    } else {
+      geom = o;
+    }
+    // TODO: improve so geometry_type option skips features instead of creating null geometries
+    importer.startShape(rec);
+    if (geom) GeoJSON.importGeometry(geom, importer, opts);
+  };
+
+  this.done = function() {
+    return importer.done();
+  };
+}
 
 export function importGeoJSON(src, optsArg) {
   var opts = optsArg || {};
@@ -27,7 +59,7 @@ export function importGeoJSON(src, optsArg) {
   }
   (srcCollection.features || srcCollection.geometries || []).forEach(importer.parseObject);
   dataset = importer.done();
-  importCRS(dataset, srcObj); // TODO: remove this
+  importCRS(dataset, srcObj);
   return dataset;
 }
 
@@ -165,7 +197,8 @@ GeoJSON.pathImporters = {
 
 
 export function importCRS(dataset, jsonObj) {
-  if ('crs' in jsonObj) {
+  if ('crs' in jsonObj && jsonObj.crs.properties && jsonObj.properties.name) {
     dataset.info.input_geojson_crs = jsonObj.crs;
+    dataset.info.crs = getCRS(jsonObj.crs.properties.name);
   }
 }

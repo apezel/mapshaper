@@ -25,6 +25,7 @@
   "scripts": {
     "test": "mocha test",
     "build": "rollup --config",
+    "install": "rollup --config",
     "lint": "eslint --ext mjs src/",
     "prepublishOnly": "npm lint; npm test; ./pre-publish",
     "postpublish": "./release_web_ui; ./release_github_version",
