@@ -18040,7 +18040,7 @@ ${svg}
 
 
   function importCRS(dataset, jsonObj) {
-    if ('crs' in jsonObj && jsonObj.crs.properties && jsonObj.properties.name) {
+    if ('crs' in jsonObj && jsonObj.crs.properties && jsonObj.crs.properties.name) {
       dataset.info.input_geojson_crs = jsonObj.crs;
       dataset.info.crs = getCRS(jsonObj.crs.properties.name);
     }
