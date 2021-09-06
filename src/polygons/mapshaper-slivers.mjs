@@ -11,7 +11,7 @@ import { error } from '../utils/mapshaper-logging';
 // for removing small polygon rings.
 // Assumes lyr is a polygon layer.
 export function getSliverFilter(lyr, dataset, opts) {
-  var areaArg = opts.min_gap_area || opts.min_area || opts.gap_fill_area;
+  var areaArg = opts.min_gap_area || opts.min_area || opts.gap_fill_area || 0;
   if (+areaArg == 0) {
     return {
       filter: function() {return false;}, // don't fill any gaps
