@@ -1,6 +1,6 @@
 import { cleanupArcs, replaceLayers, splitApartLayers } from '../dataset/mapshaper-dataset-utils';
 import { dissolveArcs } from '../paths/mapshaper-arc-dissolve';
-import { initProjLibrary } from '../geom/mapshaper-projections';
+import { initProjLibrary } from '../crs/mapshaper-projections';
 import { writeFiles } from '../io/mapshaper-file-export';
 import { exportTargetLayers } from '../io/mapshaper-export';
 import { expandCommandTargets } from '../dataset/mapshaper-target-utils';
@@ -9,11 +9,12 @@ import { convertSourceName, findCommandSource } from '../dataset/mapshaper-sourc
 import { Catalog, getFormattedLayerList } from '../dataset/mapshaper-catalog';
 import { mergeCommandTargets } from '../dataset/mapshaper-merging';
 import { T } from '../utils/mapshaper-timing';
-import { stop, error, UserError } from '../utils/mapshaper-logging';
+import { stop, error, UserError, verbose } from '../utils/mapshaper-logging';
 import utils from '../utils/mapshaper-utils';
 import cmd from '../mapshaper-cmd';
 
 import '../commands/mapshaper-affine';
+import '../commands/mapshaper-alpha-shapes';
 import '../commands/mapshaper-buffer';
 import '../commands/mapshaper-calc';
 import '../commands/mapshaper-classify';
@@ -22,6 +23,7 @@ import '../commands/mapshaper-clip-erase';
 import '../commands/mapshaper-cluster';
 import '../commands/mapshaper-colorizer';
 import '../commands/mapshaper-data-fill';
+import '../commands/mapshaper-define';
 import '../commands/mapshaper-dissolve';
 import '../commands/mapshaper-dissolve2';
 import '../commands/mapshaper-divide';
@@ -37,6 +39,7 @@ import '../commands/mapshaper-filter-geom';
 import '../commands/mapshaper-filter-islands';
 import '../commands/mapshaper-filter-islands2';
 import '../commands/mapshaper-filter-rename-fields';
+import '../commands/mapshaper-filter-points';
 import '../commands/mapshaper-filter-slivers';
 import '../commands/mapshaper-fuzzy-join';
 import '../commands/mapshaper-graticule';
@@ -51,11 +54,13 @@ import '../commands/mapshaper-mosaic';
 import '../commands/mapshaper-points';
 import '../commands/mapshaper-polygon-grid';
 import '../commands/mapshaper-point-grid';
+import '../commands/mapshaper-point-to-grid';
 import '../commands/mapshaper-polygons';
 import '../commands/mapshaper-proj';
 import '../commands/mapshaper-rectangle';
 import '../commands/mapshaper-rename-layers';
 import '../commands/mapshaper-require';
+import '../commands/mapshaper-rotate';
 import '../commands/mapshaper-run';
 import '../commands/mapshaper-scalebar';
 import '../commands/mapshaper-simplify';
@@ -104,7 +109,7 @@ export function runCommand(command, catalog, cb) {
       // TODO: check that combine_layers is only used w/ GeoJSON output
       targets = catalog.findCommandTargets(opts.target || opts.combine_layers && '*');
 
-    } else if (name == 'info' || name == 'proj' || name == 'drop' || name == 'target') {
+    } else if (name == 'rotate' || name == 'info' || name == 'proj' || name == 'drop' || name == 'target') {
       // these commands accept multiple target datasets
       targets = catalog.findCommandTargets(opts.target);
 
@@ -148,9 +153,13 @@ export function runCommand(command, catalog, cb) {
     if (name == 'affine') {
       cmd.affine(targetLayers, targetDataset, opts);
 
+    } else if (name == 'alpha-shapes') {
+      outputLayers = applyCommandToEachLayer(cmd.alphaShapes, targetLayers, targetDataset, opts);
+      // outputLayers = null;
+
     } else if (name == 'buffer') {
-      // applyCommandToEachLayer(cmd.buffer, targetLayers, targetDataset, opts);
-      outputLayers = cmd.buffer(targetLayers, targetDataset, opts);
+       outputLayers = applyCommandToEachLayer(cmd.buffer, targetLayers, targetDataset, opts);
+      // outputLayers = cmd.buffer(targetLayers, targetDataset, opts);
 
     } else if (name == 'data-fill') {
       applyCommandToEachLayer(cmd.dataFill, targetLayers, arcs, opts);
@@ -172,6 +181,9 @@ export function runCommand(command, catalog, cb) {
 
     } else if (name == 'colorizer') {
       outputLayers = cmd.colorizer(opts);
+
+    } else if (name == 'define') {
+      cmd.define(opts);
 
     } else if (name == 'dissolve') {
       outputLayers = applyCommandToEachLayer(cmd.dissolve, targetLayers, arcs, opts);
@@ -215,6 +227,9 @@ export function runCommand(command, catalog, cb) {
 
     } else if (name == 'filter-islands2') {
       applyCommandToEachLayer(cmd.filterIslands2, targetLayers, targetDataset, opts);
+
+    } else if (name == 'filter-points') {
+      applyCommandToEachLayer(cmd.filterPoints, targetLayers, targetDataset, opts);
 
     } else if (name == 'filter-slivers') {
       applyCommandToEachLayer(cmd.filterSlivers, targetLayers, targetDataset, opts);
@@ -264,7 +279,8 @@ export function runCommand(command, catalog, cb) {
     } else if (name == 'merge-layers') {
       // returned layers are modified input layers
       // (assumes that targetLayers are replaced by outputLayers below)
-      outputLayers = cmd.mergeLayers(targetLayers, opts);
+      outputLayers = cmd.mergeAndFlattenLayers(targetLayers, targetDataset, opts);
+      // outputLayers = cmd.mergeLayers(targetLayers, opts);
 
     } else if (name == 'mosaic') {
       // opts.no_replace = true; // add mosaic as a new layer
@@ -283,6 +299,9 @@ export function runCommand(command, catalog, cb) {
       if (!targetDataset) {
         catalog.addDataset({layers: outputLayers});
       }
+
+    } else if (name == 'point-to-grid') {
+      outputLayers = cmd.pointToGrid(targetLayers, targetDataset, opts);
 
     } else if (name == 'grid') {
       outputDataset = cmd.polygonGrid(targetLayers, targetDataset, opts);
@@ -326,6 +345,11 @@ export function runCommand(command, catalog, cb) {
     } else if (name == 'require') {
       cmd.require(targets, opts);
 
+    } else if (name == 'rotate') {
+      targets.forEach(function(targ) {
+        cmd.rotate(targ.dataset, opts);
+      });
+
     } else if (name == 'run') {
       cmd.run(targets, catalog, opts, done);
       return;
@@ -334,7 +358,7 @@ export function runCommand(command, catalog, cb) {
       cmd.scalebar(catalog, opts);
 
     } else if (name == 'shape') {
-      catalog.addDataset(cmd.shape(opts));
+      catalog.addDataset(cmd.shape(targetDataset, opts));
 
     } else if (name == 'simplify') {
       if (opts.variable) {
@@ -448,7 +472,7 @@ export function runCommand(command, catalog, cb) {
   done(null);
 
   function done(err) {
-    T.stop('-');
+    verbose('-', T.stop());
     cb(err, err ? null : catalog);
   }
 }

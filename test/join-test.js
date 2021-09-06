@@ -14,6 +14,21 @@ describe('mapshaper-join.js', function () {
 
   describe('-join command', function () {
 
+    it('add error msg when joining to a layer without attributes', function(done) {
+      var targ = {
+        type: 'Point',
+        coordinates: [0, 0]
+      };
+      var data = [{id: 'foo'}];
+      var cmd = '-i point.json -join data.json keys=id,id -o';
+      api.applyCommands(cmd, {'point.json': targ, 'data.json': data}, function(err, out) {
+        assert.equal(err.name, 'UserError');
+        assert(err.message.includes('missing an attribute table'));
+        done();
+      })
+
+    });
+
     it('includes source key with fields=* option', function(done) {
       var a = 'id,name\n1,foo';
       var b = 'key,score\n1,100';
@@ -399,14 +414,12 @@ describe('mapshaper-join.js', function () {
       assert.deepEqual(fields, ['st', 'co']);
     })
 
-    // Changed in v0.74.
-    // it('Do not join all fields by default if calc= option is present', function () {
-    //   var fields = api.internal.getFieldsToJoin([], ['st', 'co'], {calc: 'n=count()'})
-    //   assert.deepEqual(fields, []);
-    // })
-    it('Join all fields by default even if calc= option is present', function () {
+    // Original behavior: copy all fields even if calc= is present (for consistency)
+    // v0.5.59: don't copy fields by default when calc= is present
+    //
+    it('Do not copy all fields by default if calc= option is present', function () {
       var fields = api.internal.getFieldsToJoin([], ['st', 'co'], {calc: 'n=count()'})
-      assert.deepEqual(fields, ['st', 'co']);
+      assert.deepEqual(fields, []);
     })
 
     it('Error if type hints are present', function() {

@@ -178,6 +178,13 @@ export function getOptionParser() {
       type: 'strings',
       describe: '[CSV] comma-sep. list of fields to import'
     })
+    // .option('csv-comment', {
+    //   describe: '[CSV] comment line character(s)'
+    // })
+    .option('decimal-comma', {
+      type: 'flag',
+      describe: '[CSV] import numbers formatted like 1.000,01 or 1 000,01'
+    })
     .option('json-path', {
       old_alias: 'json-subtree',
       describe: '[JSON] path to JSON input data; separator is /'
@@ -223,44 +230,44 @@ export function getOptionParser() {
       type: 'flag'
     })
     .option('encoding', {
-      describe: '(Shapefile/CSV) text encoding (default is utf8)'
+      describe: '[Shapefile/CSV] text encoding (default is utf8)'
     })
     .option('field-order', {
-      describe: '(Shapefile/CSV) field-order=ascending sorts columns A-Z'
+      describe: '[Shapefile/CSV] field-order=ascending sorts columns A-Z'
     })
     .option('id-field', {
-      describe: '(Topo/GeoJSON/SVG) field to use for id property',
+      describe: '[Topo/GeoJSON/SVG] field to use for id property',
       type: 'strings'
     })
     .option('bbox', {
       type: 'flag',
-      describe: '(Topo/GeoJSON) add bbox property'
+      describe: '[Topo/GeoJSON] add bbox property'
     })
     .option('extension', {
-      describe: '(Topo/GeoJSON) set file extension (default is ".json")'
+      describe: '[Topo/GeoJSON] set file extension (default is ".json")'
     })
     .option('prettify', {
       type: 'flag',
-      describe: '(Topo/GeoJSON/JSON) format output for readability'
+      describe: '[Topo/GeoJSON/JSON] format output for readability'
     })
     .option('singles', {
-      describe: '(TopoJSON) save each target layer as a separate file',
+      describe: '[TopoJSON] save each target layer as a separate file',
       type: 'flag'
     })
     .option('quantization', {
-      describe: '(TopoJSON) specify quantization (auto-set by default)',
+      describe: '[TopoJSON] specify quantization (auto-set by default)',
       type: 'integer'
     })
     .option('no-quantization', {
-      describe: '(TopoJSON) export coordinates without quantization',
+      describe: '[TopoJSON] export coordinates without quantization',
       type: 'flag'
     })
     .option('no-point-quantization', {
-      // describe: '(TopoJSON) export point coordinates without quantization',
+      // describe: '[TopoJSON] export point coordinates without quantization',
       type: 'flag'
     })
     .option('presimplify', {
-      describe: '(TopoJSON) add per-vertex data for dynamic simplification',
+      describe: '[TopoJSON] add per-vertex data for dynamic simplification',
       type: 'flag'
     })
     .option('topojson-precision', {
@@ -271,72 +278,76 @@ export function getOptionParser() {
       // obsolete -- rfc 7946 compatible outptu is now the default.
       // This option also rounds coordinates to 7 decimals. I'm retaining the
       // option for backwards compatibility.
-      // describe: '(GeoJSON) follow RFC 7946 (CCW outer ring order, etc.)',
+      // describe: '[GeoJSON] follow RFC 7946 (CCW outer ring order, etc.)',
       type: 'flag'
     })
     // .option('winding', {
-    //   describe: '(GeoJSON) set polygon winding order (use CW with d3-geo)'
+    //   describe: '[GeoJSON] set polygon winding order (use CW with d3-geo)'
     // })
     .option('gj2008', {
-      describe: '(GeoJSON) use original GeoJSON spec (not RFC 7946)',
+      describe: '[GeoJSON] use original GeoJSON spec (not RFC 7946)',
       type: 'flag'
     })
     .option('combine-layers', {
-      describe: '(GeoJSON) output layers as a single file',
+      describe: '[GeoJSON] output layers as a single file',
       type: 'flag'
     })
     .option('geojson-type', {
-      describe: '(GeoJSON) FeatureCollection, GeometryCollection or Feature'
+      describe: '[GeoJSON] FeatureCollection, GeometryCollection or Feature'
     })
     .option('ndjson', {
-      describe: '(GeoJSON/JSON) output newline-delimited features or records',
+      describe: '[GeoJSON/JSON] output newline-delimited features or records',
       type: 'flag'
     })
     .option('width', {
-      describe: '(SVG/TopoJSON) pixel width of output (SVG default is 800)',
+      describe: '[SVG/TopoJSON] pixel width of output (SVG default is 800)',
       type: 'number'
     })
     .option('height', {
-      describe: '(SVG/TopoJSON) pixel height of output (optional)',
+      describe: '[SVG/TopoJSON] pixel height of output (optional)',
       type: 'number'
     })
     .option('max-height', {
-      describe: '(SVG/TopoJSON) max pixel height of output (optional)',
+      describe: '[SVG/TopoJSON] max pixel height of output (optional)',
       type: 'number'
     })
     .option('margin', {
-      describe: '(SVG/TopoJSON) space betw. data and viewport (default is 1)'
+      describe: '[SVG/TopoJSON] space betw. data and viewport (default is 1)'
     })
     .option('pixels', {
-      describe: '(SVG/TopoJSON) output area in pix. (alternative to width=)',
+      describe: '[SVG/TopoJSON] output area in pix. (alternative to width=)',
       type: 'number'
     })
     .option('fit-bbox', {
       type: 'bbox',
-      describe: '(TopoJSON) scale and shift coordinates to fit a bbox'
+      describe: '[TopoJSON] scale and shift coordinates to fit a bbox'
     })
     .option('svg-scale', {
-      describe: '(SVG) source units per pixel (alternative to width= option)',
+      describe: '[SVG] source units per pixel (alternative to width= option)',
       type: 'number'
     })
     .option('point-symbol', {
-      describe: '(SVG) circle or square (default is circle)'
+      describe: '[SVG] circle or square (default is circle)'
     })
     .option('svg-data', {
       type: 'strings',
-      describe: '(SVG) fields to export as data-* attributes'
+      describe: '[SVG] fields to export as data-* attributes'
     })
     .option('id-prefix', {
-      describe: '(SVG) prefix for namespacing layer and feature ids'
+      describe: '[SVG] prefix for namespacing layer and feature ids'
     })
     .option('delimiter', {
-      describe: '(CSV) field delimiter'
+      describe: '[CSV] field delimiter'
+    })
+    .option('decimal-comma', {
+      type: 'flag',
+      describe: '[CSV] export numbers with decimal commas not points'
     })
     .option('final', {
       type: 'flag' // for testing
     })
     .option('metadata', {
-      // describe: '(TopoJSON) add a metadata object',
+      // describe: '[TopoJSON] add a metadata object',
       type: 'flag'
     });
 
@@ -372,6 +383,10 @@ export function getOptionParser() {
     })
     .option('tolerance', {
       // describe: 'acceptable deviation for approximating curves'
+    })
+    .option('vertices', {
+      // describe: 'number of vertices to use when buffering points',
+      type: 'integer'
     })
     .option('backtrack', {
       type: 'integer'
@@ -412,7 +427,7 @@ export function getOptionParser() {
     })
     .option('colors', {
       describe: 'list of CSS colors or color scheme name (see -colors)',
-      type: 'strings'
+      type: 'colors'
     })
     .option('values', {
       describe: 'values to assign to classes (alternative to colors=)',
@@ -511,11 +526,17 @@ export function getOptionParser() {
 
   parser.command('clean')
     .describe('fixes geometry issues, such as polygon overlaps and gaps')
-
     .option('gap-fill-area', minGapAreaOpt)
     .option('sliver-control', sliverControlOpt)
     .option('snap-interval', snapIntervalOpt)
     .option('no-snap', noSnapOpt)
+    .option('allow-overlaps', {
+      describe: 'allow polygons to overlap (disables gap fill)',
+      type: 'flag'
+    })
+    .option('overlap-rule', {
+      describe: 'how to resolve overlaps: min-id|max-id|min-area|[max-area]'
+    })
     .option('allow-empty', {
       describe: 'keep null geometries (removed by default)',
       type: 'flag'
@@ -535,9 +556,6 @@ export function getOptionParser() {
     })
     .option('only-arcs', {
       describe: 'delete unused arcs but don\'t remove gaps and overlaps',
-      type: 'flag'
-    })
-    .option('debug', {
       type: 'flag'
     })
     .option('no-arc-dissolve', {
@@ -602,6 +620,13 @@ export function getOptionParser() {
         '$ mapshaper data.json -colorizer name=getColor nodata=#eee breaks=20,40 \\\n' +
         '  colors=#e0f3db,#a8ddb5,#43a2ca -each \'fill = getColor(RATING)\' -o output.json');
 
+  parser.command('define')
+    // .describe('define expression variables')
+    .option('expression', {
+      DEFAULT: true,
+      describe: 'one or more assignment expressions (comma-sep.)'
+    });
+
   parser.command('dissolve')
     .describe('merge features within a layer')
     .example('Dissolve all polygons in a feature layer into a single polygon\n' +
@@ -648,6 +673,10 @@ export function getOptionParser() {
     .option('copy-fields', copyFieldsOpt)
     .option('gap-fill-area', minGapAreaOpt)
     .option('sliver-control', sliverControlOpt)
+    .option('allow-overlaps', {
+      describe: 'allow dissolved polygons to overlap (disables gap fill)',
+      type: 'flag'
+    })
     .option('name', nameOpt)
     .option('no-snap', noSnapOpt)
     .option('target', targetOpt)
@@ -684,6 +713,17 @@ export function getOptionParser() {
       describe: 'one or more colors',
       type: 'strings'
     })
+    .option('values', {
+      describe: 'values to assign to dot classes (alternative to colors=)',
+      type: 'strings'
+    })
+    .option('save-as', {
+      describe: 'name of color/value output field (default is fill)'
+    })
+    .option('progressive', {
+      // describe: 'fill in points progressively',
+      type: 'flag'
+    })
     .option('r', {
       describe: 'radius of each dot in pixels',
       type: 'number'
@@ -704,7 +744,6 @@ export function getOptionParser() {
       describe: 'combine groups of same-color dots into multi-part features',
       type: 'flag'
     })
-    .option('debug', {type: 'flag'})
     .option('target', targetOpt)
     .option('name', nameOpt)
     .option('no-replace', noReplaceOpt);
@@ -858,7 +897,15 @@ export function getOptionParser() {
     .option('target', targetOpt);
 
   parser.command('graticule')
-    .describe('create a graticule layer');
+    .describe('create a graticule layer')
+    .option('interval', {
+      describe: 'size of grid cells in degrees (options: 5 10 15 30 45, default is 10)',
+      type: 'number'
+    })
+    .option('polygon', {
+      describe: 'create a polygon to match the outline of the graticule',
+      type: 'flag'
+    });
 
   parser.command('grid')
     .describe('create a grid of square or hexagonal polygons')
@@ -879,9 +926,6 @@ export function getOptionParser() {
     //   type: 'bbox',
     //   describe: 'xmin,ymin,xmax,ymax (default is bbox of data)'
     // })
-    .option('debug', {
-      type: 'flag'
-    })
     .option('name', nameOpt)
     .option('target', targetOpt)
     .option('no-replace', noReplaceOpt);
@@ -940,6 +984,18 @@ export function getOptionParser() {
     .option('point-method', {
       describe: '(polygon-polygon join) join polygons via inner points',
       type: 'flag'
+    })
+    .option('largest-overlap', {
+      describe: '(polygon-polygon join) use max overlap to join one polygon',
+      type: 'flag'
+    })
+    // .option('nearest-point', {
+    //   describe: '(point-point join)',
+    //   type: 'flag'
+    // })
+    .option('max-distance', {
+      describe: '(point-point join) join source points within this radius',
+      type: 'distance'
     })
     .option('planar', {
       // describe: 'use planar geometry when interpolating by area' // useful for testing
@@ -1001,13 +1057,16 @@ export function getOptionParser() {
       type: 'flag',
       describe: 'merge layers with inconsistent data fields'
     })
+    .option('flatten', {
+      describe: 'remove polygon overlaps; higher-id polygons take priority',
+      type: 'flag'
+    })
     .option('name', nameOpt)
     .option('target', targetOpt);
 
   parser.command('mosaic')
     .describe('convert a polygon layer with overlaps into a flat mosaic')
     .option('calc', calcOpt)
-    .option('debug', {type: 'flag'})
     .option('name', nameOpt)
     .option('target', targetOpt)
     .option('no-replace', noReplaceOpt);
@@ -1033,7 +1092,9 @@ export function getOptionParser() {
       type: 'bbox',
       describe: 'xmin,ymin,xmax,ymax (default is bbox of data)'
     })
-    .option('name', nameOpt);
+    .option('name', nameOpt)
+    .option('target', targetOpt)
+    .option('no-replace', noReplaceOpt);
 
   parser.command('points')
     .describe('create a point layer from a different layer type')
@@ -1124,6 +1185,14 @@ export function getOptionParser() {
     .option('densify', {
       type: 'flag',
       describe: 'add points along straight segments to approximate curves'
+    })
+    .option('clip-angle', {
+      describe: 'use a custom clipping radius (for azimuthal projections)',
+      type: 'number'
+    })
+    .option('clip-bbox', {
+      describe: 'clip to a lat-long bounding box before projecting',
+      type: 'bbox'
     })
     .option('target', targetOpt)
     .validate(V.validateProjOpts);
@@ -1472,9 +1541,22 @@ export function getOptionParser() {
     })
     .option('target', targetOpt);
 
-
   // Experimental commands
   parser.section('Experimental commands (may give unexpected results)');
+
+  parser.command('alpha-shapes')
+    // .describe('convert points to alpha shapes (aka concave hulls)')
+    .option('interval', {
+      describe: 'alpha parameter',
+      type: 'number'
+    })
+    .option('keep-points', {
+      // describe: 'replace single points with tiny triangles',
+      type: 'flag'
+    })
+    .option('name', nameOpt)
+    .option('target', targetOpt)
+    .option('no-replace', noReplaceOpt);
 
   parser.command('cluster')
     .describe('group polygons into compact clusters')
@@ -1524,6 +1606,17 @@ export function getOptionParser() {
     .option('module', {
       DEFAULT: true,
       describe: 'name of Node module containing the command'
+    });
+
+  parser.command('filter-points')
+    // .describe('remove points that are not part of a group')
+    // .option('min-group-size', {
+    //   // describe: 'drop points with fewer points in the vicinity',
+    //   type: 'number'
+    // })
+    .option('group-interval', {
+      // describe: max interval separating a point from other points
+      type: 'number'
     });
 
   parser.command('frame')
@@ -1579,6 +1672,28 @@ export function getOptionParser() {
     })
     .option('target', targetOpt);
 
+  parser.command('point-to-grid')
+    .option('interval', {
+      // describe: size of grid in projected units
+      type: 'number'
+    })
+    .option('radius', {
+      // describe: radius to assign each point
+      type: 'number'
+    })
+    .option('circles', {
+      // describe: create a grid of circles instead of squares
+      type: 'flag'
+    })
+    .option('cell-margin', {
+      // describe: (0-1) inset grid shapes by a percentage
+      type: 'number'
+    })
+    .option('calc', calcOpt)
+    .option('name', nameOpt)
+    .option('target', targetOpt)
+    .option('no-replace', noReplaceOpt);
+
   parser.command('require')
     .describe('require a Node module for use in -each expressions')
     .option('module', {
@@ -1590,6 +1705,17 @@ export function getOptionParser() {
     })
     .option('init', {
       describe: 'JS expression to run after the module loads'
+    });
+
+  parser.command('rotate')
+    // .describe('apply d3-style 3-axis rotation to a lat-long dataset')
+    .option('rotation', {
+      // describe: 'two or three angles of rotation',
+      DEFAULT: true,
+      type: 'numbers'
+    })
+    .option('invert', {
+      type: 'flag'
     });
 
   parser.command('run')
@@ -1627,6 +1753,33 @@ export function getOptionParser() {
     .option('closed', {
       describe: 'close an open path to create a polygon',
       type: 'flag'
+    })
+    .option('type', {
+      // describe: 'circle or ???'
+      DEFAULT: true,
+    })
+    .option('center', {
+      //describe: 'center of the circle (default is 0,0)',
+      type: 'numbers'
+    })
+    .option('radius', {
+      //describe: 'radius of the circle in meters',
+      type: 'number'
+    })
+    .option('radius-angle', {
+      //describe: 'radius of the circle in degrees',
+      type: 'number'
+    })
+    .option('bbox', {
+      // describe: 'rectangle bounding box',
+      type: 'numbers'
+    })
+    .option('geometry', {
+      //describe: 'polygon or polyline'
+    })
+    .option('rotation', {
+      // describe: 'two or three angles of rotation',
+      type: 'numbers'
     })
     .option('name', nameOpt);
 

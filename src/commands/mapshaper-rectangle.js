@@ -1,7 +1,7 @@
 import cmd from '../mapshaper-cmd';
 import { convertFourSides } from '../geom/mapshaper-units';
-import { setDatasetCRS, getDatasetCRS, getCRS } from '../geom/mapshaper-projections';
-import { getLayerBounds, layerHasGeometry } from '../dataset/mapshaper-layer-utils';
+import { setDatasetCRS, getDatasetCRS, getCRS } from '../crs/mapshaper-projections';
+import { getLayerBounds, layerHasGeometry, setOutputLayerName } from '../dataset/mapshaper-layer-utils';
 import { mergeDatasetsIntoDataset } from '../dataset/mapshaper-merging';
 import { importGeoJSON } from '../geojson/geojson-import';
 import { getPointFeatureBounds } from '../points/mapshaper-point-utils';
@@ -9,6 +9,7 @@ import utils from '../utils/mapshaper-utils';
 import { stop } from '../utils/mapshaper-logging';
 import { probablyDecimalDegreeBounds, clampToWorldBounds } from '../geom/mapshaper-latlon';
 import { Bounds } from '../geom/mapshaper-bounds';
+import { densifyPathByInterval } from '../crs/mapshaper-densify';
 
 // Create rectangles around each feature in a layer
 cmd.rectangles = function(targetLyr, targetDataset, opts) {
@@ -40,9 +41,7 @@ cmd.rectangles = function(targetLyr, targetDataset, opts) {
   };
   var dataset = importGeoJSON(geojson, {});
   var outputLayers = mergeDatasetsIntoDataset(targetDataset, [dataset]);
-  if (!opts.no_replace) {
-    outputLayers[0].name = targetLyr.name || outputLayers[0].name;
-  }
+  setOutputLayerName(outputLayers[0], targetLyr, null, opts);
   return outputLayers;
 };
 
@@ -51,6 +50,7 @@ cmd.rectangles = function(targetLyr, targetDataset, opts) {
 cmd.rectangle2 = function(target, opts) {
   var datasets = target.layers.map(function(lyr) {
     var dataset = cmd.rectangle({layer: lyr, dataset: target.dataset}, opts);
+    setOutputLayerName(dataset.layers[0], lyr, null, opts);
     if (!opts.no_replace) {
       dataset.layers[0].name = lyr.name || dataset.layers[0].name;
     }
@@ -126,10 +126,17 @@ function applyBoundsOffset(offsetOpt, bounds, crs) {
   return bounds;
 }
 
-function convertBboxToGeoJSON(bbox, opts) {
+export function convertBboxToGeoJSON(bbox, optsArg) {
+  var opts = optsArg || {};
   var coords = [[bbox[0], bbox[1]], [bbox[0], bbox[3]], [bbox[2], bbox[3]],
       [bbox[2], bbox[1]], [bbox[0], bbox[1]]];
-  return {
+  if (opts.interval > 0) {
+    coords = densifyPathByInterval(coords, opts.interval);
+  }
+  return opts.geometry_type == 'polyline' ? {
+    type: 'LineString',
+    coordinates: coords
+  } : {
     type: 'Polygon',
     coordinates: [coords]
   };

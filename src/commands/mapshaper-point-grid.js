@@ -1,12 +1,15 @@
 import { getDatasetBounds } from '../dataset/mapshaper-dataset-utils';
+import { setOutputLayerName } from '../dataset/mapshaper-layer-utils';
 import { convertIntervalParam } from '../geom/mapshaper-units';
-import { getDatasetCRS } from '../geom/mapshaper-projections';
+import { getDatasetCRS } from '../crs/mapshaper-projections';
 import { stop } from '../utils/mapshaper-logging';
 import cmd from '../mapshaper-cmd';
 
 cmd.pointGrid = function(dataset, opts) {
   var gridOpts = getPointGridParams(dataset, opts);
-  return createPointGridLayer(createPointGrid(gridOpts), opts);
+  var lyr = createPointGridLayer(createPointGrid(gridOpts), opts);
+  setOutputLayerName(lyr, null, 'grid', opts);
+  return lyr;
 };
 
 function getPointGridParams(dataset, opts) {
@@ -37,12 +40,10 @@ function createPointGridLayer(rows, opts) {
       points.push([row[i]]);
     }
   });
-  lyr = {
+  return {
     geometry_type: 'point',
     shapes: points
   };
-  if (opts.name) lyr.name = opts.name;
-  return lyr;
 }
 
 

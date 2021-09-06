@@ -1,10 +1,11 @@
 import { HighlightBox } from './gui-highlight-box';
-import { internal } from './gui-core';
+import { internal, utils } from './gui-core';
 import { SimpleButton } from './gui-elements';
+
 
 export function SelectionTool(gui, ext, hit) {
   var popup = gui.container.findChild('.selection-tool-options');
-  var box = new HighlightBox('body');
+  var box = new HighlightBox();
   var _on = false;
 
   gui.addMode('selection_tool', turnOn, turnOff);
@@ -21,18 +22,25 @@ export function SelectionTool(gui, ext, hit) {
     if (!_on) return;
     var b = e.page_bbox;
     box.show(b[0], b[1], b[2], b[3]);
+    updateSelection(e.map_bbox, true);
   });
 
   gui.on('box_drag_end', function(e) {
     if (!_on) return;
     box.hide();
-    var bboxPixels = e.map_bbox;
+    updateSelection(e.map_bbox);
+  });
+
+  function updateSelection(bboxPixels, transient) {
     var bbox = bboxToCoords(bboxPixels);
     var active = gui.model.getActiveLayer();
     var ids = internal.findShapesIntersectingBBox(bbox, active.layer, active.dataset.arcs);
-    if (!ids.length) return;
-    hit.addSelectionIds(ids);
-  });
+    if (transient) {
+      hit.setTransientIds(ids);
+    } else if (ids.length) {
+      hit.addSelectionIds(ids);
+    }
+  }
 
   function turnOn() {
     _on = true;
@@ -72,34 +80,33 @@ export function SelectionTool(gui, ext, hit) {
   });
 
   new SimpleButton(popup.findChild('.delete-btn')).on('click', function() {
-    var cmd = '-filter "' + getFilterExp(hit.getSelectionIds(), true) + '"';
+    var cmd = '-filter "$$set.has(this.id) === false"';
     runCommand(cmd);
-    hit.clearSelection();
   });
 
   new SimpleButton(popup.findChild('.filter-btn')).on('click', function() {
-    var cmd = '-filter "' + getFilterExp(hit.getSelectionIds(), false) + '"';
+
+    var cmd = '-filter "$$set.has(this.id)"';
     runCommand(cmd);
-    hit.clearSelection();
   });
 
   new SimpleButton(popup.findChild('.split-btn')).on('click', function() {
-    var cmd = '-each "split_id = ' + getFilterExp(hit.getSelectionIds(), false) +
-      ' ? \'1\' : \'2\'" -split split_id';
+    var cmd = '-each "split_id = $$set.has(this.id) ? \'1\' : \'2\'" -split split_id';
     runCommand(cmd);
-    hit.clearSelection();
   });
 
   new SimpleButton(popup.findChild('.cancel-btn')).on('click', function() {
     hit.clearSelection();
   });
 
-  function getFilterExp(ids, invert) {
-    return JSON.stringify(ids) + '.indexOf(this.id) ' + (invert ? '== -1' : '> -1');
-  }
-
   function runCommand(cmd) {
-    if (gui.console) gui.console.runMapshaperCommands(cmd, function(err) {});
-    reset();
+    // var defs = internal.getStateVar('defs');
+    // defs.$$selection = utils.arrayToIndex(hit.getSelectionIds());
+    var ids = JSON.stringify(hit.getSelectionIds());
+    cmd = `-define "$$set = new Set(${ids})" ${cmd} -define "delete $$set"`;
+    popup.hide();
+    if (gui.console) gui.console.runMapshaperCommands(cmd, function(err) {
+      reset();
+    });
   }
 }

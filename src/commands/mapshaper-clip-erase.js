@@ -12,6 +12,8 @@ import { stop, message } from '../utils/mapshaper-logging';
 import utils from '../utils/mapshaper-utils';
 import { ArcCollection } from '../paths/mapshaper-arcs';
 import { NodeCollection } from '../topology/mapshaper-nodes';
+import { dissolveArcs } from '../paths/mapshaper-arc-dissolve';
+import { dissolvePolygonLayer2 } from '../dissolve/mapshaper-polygon-dissolve2';
 
 cmd.clipLayers = function(target, src, dataset, opts) {
   return clipLayers(target, src, dataset, "clip", opts);
@@ -37,9 +39,20 @@ cmd.sliceLayer = function(targetLyr, src, dataset, opts) {
   return cmd.sliceLayers([targetLyr], src, dataset, opts);
 };
 
+export function clipLayersInPlace(layers, clipSrc, dataset, type, opts) {
+  var outputLayers = clipLayers(layers, clipSrc, dataset, type, opts);
+  // remove arcs from the clipping dataset, if they are not used by any layer
+  layers.forEach(function(lyr, i) {
+    var lyr2 = outputLayers[i];
+    lyr.shapes = lyr2.shapes;
+    lyr.data = lyr2.data;
+  });
+  dissolveArcs(dataset);
+}
+
 // @clipSrc: layer in @dataset or filename
 // @type: 'clip' or 'erase'
-function clipLayers(targetLayers, clipSrc, targetDataset, type, opts) {
+export function clipLayers(targetLayers, clipSrc, targetDataset, type, opts) {
   var usingPathClip = utils.some(targetLayers, layerHasPaths);
   var mergedDataset, clipLyr, nodes;
   opts = opts || {no_cleanup: true}; // TODO: update testing functions
@@ -47,15 +60,20 @@ function clipLayers(targetLayers, clipSrc, targetDataset, type, opts) {
     return clipLayersByBBox(targetLayers, targetDataset, opts);
   }
   mergedDataset = mergeLayersForOverlay(targetLayers, targetDataset, clipSrc, opts);
+  clipLyr = mergedDataset.layers[mergedDataset.layers.length-1];
   if (usingPathClip) {
     // add vertices at all line intersections
     // (generally slower than actual clipping)
     nodes = addIntersectionCuts(mergedDataset, opts);
     targetDataset.arcs = mergedDataset.arcs;
+    // dissolve clip layer shapes (to remove overlaps and other topological issues
+    // that might confuse the clipping function)
+    clipLyr = dissolvePolygonLayer2(clipLyr, mergedDataset, {quiet: true, silent: true});
+
   } else {
     nodes = new NodeCollection(mergedDataset.arcs);
   }
-  clipLyr = mergedDataset.layers.pop();
+  // clipLyr = mergedDataset.layers.pop();
   return clipLayersByLayer(targetLayers, clipLyr, nodes, type, opts);
 }
 

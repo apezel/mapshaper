@@ -5,6 +5,7 @@ import { addLayerGetters } from '../expressions/mapshaper-layer-proxy';
 import { initDataTable } from '../dataset/mapshaper-layer-utils';
 import utils from '../utils/mapshaper-utils';
 import { message, stop } from '../utils/mapshaper-logging';
+import { getStateVar } from '../mapshaper-state';
 
 // Compiled expression returns a value
 export function compileValueExpression(exp, lyr, arcs, opts) {
@@ -126,13 +127,14 @@ export function compileFeatureExpression(rawExp, lyr, arcs, opts_) {
 // Return array of variables on the left side of assignment operations
 // @hasDot (bool) Return property assignments via dot notation
 export function getAssignedVars(exp, hasDot) {
-  var rxp = /[a-z_][.a-z0-9_]*(?= *=[^>=])/ig; // ignore arrow functions and comparisons
+  var rxp = /[a-z_$][.a-z0-9_$]*(?= *=[^>=])/ig; // ignore arrow functions and comparisons
   var matches = exp.match(rxp) || [];
   var f = function(s) {
     var i = s.indexOf('.');
     return hasDot ? i > -1 : i == -1;
   };
-  return utils.uniq(matches.filter(f));
+  var vars = utils.uniq(matches.filter(f));
+  return vars;
 }
 
 // Return array of objects with properties assigned via dot notation
@@ -197,30 +199,32 @@ function nullifyUnsetProperties(vars, obj) {
 }
 
 function getExpressionContext(lyr, mixins, opts) {
+  var defs = getStateVar('defs');
   var env = getBaseContext();
   var ctx = {};
   var fields = lyr.data ? lyr.data.getFields() : [];
   opts = opts || {};
   addUtils(env); // mix in round(), sprintf(), etc.
-  if (lyr.data) {
-    // default to null values when a data field is missing
+  if (fields.length > 0) {
+    // default to null values, so assignments to missing data properties
+    // are applied to the data record, not the global object
     nullifyUnsetProperties(fields, env);
   }
-  if (mixins) {
-    Object.keys(mixins).forEach(function(key) {
-      // Catch name collisions between data fields and user-defined functions
-      var d = Object.getOwnPropertyDescriptor(mixins, key);
-      if (key in env) {
-      }
-      if (d.get) {
-        // copy accessor function from mixins to context
-        Object.defineProperty(ctx, key, {get: d.get}); // copy getter function to context
-      } else {
-        // copy regular property from mixins to context, but make it non-writable
-        Object.defineProperty(ctx, key, {value: mixins[key]});
-      }
-    });
-  }
+  // Add global 'defs' to the expression context
+  mixins = utils.defaults(mixins || {}, defs);
+  // also add defs as 'global' object
+  env.global = defs;
+  Object.keys(mixins).forEach(function(key) {
+    // Catch name collisions between data fields and user-defined functions
+    var d = Object.getOwnPropertyDescriptor(mixins, key);
+    if (d.get) {
+      // copy accessor function from mixins to context
+      Object.defineProperty(ctx, key, {get: d.get}); // copy getter function to context
+    } else {
+      // copy regular property from mixins to context, but make it non-writable
+      Object.defineProperty(ctx, key, {value: mixins[key]});
+    }
+  });
   // make context properties non-writable, so they can't be replaced by an expression
   return Object.keys(env).reduce(function(memo, key) {
     if (key in memo) {

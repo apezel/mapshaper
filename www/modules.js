@@ -126,9 +126,7 @@ function fromByteArray (uint8) {
 
   // go through the array every three bytes, we'll deal with trailing stuff later
   for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-    parts.push(encodeChunk(
-      uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)
-    ))
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
   }
 
   // pad the end with zeros, but make sure to not forget the extra bytes
@@ -3607,6 +3605,7 @@ StripBOMWrapper.prototype.end = function() {
 
 
 },{}],22:[function(require,module,exports){
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -4725,7 +4724,7 @@ exports.writeFile = dashify(require("./write-file"), "/dev/stdout");
 exports.writeFileSync = dashify(require("./write-file-sync"), "/dev/stdout");
 
 },{"./read-file":33,"./read-file-sync":32,"./write-file":35,"./write-file-sync":34}],30:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 module.exports = function(options) {
   if (options) {
     if (typeof options === "string") return encoding(options);
@@ -4750,9 +4749,9 @@ function encoding(encoding) {
   };
 }
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"buffer":"buffer"}],31:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 module.exports = function(data, options) {
   return typeof data === "string"
       ? new Buffer(data, typeof options === "string" ? options
@@ -4761,9 +4760,9 @@ module.exports = function(data, options) {
       : data;
 };
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"buffer":"buffer"}],32:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 var fs = require("fs"),
     decode = require("./decode");
 
@@ -4794,9 +4793,9 @@ module.exports = function(filename, options) {
 
 var bufferSize = 1 << 16;
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"./decode":30,"buffer":"buffer","fs":"fs"}],33:[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 var fs = require("fs"),
     decode = require("./decode");
 
@@ -4821,7 +4820,7 @@ function readStream(stream, options, callback) {
   stream.on("end", function() { callback(null, decoder.value()); });
 }
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"./decode":30,"_process":23,"fs":"fs"}],34:[function(require,module,exports){
 var fs = require("fs"),
     encode = require("./encode");
@@ -4857,7 +4856,7 @@ module.exports = function(filename, data, options) {
 };
 
 },{"./encode":31,"fs":"fs"}],35:[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 var fs = require("fs"),
     encode = require("./encode");
 
@@ -4881,7 +4880,7 @@ function writeStream(stream, send, data, options, callback) {
   stream[send](encode(data, options), function(error) { callback(error && error.code === "EPIPE" ? null : error); });
 }
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"./encode":31,"_process":23,"fs":"fs"}],36:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
@@ -4947,7 +4946,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 }
 
 },{"buffer":"buffer"}],37:[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 /* eslint-disable node/no-deprecated-api */
 
 'use strict'
@@ -5026,7 +5025,7 @@ if (!safer.constants) {
 
 module.exports = safer
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"_process":23,"buffer":"buffer"}],38:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5345,7 +5344,7 @@ function handleQs(url, query) {
 exports["default"] = handleQs;
 
 },{"qs":25}],"buffer":[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -7124,7 +7123,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"base64-js":1,"buffer":"buffer","ieee754":22}],"d3-color":[function(require,module,exports){
 // https://d3js.org/d3-color/ v2.0.0 Copyright 2020 Mike Bostock
 (function (global, factory) {
@@ -9285,7 +9284,7 @@ return Flatbush;
 },{}],"fs":[function(require,module,exports){
 arguments[4][2][0].apply(exports,arguments)
 },{"dup":2}],"iconv-lite":[function(require,module,exports){
-(function (process){
+(function (process){(function (){
 "use strict";
 
 // Some environments don't have global Buffer (e.g. React Native).
@@ -9440,9 +9439,207 @@ if ("Ā" != "\u0100") {
     console.error("iconv-lite warning: javascript files use encoding different from utf-8. See https://github.com/ashtuchkin/iconv-lite/wiki/Javascript-source-file-encodings for more info.");
 }
 
-}).call(this,require('_process'))
-},{"../encodings":6,"./bom-handling":21,"./extend-node":2,"./streams":2,"_process":23,"safer-buffer":37}],"mproj":[function(require,module,exports){
-(function (__filename){
+}).call(this)}).call(this,require('_process'))
+},{"../encodings":6,"./bom-handling":21,"./extend-node":2,"./streams":2,"_process":23,"safer-buffer":37}],"kdbush":[function(require,module,exports){
+(function (global, factory) {
+typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+typeof define === 'function' && define.amd ? define(factory) :
+(global.KDBush = factory());
+}(this, (function () { 'use strict';
+
+function sortKD(ids, coords, nodeSize, left, right, depth) {
+    if (right - left <= nodeSize) { return; }
+
+    var m = (left + right) >> 1;
+
+    select(ids, coords, m, left, right, depth % 2);
+
+    sortKD(ids, coords, nodeSize, left, m - 1, depth + 1);
+    sortKD(ids, coords, nodeSize, m + 1, right, depth + 1);
+}
+
+function select(ids, coords, k, left, right, inc) {
+
+    while (right > left) {
+        if (right - left > 600) {
+            var n = right - left + 1;
+            var m = k - left + 1;
+            var z = Math.log(n);
+            var s = 0.5 * Math.exp(2 * z / 3);
+            var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+            var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+            var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+            select(ids, coords, k, newLeft, newRight, inc);
+        }
+
+        var t = coords[2 * k + inc];
+        var i = left;
+        var j = right;
+
+        swapItem(ids, coords, left, k);
+        if (coords[2 * right + inc] > t) { swapItem(ids, coords, left, right); }
+
+        while (i < j) {
+            swapItem(ids, coords, i, j);
+            i++;
+            j--;
+            while (coords[2 * i + inc] < t) { i++; }
+            while (coords[2 * j + inc] > t) { j--; }
+        }
+
+        if (coords[2 * left + inc] === t) { swapItem(ids, coords, left, j); }
+        else {
+            j++;
+            swapItem(ids, coords, j, right);
+        }
+
+        if (j <= k) { left = j + 1; }
+        if (k <= j) { right = j - 1; }
+    }
+}
+
+function swapItem(ids, coords, i, j) {
+    swap(ids, i, j);
+    swap(coords, 2 * i, 2 * j);
+    swap(coords, 2 * i + 1, 2 * j + 1);
+}
+
+function swap(arr, i, j) {
+    var tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+}
+
+function range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
+    var stack = [0, ids.length - 1, 0];
+    var result = [];
+    var x, y;
+
+    while (stack.length) {
+        var axis = stack.pop();
+        var right = stack.pop();
+        var left = stack.pop();
+
+        if (right - left <= nodeSize) {
+            for (var i = left; i <= right; i++) {
+                x = coords[2 * i];
+                y = coords[2 * i + 1];
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY) { result.push(ids[i]); }
+            }
+            continue;
+        }
+
+        var m = Math.floor((left + right) / 2);
+
+        x = coords[2 * m];
+        y = coords[2 * m + 1];
+
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY) { result.push(ids[m]); }
+
+        var nextAxis = (axis + 1) % 2;
+
+        if (axis === 0 ? minX <= x : minY <= y) {
+            stack.push(left);
+            stack.push(m - 1);
+            stack.push(nextAxis);
+        }
+        if (axis === 0 ? maxX >= x : maxY >= y) {
+            stack.push(m + 1);
+            stack.push(right);
+            stack.push(nextAxis);
+        }
+    }
+
+    return result;
+}
+
+function within(ids, coords, qx, qy, r, nodeSize) {
+    var stack = [0, ids.length - 1, 0];
+    var result = [];
+    var r2 = r * r;
+
+    while (stack.length) {
+        var axis = stack.pop();
+        var right = stack.pop();
+        var left = stack.pop();
+
+        if (right - left <= nodeSize) {
+            for (var i = left; i <= right; i++) {
+                if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) { result.push(ids[i]); }
+            }
+            continue;
+        }
+
+        var m = Math.floor((left + right) / 2);
+
+        var x = coords[2 * m];
+        var y = coords[2 * m + 1];
+
+        if (sqDist(x, y, qx, qy) <= r2) { result.push(ids[m]); }
+
+        var nextAxis = (axis + 1) % 2;
+
+        if (axis === 0 ? qx - r <= x : qy - r <= y) {
+            stack.push(left);
+            stack.push(m - 1);
+            stack.push(nextAxis);
+        }
+        if (axis === 0 ? qx + r >= x : qy + r >= y) {
+            stack.push(m + 1);
+            stack.push(right);
+            stack.push(nextAxis);
+        }
+    }
+
+    return result;
+}
+
+function sqDist(ax, ay, bx, by) {
+    var dx = ax - bx;
+    var dy = ay - by;
+    return dx * dx + dy * dy;
+}
+
+var defaultGetX = function (p) { return p[0]; };
+var defaultGetY = function (p) { return p[1]; };
+
+var KDBush = function KDBush(points, getX, getY, nodeSize, ArrayType) {
+    if ( getX === void 0 ) getX = defaultGetX;
+    if ( getY === void 0 ) getY = defaultGetY;
+    if ( nodeSize === void 0 ) nodeSize = 64;
+    if ( ArrayType === void 0 ) ArrayType = Float64Array;
+
+    this.nodeSize = nodeSize;
+    this.points = points;
+
+    var IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
+
+    var ids = this.ids = new IndexArrayType(points.length);
+    var coords = this.coords = new ArrayType(points.length * 2);
+
+    for (var i = 0; i < points.length; i++) {
+        ids[i] = i;
+        coords[2 * i] = getX(points[i]);
+        coords[2 * i + 1] = getY(points[i]);
+    }
+
+    sortKD(ids, coords, nodeSize, 0, ids.length - 1, 0);
+};
+
+KDBush.prototype.range = function range$1 (minX, minY, maxX, maxY) {
+    return range(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
+};
+
+KDBush.prototype.within = function within$1 (x, y, r) {
+    return within(this.ids, this.coords, x, y, r, this.nodeSize);
+};
+
+return KDBush;
+
+})));
+
+},{}],"mproj":[function(require,module,exports){
+(function (__filename){(function (){
 (function(){
 
 // add math.h functions to library scope
@@ -9695,6 +9892,7 @@ function pj_param(params, code) {
       obj = params[name],
       isset = obj !== void 0,
       val, param;
+
   if (type == 't') {
     val = isset;
   } else if (isset) {
@@ -14935,8 +15133,8 @@ function pj_msfn(sinphi, cosphi, es) {
 }
 
 
-pj_add(pj_aea, 'aea', 'Albers Equal Area', '\n\tConic Sph&Ell\n\tlat_1= lat_2=');
-pj_add(pj_leac, 'leac', 'Lambert Equal Area Conic', '\n\tConic, Sph&Ell\n\tlat_1= south');
+pj_add(pj_aea, 'aea', 'Albers Equal Area', 'Conic Sph&Ell\nlat_1= lat_2=');
+pj_add(pj_leac, 'leac', 'Lambert Equal Area Conic', 'Conic, Sph&Ell\nlat_1= south');
 
 function pj_aea(P) {
   var phi1 = pj_param(P.params, "rlat_1");
@@ -15129,7 +15327,7 @@ function aatan2(n, d) {
 }
 
 
-pj_add(pj_aeqd, 'aeqd', 'Azimuthal Equidistant', '\n\tAzi, Sph&Ell\n\tlat_0 guam');
+pj_add(pj_aeqd, 'aeqd', 'Azimuthal Equidistant', 'Azi, Sph&Ell\nlat_0 guam');
 
 function pj_aeqd(P) {
   var EPS10 = 1.e-10,
@@ -15340,7 +15538,7 @@ function pj_aeqd(P) {
 }
 
 
-pj_add(pj_airy, 'airy', 'Airy', '\n\tMisc Sph, no inv.\n\tno_cut lat_b=');
+pj_add(pj_airy, 'airy', 'Airy', 'Misc Sph, no inv.\nno_cut lat_b=');
 
 function pj_airy(P) {
   var EPS = 1e-10,
@@ -15425,8 +15623,8 @@ function pj_airy(P) {
 }
 
 
-pj_add(pj_wintri, 'wintri', 'Winkel Tripel', '\n\tMisc Sph\n\tlat_1');
-pj_add(pj_aitoff, 'aitoff', 'Aitoff', '\n\tMisc Sph');
+pj_add(pj_wintri, 'wintri', 'Winkel Tripel', 'Misc Sph\nlat_1');
+pj_add(pj_aitoff, 'aitoff', 'Aitoff', 'Misc Sph');
 
 function pj_wintri(P) {
   var Q = P.opaque = {mode: 1};
@@ -15529,7 +15727,7 @@ function pj_aitoff(P) {
 }
 
 
-pj_add(pj_august, 'august', 'August Epicycloidal', '\n\tMisc Sph, no inv.');
+pj_add(pj_august, 'august', 'August Epicycloidal', 'Misc Sph, no inv.');
 
 function pj_august(P) {
   P.fwd = s_fwd;
@@ -15550,9 +15748,9 @@ function pj_august(P) {
 }
 
 
-pj_add(pj_apian, 'apian', 'Apian Globular I', '\n\tMisc Sph, no inv.');
-pj_add(pj_ortel, 'ortel', 'Ortelius Oval', '\n\tMisc Sph, no inv.');
-pj_add(pj_bacon, 'bacon', 'Bacon Globular', '\n\tMisc Sph, no inv.');
+pj_add(pj_apian, 'apian', 'Apian Globular I', 'Misc Sph, no inv.');
+pj_add(pj_ortel, 'ortel', 'Ortelius Oval', 'Misc Sph, no inv.');
+pj_add(pj_bacon, 'bacon', 'Bacon Globular', 'Misc Sph, no inv.');
 
 function pj_bacon(P) {
   pj_bacon_init(P, true, false);
@@ -15600,7 +15798,7 @@ function pj_bacon_init(P, bacn, ortl) {
   Port to PROJ by Philippe Rivière, 21 September 2018
   Port to JavaScript by Matthew Bloch October 2018
 */
-pj_add(pj_bertin1953, 'bertin1953', 'Bertin 1953', "\n\tMisc Sph no inv.");
+pj_add(pj_bertin1953, 'bertin1953', 'Bertin 1953', 'Misc., Sph., NoInv.');
 
 function pj_bertin1953(P) {
   var cos_delta_phi, sin_delta_phi, cos_delta_gamma, sin_delta_gamma;
@@ -15650,7 +15848,7 @@ function pj_bertin1953(P) {
       xy.x *= 1 + d;
     }
     if (xy.y > 0) {
-      xy.x *= 1 + d / 1.5 * xy.x * xy.x;
+      xy.y *= 1 + d / 1.5 * xy.x * xy.x;
     }
 
     return xy;
@@ -15658,7 +15856,7 @@ function pj_bertin1953(P) {
 }
 
 
-pj_add(pj_boggs, 'boggs', 'Boggs Eumorphic', '\n\tPCyl., no inv., Sph.');
+pj_add(pj_boggs, 'boggs', 'Boggs Eumorphic', 'PCyl., no inv., Sph.');
 
 function pj_boggs(P) {
   var NITER = 20,
@@ -15691,7 +15889,7 @@ function pj_boggs(P) {
 }
 
 
-pj_add(pj_bonne, 'bonne', 'Bonne (Werner lat_1=90)', '\n\tConic Sph&Ell\n\tlat_1=');
+pj_add(pj_bonne, 'bonne', 'Bonne (Werner lat_1=90)', 'Conic Sph&Ell\nlat_1=');
 
 function pj_bonne(P) {
   var EPS10 = 1e-10;
@@ -15757,7 +15955,7 @@ function pj_bonne(P) {
 }
 
 
-pj_add(pj_cass, 'cass', 'Cassini', '\n\tCyl, Sph&Ell');
+pj_add(pj_cass, 'cass', 'Cassini', 'Cyl, Sph&Ell');
 
 function pj_cass(P) {
   var C1 = 0.16666666666666666666,
@@ -15846,7 +16044,7 @@ function pj_authlat(beta, APA) {
 }
 
 
-pj_add(pj_cea, 'cea', 'Equal Area Cylindrical', '\n\tCyl, Sph&Ell\n\tlat_ts=');
+pj_add(pj_cea, 'cea', 'Equal Area Cylindrical', 'Cyl, Sph&Ell\nlat_ts=');
 
 function pj_cea(P) {
   var t = 0, qp, apa;
@@ -15898,7 +16096,7 @@ function pj_cea(P) {
 }
 
 
-pj_add(pj_chamb, 'chamb', 'Chamberlin Trimetric', '\n\tMisc Sph, no inv.\n\tlat_1= lon_1= lat_2= lon_2= lat_3= lon_3=');
+pj_add(pj_chamb, 'chamb', 'Chamberlin Trimetric', 'Misc Sph, no inv.\nlat_1= lon_1= lat_2= lon_2= lat_3= lon_3=');
 
 function pj_chamb(P) {
   var THIRD  = 1/3,
@@ -16002,7 +16200,7 @@ function pj_chamb(P) {
 }
 
 
-pj_add(pj_crast, 'crast', 'Craster Parabolic (Putnins P4)', '\n\tPCyl., Sph.');
+pj_add(pj_crast, 'crast', 'Craster Parabolic (Putnins P4)', 'PCyl., Sph.');
 
 function pj_crast(P) {
   var XM = 0.97720502380583984317;
@@ -16027,7 +16225,55 @@ function pj_crast(P) {
 }
 
 
-pj_add(pj_denoy, 'denoy', 'Denoyer Semi-Elliptical', '\n\tPCyl, Sph., no inv.');
+pj_add(pj_cupola, 'cupola', 'Cupola', 'PCyl., Sph., NoInv.');
+
+// Source: https://www.tandfonline.com/eprint/EE7Y8RK4GXA4ITWUTQPY/full?target=10.1080/23729333.2020.1862962
+// See also: http://www.at-a-lanta.nl/weia/cupola.html
+
+function pj_cupola(P) {
+  var de = 0.5253;  // part of the equator on intermediate sphere, default = 1
+  var dp = 0.7264;  // sin of angle of polar line, default = 1
+  var ri = 1 / Math.sqrt(de * dp);
+  var he = 0.4188; // height of equator (can be negative, default = 0)
+  var se = 0.9701; // stretch in plane, default = 1
+  var phi0 = 22 * DEG_TO_RAD; // phi of projection center
+  // center of projection on intermediate sphere
+  var pc = calcP(phi0);
+  var qc = calcQ(0);
+  var spc = sin(pc);
+  var cpc = cos(pc);
+
+  // apply default central meridian
+  if (!pj_param(P.params, 'tlon_0')) {
+    P.lam0 = 11.023 * DEG_TO_RAD;
+  }
+
+  P.es = 0;
+  P.fwd = s_fwd;
+
+  function calcP(phi) {
+    return asin(dp * sin(phi) + he * sqrt(de * dp));
+  }
+
+  function calcQ(lam) {
+    return de * lam;
+  }
+
+  function s_fwd(lp, xy) {
+    var p = calcP(lp.phi);
+    var q = calcQ(lp.lam);
+    var sp = sin(p);
+    var cp = cos(p);
+    var sqqc = sin(q - qc);
+    var cqqc = cos(q - qc);
+    var K = sqrt(2 / (1 + sin(pc) * sp + cpc * cp * cqqc));
+    xy.x = ri * K * cp * sqqc * se;
+    xy.y = ri * K * (cpc * sp - spc * cp * cqqc) / se;
+  }
+}
+
+
+pj_add(pj_denoy, 'denoy', 'Denoyer Semi-Elliptical', 'PCyl, Sph., no inv.');
 
 function pj_denoy(P) {
   P.fwd = s_fwd;
@@ -16049,14 +16295,14 @@ function pj_denoy(P) {
 }
 
 
-pj_add(pj_eck1, 'eck1', 'Eckert I', '\n\tPCyl Sph');
-pj_add(pj_eck2, 'eck2', 'Eckert II', '\n\tPCyl Sph');
-pj_add(pj_eck3, 'eck3', 'Eckert III', '\n\tPCyl Sph');
-pj_add(pj_wag6, 'wag6', 'Wagner VI', '\n\tPCyl Sph');
-pj_add(pj_kav7, 'kav7', 'Kavraisky VII', '\n\tPCyl Sph');
-pj_add(pj_putp1, 'putp1', 'Putnins P1', '\n\tPCyl Sph');
-pj_add(pj_eck4, 'eck4', 'Eckert IV', '\n\tPCyl Sph');
-pj_add(pj_eck5, 'eck5', 'Eckert V', '\n\tPCyl Sph');
+pj_add(pj_eck1, 'eck1', 'Eckert I', 'PCyl Sph');
+pj_add(pj_eck2, 'eck2', 'Eckert II', 'PCyl Sph');
+pj_add(pj_eck3, 'eck3', 'Eckert III', 'PCyl Sph');
+pj_add(pj_wag6, 'wag6', 'Wagner VI', 'PCyl Sph');
+pj_add(pj_kav7, 'kav7', 'Kavraisky VII', 'PCyl Sph');
+pj_add(pj_putp1, 'putp1', 'Putnins P1', 'PCyl Sph');
+pj_add(pj_eck4, 'eck4', 'Eckert IV', 'PCyl Sph');
+pj_add(pj_eck5, 'eck5', 'Eckert V', 'PCyl Sph');
 
 function pj_eck1(P) {
   var FC = 0.92131773192356127802,
@@ -16225,7 +16471,7 @@ function pj_eck5(P) {
 }
 
 
-pj_add(pj_eqc, 'eqc', 'Equidistant Cylindrical (Plate Caree)', '\n\tCyl, Sph\n\tlat_ts=[, lat_0=0]');
+pj_add(pj_eqc, 'eqc', 'Equidistant Cylindrical (Plate Caree)', 'Cyl, Sph\nlat_ts=[, lat_0=0]');
 
 function pj_eqc(P) {
   var rc = cos(pj_param(P.params, "rlat_ts"));
@@ -16246,7 +16492,7 @@ function pj_eqc(P) {
 }
 
 
-pj_add(pj_eqdc, 'eqdc', 'Equidistant Conic', '\n\tConic, Sph&Ell\n\tlat_1= lat_2=');
+pj_add(pj_eqdc, 'eqdc', 'Equidistant Conic', 'Conic, Sph&Ell\nlat_1= lat_2=');
 
 function pj_eqdc(P) {
   var phi1, phi2, n, rho, rho0, c, en, ellips, cosphi, sinphi, secant;
@@ -16334,7 +16580,7 @@ function pj_eqdc(P) {
  * Code released August 2018
  * Ported to JavaScript and adapted for mapshaper-proj by Matthew Bloch August 2018
  */
-pj_add(pj_eqearth, 'eqearth', 'Equal Earth', "\n\tPCyl., Sph.");
+pj_add(pj_eqearth, 'eqearth', 'Equal Earth', 'PCyl., Sph.');
 
 function pj_eqearth(P) {
   var A1 = 1.340264,
@@ -16381,36 +16627,7 @@ function pj_eqearth(P) {
 }
 
 
-pj_add(pj_etmerc, 'etmerc', 'Extended Transverse Mercator', '\n\tCyl, Sph\n\tlat_ts=(0)\nlat_0=(0)');
-pj_add(pj_utm, 'utm', 'Universal Transverse Mercator (UTM)', '\n\tCyl, Sph\n\tzone= south');
-
-
-function pj_utm_zone(P) {
-
-}
-
-function pj_utm(P) {
-  var zone;
-  if (!P.es) e_error(-34);
-  P.y0 = pj_param(P.params, "bsouth") ? 10000000 : 0;
-  P.x0 = 500000;
-  if (pj_param(P.params, "tzone")) {
-    if ((zone = pj_param(P.params, "izone")) > 0 && zone <= 60)
-      --zone;
-    else
-      e_error(-35);
-  } else { /* nearest central meridian input */
-    zone = floor((adjlon(P.lam0) + M_PI) * 30 / M_PI);
-    if (zone < 0)
-      zone = 0;
-    else if (zone >= 60)
-      zone = 59;
-  }
-  P.lam0 = (zone + 0.5) * M_PI / 30 - M_PI;
-  P.k0 = 0.9996;
-  P.phi0 = 0;
-  pj_etmerc(P);
-}
+pj_add(pj_etmerc, 'etmerc', 'Extended Transverse Mercator', 'Cyl, Sph\nlat_ts=(0)\nlat_0=(0)');
 
 function pj_etmerc(P) {
   var cgb = [],
@@ -16603,7 +16820,7 @@ function pj_etmerc(P) {
 }
 
 
-pj_add(pj_gall, 'gall', 'Gall (Gall Stereographic)', '\n\tCyl, Sph');
+pj_add(pj_gall, 'gall', 'Gall (Gall Stereographic)', 'Cyl, Sph');
 
 function pj_gall(P) {
   var YF = 1.70710678118654752440,
@@ -16627,7 +16844,7 @@ function pj_gall(P) {
 }
 
 
-pj_add(pj_geocent, 'geocent', 'Geocentric', '\n\t');
+pj_add(pj_geocent, 'geocent', 'Geocentric', '');
 
 function pj_geocent(P) {
   P.is_geocent = true;
@@ -16648,7 +16865,7 @@ function pj_geocent(P) {
 
 // from
 
-pj_add(pj_gilbert, 'gilbert', 'Gilbert Two World Perspective', '\n\tPCyl., Sph., NoInv.\n\tlat_1=');
+pj_add(pj_gilbert, 'gilbert', 'Gilbert Two World Perspective', 'PCyl., Sph., NoInv.\nlat_1=');
 
 function pj_gilbert(P) {
   var lat1 = pj_param(P.params, 'tlat_1') ? pj_param(P.params, 'rlat_1') : 0,
@@ -16678,7 +16895,7 @@ function pj_gilbert(P) {
 }
 
 
-pj_add(pj_gins8, 'gins8', 'Ginsburg VIII (TsNIIGAiK)', '\n\tPCyl, Sph., no inv.');
+pj_add(pj_gins8, 'gins8', 'Ginsburg VIII (TsNIIGAiK)', 'PCyl, Sph., no inv.');
 
 function pj_gins8(P) {
   P.fwd = s_fwd;
@@ -16697,10 +16914,10 @@ function pj_gins8(P) {
 }
 
 
-pj_add(pj_gn_sinu, 'gn_sinu', 'General Sinusoidal Series', '\n\tPCyl, Sph.\n\tm= n=');
-pj_add(pj_sinu, 'sinu', 'Sinusoidal (Sanson-Flamsteed)', '\n\tPCyl, Sph&Ell');
-pj_add(pj_eck6, 'eck6', 'Eckert VI', '\n\tPCyl, Sph.\n\tm= n=');
-pj_add(pj_mbtfps, 'mbtfps', 'McBryde-Thomas Flat-Polar Sinusoidal', '\n\tPCyl, Sph.');
+pj_add(pj_gn_sinu, 'gn_sinu', 'General Sinusoidal Series', 'PCyl, Sph.\nm= n=');
+pj_add(pj_sinu, 'sinu', 'Sinusoidal (Sanson-Flamsteed)', 'PCyl, Sph&Ell');
+pj_add(pj_eck6, 'eck6', 'Eckert VI', 'PCyl, Sph.\nm= n=');
+pj_add(pj_mbtfps, 'mbtfps', 'McBryde-Thomas Flat-Polar Sinusoidal', 'PCyl, Sph.');
 
 function pj_gn_sinu(P) {
   if (pj_param(P.params, 'tn'), pj_param(P.params, 'tm')) {
@@ -16785,7 +17002,7 @@ function pj_sinu_init(P, m, n) {
 
 
 
-pj_add(pj_gnom, 'gnom', 'Gnomonic', '\n\tAzi, Sph.');
+pj_add(pj_gnom, 'gnom', 'Gnomonic', 'Azi, Sph.');
 
 function pj_gnom(P) {
   var EPS10 = 1.e-10,
@@ -16892,9 +17109,9 @@ function pj_gnom(P) {
 }
 
 
-pj_add(pj_moll, 'moll', 'Mollweide', '\n\tPCyl Sph');
-pj_add(pj_wag4, 'wag4', 'Wagner IV', '\n\tPCyl Sph');
-pj_add(pj_wag5, 'wag5', 'Wagner V', '\n\tPCyl Sph');
+pj_add(pj_moll, 'moll', 'Mollweide', 'PCyl Sph');
+pj_add(pj_wag4, 'wag4', 'Wagner IV', 'PCyl Sph');
+pj_add(pj_wag5, 'wag5', 'Wagner V', 'PCyl Sph');
 
 function pj_moll(P) {
   pj_moll_init(P, pj_moll_init_Q(P, M_HALFPI));
@@ -16962,7 +17179,7 @@ function pj_moll_init(P, Q) {
 }
 
 
-pj_add(pj_goode, 'goode', "Goode Homolosine", "\n\tPCyl, Sph.");
+pj_add(pj_goode, 'goode', 'Goode Homolosine', 'PCyl, Sph.');
 
 function pj_goode(P) {
   var Y_COR = 0.05280,
@@ -16994,7 +17211,7 @@ function pj_goode(P) {
 }
 
 
-pj_add(pj_hammer, 'hammer', 'Hammer & Eckert-Greifendorff', '\n\tMisc Sph, \n\tW= M=');
+pj_add(pj_hammer, 'hammer', 'Hammer & Eckert-Greifendorff', 'Misc Sph,\nW= M=');
 
 function pj_hammer(P) {
   var w, m, rm;
@@ -17035,7 +17252,7 @@ function pj_hammer(P) {
 }
 
 
-pj_add(pj_hatano, 'hatano', 'Hatano Asymmetrical Equal Area', '\n\tPCyl., Sph.');
+pj_add(pj_hatano, 'hatano', 'Hatano Asymmetrical Equal Area', 'PCyl., Sph.');
 
 function pj_hatano(P) {
   var NITER = 20;
@@ -17096,8 +17313,8 @@ function pj_hatano(P) {
 }
 
 
-pj_add(pj_healpix, 'healpix', 'HEALPix', '\n\tSph., Ellps.');
-pj_add(pj_rhealpix, 'rhealpix', 'rHEALPix', '\n\tSph., Ellps.\n\tnorth_square= south_square=');
+pj_add(pj_healpix, 'healpix', 'HEALPix', 'Sph., Ellps.');
+pj_add(pj_rhealpix, 'rhealpix', 'rHEALPix', 'Sph., Ellps.\nnorth_square= south_square=');
 
 function pj_rhealpix(P) {
   pj_healpix(P, true);
@@ -17568,7 +17785,67 @@ function pj_healpix(P, rhealpix) {
 }
 
 
-pj_add(pj_krovak, 'krovak', 'Krovak', '\n\tPCyl., Ellps.');
+pj_add(pj_hill, 'hill', 'Hill Eucyclic', 'PCyl., Sph.');
+
+// Adapted from: https://github.com/d3/d3-geo-projection/blob/master/src/hill.js
+// License: https://github.com/d3/d3-geo-projection/blob/master/LICENSE
+
+function pj_hill(P) {
+  var K = 1, // TODO: expose as parameter
+      L = 1 + K,
+      sinBt = sin(1 / L),
+      Bt = asin(sinBt),
+      A = 2 * sqrt(M_PI / (B = M_PI + 4 * Bt * L)),
+      B,
+      rho0 = 0.5 * A * (L + sqrt(K * (2 + K))),
+      K2 = K * K,
+      L2 = L * L,
+      EPS = 1e-12;
+
+  P.es = 0;
+  P.fwd = s_fwd;
+  P.inv = s_inv;
+
+  function s_fwd(lp, xy) {
+    var t = 1 - sin(lp.phi),
+        rho, omega;
+    if (t && t < 2) {
+      var theta = M_HALFPI - lp.phi,
+          i = 25,
+          delta, sinTheta, cosTheta, C, Bt_Bt1;
+      do {
+        sinTheta = sin(theta);
+        cosTheta = cos(theta);
+        Bt_Bt1 = Bt + atan2(sinTheta, L - cosTheta);
+        C = 1 + L2 - 2 * L * cosTheta;
+        theta -= delta = (theta - K2 * Bt - L * sinTheta + C * Bt_Bt1 -0.5 * t * B) / (2 * L * sinTheta * Bt_Bt1);
+      } while (fabs(delta) > EPS && --i > 0);
+      rho = A * sqrt(C);
+      omega = lp.lam * Bt_Bt1 / M_PI;
+    } else {
+      rho = A * (K + t);
+      omega = lp.lam * Bt / M_PI;
+    }
+
+    xy.x = rho * sin(omega);
+    xy.y = rho0 - rho * cos(omega);
+  }
+
+  function s_inv(xy, lp) {
+    var x = xy.x,
+        y = xy.y,
+        rho2 = x * x + (y -= rho0) * y,
+        cosTheta = (1 + L2 - rho2 / (A * A)) / (2 * L),
+        theta = acos(cosTheta),
+        sinTheta = sin(theta),
+        Bt_Bt1 = Bt + atan2(sinTheta, L - cosTheta);
+    lp.lam = asin(x / sqrt(rho2)) * M_PI / Bt_Bt1,
+    lp.phi = asin(1 - 2 * (theta - K2 * Bt - L * sinTheta + (1 + L2 - 2 * L * cosTheta) * Bt_Bt1) / B);
+  }
+}
+
+
+pj_add(pj_krovak, 'krovak', 'Krovak', 'PCyl., Ellps.');
 
 function pj_krovak(P) {
   var u0, n0, g;
@@ -17661,7 +17938,7 @@ function pj_krovak(P) {
 }
 
 
-pj_add(pj_laea, 'laea', 'Lambert Azimuthal Equal Area', '\n\tAzi, Sph&Ell');
+pj_add(pj_laea, 'laea', 'Lambert Azimuthal Equal Area', 'Azi, Sph&Ell');
 
 function pj_laea(P) {
   var EPS10 = 1e-10,
@@ -17885,10 +18162,10 @@ function pj_laea(P) {
 }
 
 
-pj_add(pj_lonlat, 'lonlat', 'Lat/long (Geodetic)', '\n\t');
-pj_add(pj_lonlat, 'longlat', 'Lat/long (Geodetic alias)', '\n\t');
-pj_add(pj_lonlat, 'latlon', 'Lat/long (Geodetic alias)', '\n\t');
-pj_add(pj_lonlat, 'latlong', 'Lat/long (Geodetic alias)', '\n\t');
+pj_add(pj_lonlat, 'lonlat', 'Lat/long (Geodetic)', '');
+pj_add(pj_lonlat, 'longlat', 'Lat/long (Geodetic alias)', '');
+pj_add(pj_lonlat, 'latlon', 'Lat/long (Geodetic alias)', '');
+pj_add(pj_lonlat, 'latlong', 'Lat/long (Geodetic alias)', '');
 
 function pj_lonlat(P) {
   P.x0 = 0;
@@ -17916,7 +18193,7 @@ function pj_tsfn(phi, sinphi, e) {
 }
 
 
-pj_add(pj_lcc, 'lcc', 'Lambert Conformal Conic', '\n\tConic, Sph&Ell\n\tlat_1= and lat_2= or lat_0=');
+pj_add(pj_lcc, 'lcc', 'Lambert Conformal Conic', 'Conic, Sph&Ell\nlat_1= and lat_2= or lat_0=');
 
 function pj_lcc(P) {
   var EPS10 = 1e-10;
@@ -18004,7 +18281,7 @@ function pj_lcc(P) {
 }
 
 
-pj_add(pj_loxim, 'loxim', 'Loximuthal', '\n\tPCyl Sph');
+pj_add(pj_loxim, 'loxim', 'Loximuthal', 'PCyl Sph');
 
 function pj_loxim(P) {
   var EPS = 1e-8;
@@ -18045,7 +18322,7 @@ function pj_loxim(P) {
 }
 
 
-pj_add(pj_mbt_fpp, 'mbt_fpp', 'McBride-Thomas Flat-Polar Parabolic', '\n\tCyl., Sph.');
+pj_add(pj_mbt_fpp, 'mbt_fpp', 'McBride-Thomas Flat-Polar Parabolic', 'Cyl., Sph.');
 
 function pj_mbt_fpp(P) {
   var CS = 0.95257934441568037152,
@@ -18087,7 +18364,7 @@ function pj_mbt_fpp(P) {
 }
 
 
-pj_add(pj_mbt_fpq, 'mbt_fpq', 'McBryde-Thomas Flat-Polar Quartic', '\n\tCyl., Sph.');
+pj_add(pj_mbt_fpq, 'mbt_fpq', 'McBryde-Thomas Flat-Polar Quartic', 'Cyl., Sph.');
 
 function pj_mbt_fpq(P) {
   var NITER = 20,
@@ -18142,7 +18419,7 @@ function pj_mbt_fpq(P) {
 }
 
 
-pj_add(pj_mbt_fps, 'mbt_fps', 'McBryde-Thomas Flat-Pole Sine (No. 2)', '\n\tCyl., Sph.');
+pj_add(pj_mbt_fps, 'mbt_fps', 'McBryde-Thomas Flat-Pole Sine (No. 2)', 'Cyl., Sph.');
 
 function pj_mbt_fps(P) {
   var MAX_ITER = 10,
@@ -18203,15 +18480,15 @@ function pj_phi2(ts, e) {
 }
 
 
-pj_add(pj_merc, "merc", "Mercator", "\n\tCyl, Sph&Ell\n\tlat_ts=");
+pj_add(pj_merc, 'merc', 'Mercator', 'Cyl, Sph&Ell\nlat_ts=');
 
 function pj_merc(P) {
   var EPS10 = 1e-10;
   var phits = 0;
-  var is_phits = pj_param(P.params, "tlat_ts");
+  var is_phits = pj_param(P.params, 'tlat_ts');
 
   if (is_phits) {
-    phits = pj_param(P.params, "rlat_ts");
+    phits = pj_param(P.params, 'rlat_ts');
     if (phits >= M_HALFPI) {
       e_error(-24);
     }
@@ -18259,7 +18536,7 @@ function pj_merc(P) {
 }
 
 
-pj_add(pj_mill, 'mill', 'Miller Cylindrical', '\n\tCyl, Sph');
+pj_add(pj_mill, 'mill', 'Miller Cylindrical', 'Cyl, Sph');
 
 function pj_mill(P) {
 
@@ -18330,11 +18607,11 @@ function pj_zpolyd1(z, C, der) {
 }
 
 
-pj_add(pj_mil_os, 'mil_os', 'Miller Oblated Stereographic', '\n\tAzi(mod)');
-pj_add(pj_lee_os, 'lee_os', 'Lee Oblated Stereographic', '\n\tAzi(mod)');
-pj_add(pj_gs48, 'gs48', 'Mod Stereographic of 48 U.S.', '\n\tAzi(mod)');
-pj_add(pj_alsk, 'alsk', 'Mod Stereographic of Alaska', '\n\tAzi(mod)');
-pj_add(pj_gs50, 'gs50', 'Mod Stereographic of 50 U.S.', '\n\tAzi(mod)');
+pj_add(pj_mil_os, 'mil_os', 'Miller Oblated Stereographic', 'Azi(mod)');
+pj_add(pj_lee_os, 'lee_os', 'Lee Oblated Stereographic', 'Azi(mod)');
+pj_add(pj_gs48, 'gs48', 'Mod Stereographic of 48 U.S.', 'Azi(mod)');
+pj_add(pj_alsk, 'alsk', 'Mod Stereographic of Alaska', 'Azi(mod)');
+pj_add(pj_gs50, 'gs50', 'Mod Stereographic of 50 U.S.', 'Azi(mod)');
 
 function pj_mil_os(P) {
   var AB = [
@@ -18533,8 +18810,8 @@ function pj_mod_ster(P, zcoeff) {
 }
 
 
-pj_add(pj_natearth, 'natearth', 'Natural Earth', '\n\tPCyl., Sph.');
-pj_add(pj_natearth2, 'natearth2', 'Natural Earth 2', '\n\tPCyl., Sph.');
+pj_add(pj_natearth, 'natearth', 'Natural Earth', 'PCyl., Sph.');
+pj_add(pj_natearth2, 'natearth2', 'Natural Earth 2', 'PCyl., Sph.');
 
 function pj_natearth(P) {
   var A0 = 0.8707,
@@ -18652,7 +18929,7 @@ function pj_natearth2(P) {
 }
 
 
-pj_add(pj_nell, 'nell', 'Nell', '\n\tPCyl., Sph.');
+pj_add(pj_nell, 'nell', 'Nell', 'PCyl., Sph.');
 
 function pj_nell(P) {
   var MAX_ITER = 10;
@@ -18683,7 +18960,7 @@ function pj_nell(P) {
 }
 
 
-pj_add(pj_nell_h, 'nell_h', 'Nell-Hammer', '\n\tPCyl., Sph.');
+pj_add(pj_nell_h, 'nell_h', 'Nell-Hammer', 'PCyl., Sph.');
 
 function pj_nell_h(P) {
 var NITER = 9,
@@ -18715,8 +18992,8 @@ var NITER = 9,
 }
 
 
-pj_add(pj_nsper, 'nsper', 'Near-sided perspective', '\n\tAzi, Sph\n\th=');
-pj_add(pj_tpers, 'tpers', 'Tilted perspective', '\n\tAzi, Sph\n\ttilt= azi= h=');
+pj_add(pj_nsper, 'nsper', 'Near-sided perspective', 'Azi, Sph\nh=');
+pj_add(pj_tpers, 'tpers', 'Tilted perspective', 'Azi, Sph\ntilt= azi= h=');
 
 function pj_nsper(P) {
   pj_tpers_init(P, pj_param(P.params, "dh"));
@@ -18852,7 +19129,7 @@ function pj_tpers_init(P, height, tiltAngle, azimuth) {
 }
 
 
-pj_add(pj_nzmg, 'nzmg', 'New Zealand Map Grid', '\n\tfixed Earth');
+pj_add(pj_nzmg, 'nzmg', 'New Zealand Map Grid', 'fixed Earth');
 
 function pj_nzmg(P) {
   var EPSLN = 1e-10;
@@ -18921,11 +19198,11 @@ function pj_nzmg(P) {
 }
 
 
-pj_add(pj_ob_tran, 'ob_tran', 'General Oblique Transformation', "\n\tMisc Sph" +
-  "\n\to_proj= plus parameters for projection" +
-  "\n\to_lat_p= o_lon_p= (new pole) or" +
-  "\n\to_alpha= o_lon_c= o_lat_c= or" +
-  "\n\to_lon_1= o_lat_1= o_lon_2= o_lat_2=");
+pj_add(pj_ob_tran, 'ob_tran', 'General Oblique Transformation', 'Misc Sph\n' +
+  'o_proj= plus parameters for projection\n' +
+  'o_lat_p= o_lon_p= (new pole) or\n' +
+  'o_alpha= o_lon_c= o_lat_c= or\n' +
+  'o_lon_1= o_lat_1= o_lon_2= o_lat_2=');
 
 function pj_ob_tran(P) {
   var name, defn, P2;
@@ -18954,25 +19231,25 @@ function pj_ob_tran(P) {
     P.fr_meter = RAD_TO_DEG;
   }
 
-  if (pj_param(P.params, "to_alpha")) {
-    lamc  = pj_param(P.params, "ro_lon_c");
-    phic  = pj_param(P.params, "ro_lat_c");
-    alpha = pj_param(P.params, "ro_alpha");
+  if (pj_param(P.params, 'to_alpha')) {
+    lamc  = pj_param(P.params, 'ro_lon_c');
+    phic  = pj_param(P.params, 'ro_lat_c');
+    alpha = pj_param(P.params, 'ro_alpha');
 
     if (fabs(fabs(phic) - M_HALFPI) <= TOL) e_error(-32);
     lamp = lamc + aatan2(-cos(alpha), -sin(alpha) * sin(phic));
     phip = aasin(cos(phic) * sin(alpha));
 
-  } else if (pj_param(P.params, "to_lat_p")) { /* specified new pole */
-    lamp = pj_param(P.params, "ro_lon_p");
-    phip = pj_param(P.params, "ro_lat_p");
+  } else if (pj_param(P.params, 'to_lat_p')) { /* specified new pole */
+    lamp = pj_param(P.params, 'ro_lon_p');
+    phip = pj_param(P.params, 'ro_lat_p');
 
-  } else { /* specified new "equator" points */
+  } else { /* specified new 'equator' points */
 
-    lam1 = pj_param(P.params, "ro_lon_1");
-    phi1 = pj_param(P.params, "ro_lat_1");
-    lam2 = pj_param(P.params, "ro_lon_2");
-    phi2 = pj_param(P.params, "ro_lat_2");
+    lam1 = pj_param(P.params, 'ro_lon_1');
+    phi1 = pj_param(P.params, 'ro_lat_1');
+    lam2 = pj_param(P.params, 'ro_lon_2');
+    phi2 = pj_param(P.params, 'ro_lat_2');
     if (fabs(phi1 - phi2) <= TOL ||
         (con = fabs(phi1)) <= TOL ||
         fabs(con - M_HALFPI) <= TOL ||
@@ -19039,7 +19316,7 @@ function pj_ob_tran(P) {
 }
 
 
-pj_add(pj_ocea, 'ocea', 'Oblique Cylindrical Equal Area', '\n\tCyl, Sph lonc= alpha= or\n\tlat_1= lat_2= lon_1= lon_2=');
+pj_add(pj_ocea, 'ocea', 'Oblique Cylindrical Equal Area', 'Cyl, Sph lonc= alpha= or\nlat_1= lat_2= lon_1= lon_2=');
 
 function pj_ocea(P) {
   var phi_0 = 0,
@@ -19108,8 +19385,8 @@ function pj_ocea(P) {
 }
 
 
-pj_add(pj_omerc, 'omerc', 'Oblique Mercator', '\n\tCyl, Sph&Ell no_rot' +
-    '\n\talpha= [gamma=] [no_off] lonc= or\n\t lon_1= lat_1= lon_2= lat_2=');
+pj_add(pj_omerc, 'omerc', 'Oblique Mercator', 'Cyl, Sph&Ell no_rot\n' +
+    'alpha= [gamma=] [no_off] lonc= or\nlon_1= lat_1= lon_2= lat_2=');
 
 function pj_omerc(P) {
   var TOL = 1e-7;
@@ -19270,7 +19547,7 @@ function pj_omerc(P) {
 }
 
 
-pj_add(pj_ortho, 'ortho', 'Orthographic', '\n\tAzi, Sph.');
+pj_add(pj_ortho, 'ortho', 'Orthographic', 'Azi, Sph.');
 
 function pj_ortho(P) {
   var EPS10 = 1.e-10,
@@ -19362,7 +19639,7 @@ function pj_ortho(P) {
 }
 
 
-pj_add(pj_patterson, 'patterson', 'Patterson Cylindrical', '\n\tCyl., Sph.');
+pj_add(pj_patterson, 'patterson', 'Patterson Cylindrical', 'Cyl., Sph.');
 
 function pj_patterson(P) {
   var K1 = 1.0148,
@@ -19419,7 +19696,7 @@ function pj_patterson(P) {
 }
 
 
-pj_add(pj_poly, 'poly', 'Polyconic (American)', '\n\tConic, Sph&Ell');
+pj_add(pj_poly, 'poly', 'Polyconic (American)', 'Conic, Sph&Ell');
 
 function pj_poly(P) {
   var TOL = 1e-10,
@@ -19521,7 +19798,7 @@ function pj_poly(P) {
 }
 
 
-pj_add(pj_putp2, 'putp2', 'Putnins P2', '\n\tPCyl., Sph.');
+pj_add(pj_putp2, 'putp2', 'Putnins P2', 'PCyl., Sph.');
 
 function pj_putp2(P) {
   var C_x = 1.89490,
@@ -19562,8 +19839,8 @@ function pj_putp2(P) {
 }
 
 
-pj_add(pj_putp3, 'putp3', 'Putnins P3', '\n\tPCyl., Sph.');
-pj_add(pj_putp3p, 'putp3p', 'Putnins P3\'', '\n\tPCyl., Sph.');
+pj_add(pj_putp3, 'putp3', 'Putnins P3', 'PCyl., Sph.');
+pj_add(pj_putp3p, 'putp3p', 'Putnins P3\'', 'PCyl., Sph.');
 
 function pj_putp3p(P) {
   pj_putp3(P, true);
@@ -19589,8 +19866,8 @@ function pj_putp3(P, prime) {
 }
 
 
-pj_add(pj_putp4p, 'putp4p', 'Putnins P4\'', '\n\tPCyl., Sph.');
-pj_add(pj_weren, 'weren', 'Werenskiold I', '\n\tPCyl., Sph.');
+pj_add(pj_putp4p, 'putp4p', 'Putnins P4\'', 'PCyl., Sph.');
+pj_add(pj_weren, 'weren', 'Werenskiold I', 'PCyl., Sph.');
 
 function pj_putp4p(P) {
   pj_putp4p_init(P, 0.874038744, 3.883251825);
@@ -19622,8 +19899,8 @@ function pj_putp4p_init(P, C_x, C_y) {
 }
 
 
-pj_add(pj_putp5, 'putp5', 'Putnins P5', '\n\tPCyl., Sph.');
-pj_add(pj_putp5p, 'putp5p', 'Putnins P5\'', '\n\tPCyl., Sph.');
+pj_add(pj_putp5, 'putp5', 'Putnins P5', 'PCyl., Sph.');
+pj_add(pj_putp5p, 'putp5p', 'Putnins P5\'', 'PCyl., Sph.');
 
 function pj_putp5p(P) {
   pj_putp5(P, true);
@@ -19651,8 +19928,8 @@ function pj_putp5(P, prime) {
 }
 
 
-pj_add(pj_putp6, 'putp6', 'Putnins P6', '\n\tPCyl., Sph.');
-pj_add(pj_putp6p, 'putp6p', 'Putnins P6\'', '\n\tPCyl., Sph.');
+pj_add(pj_putp6, 'putp6', 'Putnins P6', 'PCyl., Sph.');
+pj_add(pj_putp6p, 'putp6p', 'Putnins P6\'', 'PCyl., Sph.');
 
 function pj_putp6p(P) {
   pj_putp6(P, true);
@@ -19709,7 +19986,7 @@ function pj_putp6(P, prime) {
 }
 
 
-pj_add(pj_qsc, 'qsc', 'Quadrilateralized Spherical Cube', '\n\tAzi, Sph.');
+pj_add(pj_qsc, 'qsc', 'Quadrilateralized Spherical Cube', 'Azi, Sph.');
 
 function pj_qsc(P) {
   var EPS10 = 1.e-10;
@@ -20053,7 +20330,7 @@ function pj_qsc(P) {
 }
 
 
-pj_add(pj_robin, 'robin', 'Robinson', "\n\tPCyl., Sph.");
+pj_add(pj_robin, 'robin', 'Robinson', 'PCyl., Sph.');
 
 function pj_robin(P) {
   var X = to_float([
@@ -20177,13 +20454,13 @@ function pj_robin(P) {
 }
 
 
-pj_add(pj_get_sconic('EULER'), 'euler', 'Euler', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('MURD1'), 'murd1', 'Murdoch I', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('MURD2'), 'murd2', 'Murdoch II', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('MURD3'), 'murd3', 'Murdoch III', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('PCONIC'), 'pconic', 'Perspective Conic', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('TISSOT'), 'tissot', 'Tissot', '\n\tConic, Sph\n\tlat_1= and lat_2=');
-pj_add(pj_get_sconic('VITK1'), 'vitk1', 'Vitkovsky I', '\n\tConic, Sph\n\tlat_1= and lat_2=');
+pj_add(pj_get_sconic('EULER'), 'euler', 'Euler', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('MURD1'), 'murd1', 'Murdoch I', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('MURD2'), 'murd2', 'Murdoch II', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('MURD3'), 'murd3', 'Murdoch III', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('PCONIC'), 'pconic', 'Perspective Conic', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('TISSOT'), 'tissot', 'Tissot', 'Conic, Sph\nlat_1= and lat_2=');
+pj_add(pj_get_sconic('VITK1'), 'vitk1', 'Vitkovsky I', 'Conic, Sph\nlat_1= and lat_2=');
 
 function pj_get_sconic(type) {
   return function(P) {
@@ -20310,7 +20587,7 @@ function pj_sconic(P, type) {
 }
 
 
-pj_add(pj_somerc, 'somerc', 'Swiss. Obl. Mercator', '\n\tCyl, Ell\n\tFor CH1903');
+pj_add(pj_somerc, 'somerc', 'Swiss. Obl. Mercator', 'Cyl, Ell\nFor CH1903');
 
 function pj_somerc(P) {
   var K, c, hlf_e, kR, cosp0, sinp0;
@@ -20370,8 +20647,8 @@ function pj_somerc(P) {
 }
 
 
-pj_add(pj_stere, 'stere', 'Stereographic', '\n\tAzi, Sph&Ell\n\tlat_ts=');
-pj_add(pj_ups, 'ups', 'Universal Polar Stereographic', '\n\tAzi, Sph&Ell\n\tsouth');
+pj_add(pj_stere, 'stere', 'Stereographic', 'Azi, Sph&Ell\nlat_ts=');
+pj_add(pj_ups, 'ups', 'Universal Polar Stereographic', 'Azi, Sph&Ell\nsouth');
 
 function pj_ups(P) {
   P.phi0 = pj_param(P.params, "bsouth") ? -M_HALFPI : M_HALFPI;
@@ -20652,7 +20929,7 @@ function pj_inv_gauss(lp, en) {
 }
 
 
-pj_add(pj_sterea, 'sterea', 'Oblique Stereographic Alternative', '\n\tAzimuthal, Sph&Ell');
+pj_add(pj_sterea, 'sterea', 'Oblique Stereographic Alternative', 'Azimuthal, Sph&Ell');
 
 function pj_sterea(P) {
   var en = pj_gauss_ini(P.e, P.phi0),
@@ -20695,10 +20972,10 @@ function pj_sterea(P) {
 }
 
 
-pj_add(pj_kav5, 'kav5', 'Kavraisky V', '\n\tPCyl., Sph.');
-pj_add(pj_qua_aut, 'qua_aut', 'Quartic Authalic', '\n\tPCyl., Sph.');
-pj_add(pj_fouc, 'fouc', 'Foucaut', '\n\tPCyl., Sph.');
-pj_add(pj_mbt_s, 'mbt_s', 'McBryde-Thomas Flat-Polar Sine (No. 1)', '\n\tPCyl., Sph.');
+pj_add(pj_kav5, 'kav5', 'Kavraisky V', 'PCyl., Sph.');
+pj_add(pj_qua_aut, 'qua_aut', 'Quartic Authalic', 'PCyl., Sph.');
+pj_add(pj_fouc, 'fouc', 'Foucaut', 'PCyl., Sph.');
+pj_add(pj_mbt_s, 'mbt_s', 'McBryde-Thomas Flat-Polar Sine (No. 1)', 'PCyl., Sph.');
 
 function pj_kav5(P) {
   pj_sts(P, 1.50488, 1.35439, false);
@@ -20753,7 +21030,7 @@ function pj_sts(P, p, q, tan_mode) {
 }
 
 
-pj_add(pj_tcea, 'tcea', 'Transverse Cylindrical Equal Area', '\n\tCyl, Sph');
+pj_add(pj_tcea, 'tcea', 'Transverse Cylindrical Equal Area', 'Cyl, Sph');
 
 function pj_tcea(P) {
   P.es = 0;
@@ -20776,7 +21053,7 @@ function pj_tcea(P) {
 }
 
 
-pj_add(pj_times, 'times', 'Times', "\n\tCyl, Sph");
+pj_add(pj_times, 'times', 'Times', 'Cyl, Sph');
 
 function pj_times(P) {
   P.es = 0;
@@ -20795,9 +21072,69 @@ function pj_times(P) {
 }
 
 
-pj_add(pj_tmerc, 'tmerc', "Transverse Mercator", "\n\tCyl, Sph&Ell");
+pj_add(pj_tmerc, 'tmerc', 'Transverse Mercator', 'Cyl, Sph&Ell');
+pj_add(pj_utm, 'utm', 'Universal Transverse Mercator (UTM)', 'Cyl, Sph\nzone= south');
+
+function pj_utm_zone(P) {
+
+}
+
+function pj_utm(P) {
+  var zone;
+  if (!P.es) e_error(-34);
+  P.y0 = pj_param(P.params, "bsouth") ? 10000000 : 0;
+  P.x0 = 500000;
+  if (pj_param(P.params, "tzone")) {
+    if ((zone = pj_param(P.params, "izone")) > 0 && zone <= 60)
+      --zone;
+    else
+      e_error(-35);
+  } else { /* nearest central meridian input */
+    zone = floor((adjlon(P.lam0) + M_PI) * 30 / M_PI);
+    if (zone < 0)
+      zone = 0;
+    else if (zone >= 60)
+      zone = 59;
+  }
+  P.lam0 = (zone + 0.5) * M_PI / 30 - M_PI;
+  P.k0 = 0.9996;
+  P.phi0 = 0;
+  pj_etmerc(P);
+}
 
 function pj_tmerc(P) {
+  // TODO: support +algo option
+  if (pj_param(P.params, "bapprox")) {
+    pj_tmerc_approx(P);
+  } else {
+    pj_tmerc_auto(P);
+  }
+}
+
+function pj_tmerc_auto(P) {
+  if (P.es === 0) {
+    return pj_tmerc_approx(P);
+  }
+  pj_etmerc(P);
+  var etfwd = P.fwd;
+  var etinv = P.inv;
+  pj_tmerc_approx(P);
+  var fwd = P.fwd;
+  var inv = P.inv;
+
+  P.fwd = function(lp, xy) {
+    if (fabs(lp.lam) > 3 * DEG_TO_RAD) etfwd(lp, xy);
+    else fwd(lp, xy);
+  };
+
+  P.inv = function(xy, lp) {
+    // See https://github.com/OSGeo/PROJ/blob/master/src/projections/tmerc.cpp
+    if (fabs(xy.x) > 0.053 - 0.022 * xy.y * xy.y) etinv(xy, lp);
+    else inv(xy, lp);
+  };
+}
+
+function pj_tmerc_approx(P) {
   var EPS10 = 1e-10,
       FC1 = 1,
       FC2 = 0.5,
@@ -20925,7 +21262,7 @@ function pj_tmerc(P) {
 }
 
 
-pj_add(pj_tpeqd, 'tpeqd', 'Two Point Equidistant', '\n\tMisc Sph\n\tlat_1= lon_1= lat_2= lon_2=');
+pj_add(pj_tpeqd, 'tpeqd', 'Two Point Equidistant', 'Misc Sph\nlat_1= lon_1= lat_2= lon_2=');
 
 function pj_tpeqd(P) {
   var cp1, sp1, cp2, sp2, ccs, cs, sc, r2z0, z02, dlam2;
@@ -21001,7 +21338,7 @@ function pj_tpeqd(P) {
 }
 
 
-pj_add(pj_urm5, 'urm5', 'Urmaev V', '\n\tPCyl., Sph., no inv.\n\tn= q= alpha=');
+pj_add(pj_urm5, 'urm5', 'Urmaev V', 'PCyl., Sph., no inv.\nn= q= alpha=');
 
 function pj_urm5(P) {
   var m, rmn, q3, n;
@@ -21028,8 +21365,8 @@ function pj_urm5(P) {
 }
 
 
-pj_add(pj_urmfps, 'urmfps', 'Urmaev Flat-Polar Sinusoidal', '\n\tPCyl, Sph.\n\tn=');
-pj_add(pj_wag1, 'wag1', 'Wagner I (Kavraisky VI)', '\n\tPCyl, Sph.');
+pj_add(pj_urmfps, 'urmfps', 'Urmaev Flat-Polar Sinusoidal', 'PCyl, Sph.\nn=');
+pj_add(pj_wag1, 'wag1', 'Wagner I (Kavraisky VI)', 'PCyl, Sph.');
 
 
 function pj_wag1(P) {
@@ -21064,10 +21401,10 @@ function pj_urmfps_init(P, n) {
 }
 
 
-pj_add(pj_vandg, 'vandg', 'van der Grinten (I)', '\n\tMisc Sph');
-pj_add(pj_vandg2, 'vandg2', 'van der Grinten II', '\n\tMisc Sph, no inv.');
-pj_add(pj_vandg3, 'vandg3', 'van der Grinten III', '\n\tMisc Sph, no inv.');
-pj_add(pj_vandg4, 'vandg4', 'van der Grinten IV', '\n\tMisc Sph, no inv.');
+pj_add(pj_vandg, 'vandg', 'van der Grinten (I)', 'Misc Sph');
+pj_add(pj_vandg2, 'vandg2', 'van der Grinten II', 'Misc Sph, no inv.');
+pj_add(pj_vandg3, 'vandg3', 'van der Grinten III', 'Misc Sph, no inv.');
+pj_add(pj_vandg4, 'vandg4', 'van der Grinten IV', 'Misc Sph, no inv.');
 
 function pj_vandg(P) {
   var TOL = 1.e-10,
@@ -21226,9 +21563,9 @@ function pj_vandg4(P) {
 }
 
 
-pj_add(pj_wag2, 'wag2', 'Wagner II', '\n\tPCyl., Sph.');
-pj_add(pj_wag3, 'wag3', 'Wagner III', '\n\tPCyl., Sph.\n\tlat_ts=');
-pj_add(pj_wag7, 'wag7', 'Wagner VII', '\n\tMisc Sph, no inv.');
+pj_add(pj_wag2, 'wag2', 'Wagner II', 'PCyl., Sph.');
+pj_add(pj_wag3, 'wag3', 'Wagner III', 'PCyl., Sph.\nlat_ts=');
+pj_add(pj_wag7, 'wag7', 'Wagner VII', 'Misc Sph, no inv.');
 
 function pj_wag2(P) {
   var C_x = 0.92483,
@@ -21285,8 +21622,8 @@ function pj_wag7(P) {
 
 
 
-pj_add(pj_wink1, 'wink1', 'Winkel I', '\n\tPCyl., Sph.\n\tlat_ts=');
-pj_add(pj_wink2, 'wink2', 'Winkel II', '\n\tPCyl., Sph., no inv.\n\tlat_1=');
+pj_add(pj_wink1, 'wink1', 'Winkel I', 'PCyl., Sph.\nlat_ts=');
+pj_add(pj_wink2, 'wink2', 'Winkel II', 'PCyl., Sph., no inv.\nlat_1=');
 
 function pj_wink1(P) {
   var cosphi1 = cos(pj_param(P.params, "rlat_ts"));
@@ -21395,11 +21732,11 @@ function pj_latlong_from_proj(P) {
 
 }());
 
-}).call(this,"/node_modules/mproj/dist/mproj.js")
+}).call(this)}).call(this,"/node_modules/mproj/dist/mproj.js")
 },{"fs":"fs","path":"path"}],"path":[function(require,module,exports){
-(function (process){
-// .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
-// backported and transplited with Babel, with backwards-compat fixes
+(function (process){(function (){
+// 'path' module extracted from Node.js v8.11.1 (only the posix part)
+// transplited with Babel
 
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -21422,286 +21759,513 @@ function pj_latlong_from_proj(P) {
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length - 1; i >= 0; i--) {
-    var last = parts[i];
-    if (last === '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
-  }
+'use strict';
 
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
+function assertPath(path) {
+  if (typeof path !== 'string') {
+    throw new TypeError('Path must be a string. Received ' + JSON.stringify(path));
   }
-
-  return parts;
 }
 
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-  var resolvedPath = '',
-      resolvedAbsolute = false;
-
-  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
-    var path = (i >= 0) ? arguments[i] : process.cwd();
-
-    // Skip empty and invalid entries
-    if (typeof path !== 'string') {
-      throw new TypeError('Arguments to path.resolve must be strings');
-    } else if (!path) {
-      continue;
-    }
-
-    resolvedPath = path + '/' + resolvedPath;
-    resolvedAbsolute = path.charAt(0) === '/';
-  }
-
-  // At this point the path should be resolved to a full absolute path, but
-  // handle relative paths to be safe (might happen when process.cwd() fails)
-
-  // Normalize the path
-  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
-
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
-
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-  var isAbsolute = exports.isAbsolute(path),
-      trailingSlash = substr(path, -1) === '/';
-
-  // Normalize the path
-  path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
-
-  if (!path && !isAbsolute) {
-    path = '.';
-  }
-  if (path && trailingSlash) {
-    path += '/';
-  }
-
-  return (isAbsolute ? '/' : '') + path;
-};
-
-// posix version
-exports.isAbsolute = function(path) {
-  return path.charAt(0) === '/';
-};
-
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    if (typeof p !== 'string') {
-      throw new TypeError('Arguments to path.join must be strings');
-    }
-    return p;
-  }).join('/'));
-};
-
-
-// path.relative(from, to)
-// posix version
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
-  }
-
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
-
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
+// Resolves . and .. elements in a path with directory names
+function normalizeStringPosix(path, allowAboveRoot) {
+  var res = '';
+  var lastSegmentLength = 0;
+  var lastSlash = -1;
+  var dots = 0;
+  var code;
+  for (var i = 0; i <= path.length; ++i) {
+    if (i < path.length)
+      code = path.charCodeAt(i);
+    else if (code === 47 /*/*/)
       break;
-    }
-  }
-
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
-  }
-
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
-
-  return outputParts.join('/');
-};
-
-exports.sep = '/';
-exports.delimiter = ':';
-
-exports.dirname = function (path) {
-  if (typeof path !== 'string') path = path + '';
-  if (path.length === 0) return '.';
-  var code = path.charCodeAt(0);
-  var hasRoot = code === 47 /*/*/;
-  var end = -1;
-  var matchedSlash = true;
-  for (var i = path.length - 1; i >= 1; --i) {
-    code = path.charCodeAt(i);
+    else
+      code = 47 /*/*/;
     if (code === 47 /*/*/) {
-        if (!matchedSlash) {
-          end = i;
-          break;
+      if (lastSlash === i - 1 || dots === 1) {
+        // NOOP
+      } else if (lastSlash !== i - 1 && dots === 2) {
+        if (res.length < 2 || lastSegmentLength !== 2 || res.charCodeAt(res.length - 1) !== 46 /*.*/ || res.charCodeAt(res.length - 2) !== 46 /*.*/) {
+          if (res.length > 2) {
+            var lastSlashIndex = res.lastIndexOf('/');
+            if (lastSlashIndex !== res.length - 1) {
+              if (lastSlashIndex === -1) {
+                res = '';
+                lastSegmentLength = 0;
+              } else {
+                res = res.slice(0, lastSlashIndex);
+                lastSegmentLength = res.length - 1 - res.lastIndexOf('/');
+              }
+              lastSlash = i;
+              dots = 0;
+              continue;
+            }
+          } else if (res.length === 2 || res.length === 1) {
+            res = '';
+            lastSegmentLength = 0;
+            lastSlash = i;
+            dots = 0;
+            continue;
+          }
+        }
+        if (allowAboveRoot) {
+          if (res.length > 0)
+            res += '/..';
+          else
+            res = '..';
+          lastSegmentLength = 2;
         }
       } else {
-      // We saw the first non-path separator
-      matchedSlash = false;
+        if (res.length > 0)
+          res += '/' + path.slice(lastSlash + 1, i);
+        else
+          res = path.slice(lastSlash + 1, i);
+        lastSegmentLength = i - lastSlash - 1;
+      }
+      lastSlash = i;
+      dots = 0;
+    } else if (code === 46 /*.*/ && dots !== -1) {
+      ++dots;
+    } else {
+      dots = -1;
     }
   }
-
-  if (end === -1) return hasRoot ? '/' : '.';
-  if (hasRoot && end === 1) {
-    // return '//';
-    // Backwards-compat fix:
-    return '/';
-  }
-  return path.slice(0, end);
-};
-
-function basename(path) {
-  if (typeof path !== 'string') path = path + '';
-
-  var start = 0;
-  var end = -1;
-  var matchedSlash = true;
-  var i;
-
-  for (i = path.length - 1; i >= 0; --i) {
-    if (path.charCodeAt(i) === 47 /*/*/) {
-        // If we reached a path separator that was not part of a set of path
-        // separators at the end of the string, stop now
-        if (!matchedSlash) {
-          start = i + 1;
-          break;
-        }
-      } else if (end === -1) {
-      // We saw the first non-path separator, mark this as the end of our
-      // path component
-      matchedSlash = false;
-      end = i + 1;
-    }
-  }
-
-  if (end === -1) return '';
-  return path.slice(start, end);
+  return res;
 }
 
-// Uses a mixed approach for backwards-compatibility, as ext behavior changed
-// in new Node.js versions, so only basename() above is backported here
-exports.basename = function (path, ext) {
-  var f = basename(path);
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
+function _format(sep, pathObject) {
+  var dir = pathObject.dir || pathObject.root;
+  var base = pathObject.base || (pathObject.name || '') + (pathObject.ext || '');
+  if (!dir) {
+    return base;
   }
-  return f;
-};
+  if (dir === pathObject.root) {
+    return dir + base;
+  }
+  return dir + sep + base;
+}
 
-exports.extname = function (path) {
-  if (typeof path !== 'string') path = path + '';
-  var startDot = -1;
-  var startPart = 0;
-  var end = -1;
-  var matchedSlash = true;
-  // Track the state of characters (if any) we see before our first dot and
-  // after any path separator we find
-  var preDotState = 0;
-  for (var i = path.length - 1; i >= 0; --i) {
-    var code = path.charCodeAt(i);
-    if (code === 47 /*/*/) {
-        // If we reached a path separator that was not part of a set of path
-        // separators at the end of the string, stop now
-        if (!matchedSlash) {
-          startPart = i + 1;
-          break;
-        }
+var posix = {
+  // path.resolve([from ...], to)
+  resolve: function resolve() {
+    var resolvedPath = '';
+    var resolvedAbsolute = false;
+    var cwd;
+
+    for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+      var path;
+      if (i >= 0)
+        path = arguments[i];
+      else {
+        if (cwd === undefined)
+          cwd = process.cwd();
+        path = cwd;
+      }
+
+      assertPath(path);
+
+      // Skip empty entries
+      if (path.length === 0) {
         continue;
       }
-    if (end === -1) {
-      // We saw the first non-path separator, mark this as the end of our
-      // extension
-      matchedSlash = false;
-      end = i + 1;
-    }
-    if (code === 46 /*.*/) {
-        // If this is our first dot, mark it as the start of our extension
-        if (startDot === -1)
-          startDot = i;
-        else if (preDotState !== 1)
-          preDotState = 1;
-    } else if (startDot !== -1) {
-      // We saw a non-dot and non-path separator before our dot, so we should
-      // have a good chance at having a non-empty extension
-      preDotState = -1;
-    }
-  }
 
-  if (startDot === -1 || end === -1 ||
-      // We saw a non-dot character immediately before the dot
-      preDotState === 0 ||
-      // The (right-most) trimmed path component is exactly '..'
-      preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
-    return '';
-  }
-  return path.slice(startDot, end);
+      resolvedPath = path + '/' + resolvedPath;
+      resolvedAbsolute = path.charCodeAt(0) === 47 /*/*/;
+    }
+
+    // At this point the path should be resolved to a full absolute path, but
+    // handle relative paths to be safe (might happen when process.cwd() fails)
+
+    // Normalize the path
+    resolvedPath = normalizeStringPosix(resolvedPath, !resolvedAbsolute);
+
+    if (resolvedAbsolute) {
+      if (resolvedPath.length > 0)
+        return '/' + resolvedPath;
+      else
+        return '/';
+    } else if (resolvedPath.length > 0) {
+      return resolvedPath;
+    } else {
+      return '.';
+    }
+  },
+
+  normalize: function normalize(path) {
+    assertPath(path);
+
+    if (path.length === 0) return '.';
+
+    var isAbsolute = path.charCodeAt(0) === 47 /*/*/;
+    var trailingSeparator = path.charCodeAt(path.length - 1) === 47 /*/*/;
+
+    // Normalize the path
+    path = normalizeStringPosix(path, !isAbsolute);
+
+    if (path.length === 0 && !isAbsolute) path = '.';
+    if (path.length > 0 && trailingSeparator) path += '/';
+
+    if (isAbsolute) return '/' + path;
+    return path;
+  },
+
+  isAbsolute: function isAbsolute(path) {
+    assertPath(path);
+    return path.length > 0 && path.charCodeAt(0) === 47 /*/*/;
+  },
+
+  join: function join() {
+    if (arguments.length === 0)
+      return '.';
+    var joined;
+    for (var i = 0; i < arguments.length; ++i) {
+      var arg = arguments[i];
+      assertPath(arg);
+      if (arg.length > 0) {
+        if (joined === undefined)
+          joined = arg;
+        else
+          joined += '/' + arg;
+      }
+    }
+    if (joined === undefined)
+      return '.';
+    return posix.normalize(joined);
+  },
+
+  relative: function relative(from, to) {
+    assertPath(from);
+    assertPath(to);
+
+    if (from === to) return '';
+
+    from = posix.resolve(from);
+    to = posix.resolve(to);
+
+    if (from === to) return '';
+
+    // Trim any leading backslashes
+    var fromStart = 1;
+    for (; fromStart < from.length; ++fromStart) {
+      if (from.charCodeAt(fromStart) !== 47 /*/*/)
+        break;
+    }
+    var fromEnd = from.length;
+    var fromLen = fromEnd - fromStart;
+
+    // Trim any leading backslashes
+    var toStart = 1;
+    for (; toStart < to.length; ++toStart) {
+      if (to.charCodeAt(toStart) !== 47 /*/*/)
+        break;
+    }
+    var toEnd = to.length;
+    var toLen = toEnd - toStart;
+
+    // Compare paths to find the longest common path from root
+    var length = fromLen < toLen ? fromLen : toLen;
+    var lastCommonSep = -1;
+    var i = 0;
+    for (; i <= length; ++i) {
+      if (i === length) {
+        if (toLen > length) {
+          if (to.charCodeAt(toStart + i) === 47 /*/*/) {
+            // We get here if `from` is the exact base path for `to`.
+            // For example: from='/foo/bar'; to='/foo/bar/baz'
+            return to.slice(toStart + i + 1);
+          } else if (i === 0) {
+            // We get here if `from` is the root
+            // For example: from='/'; to='/foo'
+            return to.slice(toStart + i);
+          }
+        } else if (fromLen > length) {
+          if (from.charCodeAt(fromStart + i) === 47 /*/*/) {
+            // We get here if `to` is the exact base path for `from`.
+            // For example: from='/foo/bar/baz'; to='/foo/bar'
+            lastCommonSep = i;
+          } else if (i === 0) {
+            // We get here if `to` is the root.
+            // For example: from='/foo'; to='/'
+            lastCommonSep = 0;
+          }
+        }
+        break;
+      }
+      var fromCode = from.charCodeAt(fromStart + i);
+      var toCode = to.charCodeAt(toStart + i);
+      if (fromCode !== toCode)
+        break;
+      else if (fromCode === 47 /*/*/)
+        lastCommonSep = i;
+    }
+
+    var out = '';
+    // Generate the relative path based on the path difference between `to`
+    // and `from`
+    for (i = fromStart + lastCommonSep + 1; i <= fromEnd; ++i) {
+      if (i === fromEnd || from.charCodeAt(i) === 47 /*/*/) {
+        if (out.length === 0)
+          out += '..';
+        else
+          out += '/..';
+      }
+    }
+
+    // Lastly, append the rest of the destination (`to`) path that comes after
+    // the common path parts
+    if (out.length > 0)
+      return out + to.slice(toStart + lastCommonSep);
+    else {
+      toStart += lastCommonSep;
+      if (to.charCodeAt(toStart) === 47 /*/*/)
+        ++toStart;
+      return to.slice(toStart);
+    }
+  },
+
+  _makeLong: function _makeLong(path) {
+    return path;
+  },
+
+  dirname: function dirname(path) {
+    assertPath(path);
+    if (path.length === 0) return '.';
+    var code = path.charCodeAt(0);
+    var hasRoot = code === 47 /*/*/;
+    var end = -1;
+    var matchedSlash = true;
+    for (var i = path.length - 1; i >= 1; --i) {
+      code = path.charCodeAt(i);
+      if (code === 47 /*/*/) {
+          if (!matchedSlash) {
+            end = i;
+            break;
+          }
+        } else {
+        // We saw the first non-path separator
+        matchedSlash = false;
+      }
+    }
+
+    if (end === -1) return hasRoot ? '/' : '.';
+    if (hasRoot && end === 1) return '//';
+    return path.slice(0, end);
+  },
+
+  basename: function basename(path, ext) {
+    if (ext !== undefined && typeof ext !== 'string') throw new TypeError('"ext" argument must be a string');
+    assertPath(path);
+
+    var start = 0;
+    var end = -1;
+    var matchedSlash = true;
+    var i;
+
+    if (ext !== undefined && ext.length > 0 && ext.length <= path.length) {
+      if (ext.length === path.length && ext === path) return '';
+      var extIdx = ext.length - 1;
+      var firstNonSlashEnd = -1;
+      for (i = path.length - 1; i >= 0; --i) {
+        var code = path.charCodeAt(i);
+        if (code === 47 /*/*/) {
+            // If we reached a path separator that was not part of a set of path
+            // separators at the end of the string, stop now
+            if (!matchedSlash) {
+              start = i + 1;
+              break;
+            }
+          } else {
+          if (firstNonSlashEnd === -1) {
+            // We saw the first non-path separator, remember this index in case
+            // we need it if the extension ends up not matching
+            matchedSlash = false;
+            firstNonSlashEnd = i + 1;
+          }
+          if (extIdx >= 0) {
+            // Try to match the explicit extension
+            if (code === ext.charCodeAt(extIdx)) {
+              if (--extIdx === -1) {
+                // We matched the extension, so mark this as the end of our path
+                // component
+                end = i;
+              }
+            } else {
+              // Extension does not match, so our result is the entire path
+              // component
+              extIdx = -1;
+              end = firstNonSlashEnd;
+            }
+          }
+        }
+      }
+
+      if (start === end) end = firstNonSlashEnd;else if (end === -1) end = path.length;
+      return path.slice(start, end);
+    } else {
+      for (i = path.length - 1; i >= 0; --i) {
+        if (path.charCodeAt(i) === 47 /*/*/) {
+            // If we reached a path separator that was not part of a set of path
+            // separators at the end of the string, stop now
+            if (!matchedSlash) {
+              start = i + 1;
+              break;
+            }
+          } else if (end === -1) {
+          // We saw the first non-path separator, mark this as the end of our
+          // path component
+          matchedSlash = false;
+          end = i + 1;
+        }
+      }
+
+      if (end === -1) return '';
+      return path.slice(start, end);
+    }
+  },
+
+  extname: function extname(path) {
+    assertPath(path);
+    var startDot = -1;
+    var startPart = 0;
+    var end = -1;
+    var matchedSlash = true;
+    // Track the state of characters (if any) we see before our first dot and
+    // after any path separator we find
+    var preDotState = 0;
+    for (var i = path.length - 1; i >= 0; --i) {
+      var code = path.charCodeAt(i);
+      if (code === 47 /*/*/) {
+          // If we reached a path separator that was not part of a set of path
+          // separators at the end of the string, stop now
+          if (!matchedSlash) {
+            startPart = i + 1;
+            break;
+          }
+          continue;
+        }
+      if (end === -1) {
+        // We saw the first non-path separator, mark this as the end of our
+        // extension
+        matchedSlash = false;
+        end = i + 1;
+      }
+      if (code === 46 /*.*/) {
+          // If this is our first dot, mark it as the start of our extension
+          if (startDot === -1)
+            startDot = i;
+          else if (preDotState !== 1)
+            preDotState = 1;
+      } else if (startDot !== -1) {
+        // We saw a non-dot and non-path separator before our dot, so we should
+        // have a good chance at having a non-empty extension
+        preDotState = -1;
+      }
+    }
+
+    if (startDot === -1 || end === -1 ||
+        // We saw a non-dot character immediately before the dot
+        preDotState === 0 ||
+        // The (right-most) trimmed path component is exactly '..'
+        preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+      return '';
+    }
+    return path.slice(startDot, end);
+  },
+
+  format: function format(pathObject) {
+    if (pathObject === null || typeof pathObject !== 'object') {
+      throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof pathObject);
+    }
+    return _format('/', pathObject);
+  },
+
+  parse: function parse(path) {
+    assertPath(path);
+
+    var ret = { root: '', dir: '', base: '', ext: '', name: '' };
+    if (path.length === 0) return ret;
+    var code = path.charCodeAt(0);
+    var isAbsolute = code === 47 /*/*/;
+    var start;
+    if (isAbsolute) {
+      ret.root = '/';
+      start = 1;
+    } else {
+      start = 0;
+    }
+    var startDot = -1;
+    var startPart = 0;
+    var end = -1;
+    var matchedSlash = true;
+    var i = path.length - 1;
+
+    // Track the state of characters (if any) we see before our first dot and
+    // after any path separator we find
+    var preDotState = 0;
+
+    // Get non-dir info
+    for (; i >= start; --i) {
+      code = path.charCodeAt(i);
+      if (code === 47 /*/*/) {
+          // If we reached a path separator that was not part of a set of path
+          // separators at the end of the string, stop now
+          if (!matchedSlash) {
+            startPart = i + 1;
+            break;
+          }
+          continue;
+        }
+      if (end === -1) {
+        // We saw the first non-path separator, mark this as the end of our
+        // extension
+        matchedSlash = false;
+        end = i + 1;
+      }
+      if (code === 46 /*.*/) {
+          // If this is our first dot, mark it as the start of our extension
+          if (startDot === -1) startDot = i;else if (preDotState !== 1) preDotState = 1;
+        } else if (startDot !== -1) {
+        // We saw a non-dot and non-path separator before our dot, so we should
+        // have a good chance at having a non-empty extension
+        preDotState = -1;
+      }
+    }
+
+    if (startDot === -1 || end === -1 ||
+    // We saw a non-dot character immediately before the dot
+    preDotState === 0 ||
+    // The (right-most) trimmed path component is exactly '..'
+    preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+      if (end !== -1) {
+        if (startPart === 0 && isAbsolute) ret.base = ret.name = path.slice(1, end);else ret.base = ret.name = path.slice(startPart, end);
+      }
+    } else {
+      if (startPart === 0 && isAbsolute) {
+        ret.name = path.slice(1, startDot);
+        ret.base = path.slice(1, end);
+      } else {
+        ret.name = path.slice(startPart, startDot);
+        ret.base = path.slice(startPart, end);
+      }
+      ret.ext = path.slice(startDot, end);
+    }
+
+    if (startPart > 0) ret.dir = path.slice(0, startPart - 1);else if (isAbsolute) ret.dir = '/';
+
+    return ret;
+  },
+
+  sep: '/',
+  delimiter: ':',
+  win32: null,
+  posix: null
 };
 
-function filter (xs, f) {
-    if (xs.filter) return xs.filter(f);
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (f(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
-}
+posix.posix = posix;
 
-// String.prototype.substr - negative index don't work in IE8
-var substr = 'ab'.substr(-1) === 'b'
-    ? function (str, start, len) { return str.substr(start, len) }
-    : function (str, start, len) {
-        if (start < 0) start = str.length + start;
-        return str.substr(start, len);
-    }
-;
+module.exports = posix;
 
-}).call(this,require('_process'))
+}).call(this)}).call(this,require('_process'))
 },{"_process":23}],"rw":[function(require,module,exports){
 exports.dash = require("./lib/rw/dash");
 exports.readFile = require("./lib/rw/read-file");

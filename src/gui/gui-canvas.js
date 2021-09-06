@@ -2,6 +2,9 @@ import { internal, utils, Bounds } from './gui-core';
 import { El } from './gui-el';
 import { GUI } from './gui-lib';
 
+var MIN_ARC_LEN = 0.1;
+var MIN_PATH_LEN = 0.1;
+
 // TODO: consider moving this upstream
 function getArcsForRendering(obj, ext) {
   var dataset = obj.source.dataset;
@@ -61,7 +64,7 @@ export function drawStyledLayerToCanvas(obj, canv, ext) {
 
 // Return a function for testing if an arc should be drawn in the current view
 function getArcFilter(arcs, ext, usedFlag, arcCounts) {
-  var minPathLen = 0.5 * ext.getPixelSize(),
+  var minPathLen = ext.getPixelSize() * MIN_PATH_LEN, // * 0.5
       geoBounds = ext.getBounds(),
       geoBBox = geoBounds.toArray(),
       allIn = geoBounds.contains(arcs.getBounds()),
@@ -152,6 +155,11 @@ export function DisplayCanvas() {
       shp = shapes[i];
       if (!shp || filter && !filter(shp)) continue;
       if (styler) styler(style, i);
+      if (style.overlay || style.opacity < 1 || style.fillOpacity < 1 || style.strokeOpacity < 1) {
+        // don't batch shapes with opacity, in case they overlap
+        drawPaths([shp], startPath, draw, style);
+        continue;
+      }
       key = getStyleKey(style);
       if (key in styleIndex === false) {
         styleIndex[key] = {
@@ -161,9 +169,7 @@ export function DisplayCanvas() {
       }
       item = styleIndex[key];
       item.shapes.push(shp);
-      // overlays should not be batched, so transparency of overlapping shapes
-      // is drawn correctly
-      if (item.shapes.length >= batchSize || style.overlay) {
+      if (item.shapes.length >= batchSize) {
         drawPaths(item.shapes, startPath, draw, item.style);
         item.shapes = [];
       }
@@ -184,8 +190,8 @@ export function DisplayCanvas() {
 
   _self.drawSquareDots = function(shapes, style) {
     var t = getScaledTransform(_ext),
-        scaleRatio = getDotScale2(shapes, _ext),
-        size = Math.ceil((style.dotSize >= 0 ? style.dotSize : 3) * scaleRatio),
+        scaleRatio = getDotScale(_ext),
+        size = Math.round((style.dotSize || 1) * scaleRatio),
         styler = style.styler || null,
         xmax = _canvas.width + size,
         ymax = _canvas.height + size,
@@ -206,7 +212,10 @@ export function DisplayCanvas() {
       if (styler !== null) { // e.g. selected points
         styler(style, i);
         size = style.dotSize * scaleRatio;
-        _ctx.fillStyle = style.dotColor;
+        if (style.dotColor != color) {
+          color = style.dotColor;
+          _ctx.fillStyle = color;
+        }
       }
       shp = shapes[i];
       for (j=0, m=shp ? shp.length : 0; j<m; j++) {
@@ -307,19 +316,20 @@ export function DisplayCanvas() {
         startPath(ctx, style);
       }
       iter = protectIterForDrawing(arcs.getArcIter(i), _ext);
-      drawPath(iter, t, ctx, 0.6);
+      drawPath(iter, t, ctx, MIN_ARC_LEN);
     }
     endPath(ctx, style);
   };
 
   function getStyleKey(style) {
     return (style.strokeWidth > 0 ? style.strokeColor + '~' + style.strokeWidth +
-      '~' + (style.lineDash ? style.lineDash + '~' : '') +
-      (style.strokeOpacity >= 0 ? style.strokeOpacity + '~' : '') : '') +
+      '~' + (style.lineDash ? style.lineDash + '~' : '') : '') +
       (style.fillColor || '') +
-      (style.fillOpacity ? '~' + style.fillOpacity : '') +
-      (style.fillPattern ? '~' + style.fillPattern : '') +
-      (style.opacity < 1 ? '~' + style.opacity : '');
+      // styles with <1 opacity are no longer batch-rendered
+      // (style.strokeOpacity >= 0 ? style.strokeOpacity + '~' : '') : '') +
+      // (style.fillOpacity ? '~' + style.fillOpacity : '') +
+      // (style.opacity < 1 ? '~' + style.opacity : '') +
+      (style.fillPattern ? '~' + style.fillPattern : '');
   }
 
   return _self;
@@ -343,42 +353,24 @@ function getLineScale(ext) {
   return s;
 }
 
+
 function getDotScale(ext) {
-  return Math.pow(getLineScale(ext), 0.7);
-}
-
-function countPoints(shapes, test, max) {
-  var count = 0;
-  var i, n, j, m, shp;
-  max = max || Infinity;
-  for (i=0, n=shapes.length; i<n && count<=max; i++) {
-    shp = shapes[i];
-    for (j=0, m=shp ? shp.length : 0; j<m; j++) {
-      if (!test || test(shp[j])) {
-        count++;
-      }
-    }
+  var smallSide = Math.min(ext.width(), ext.height());
+  // reduce size on smaller screens
+  var j = smallSide < 200 && 0.5 || smallSide < 400 && 0.75 || 1;
+  var k = 1;
+  var mapScale = ext.scale();
+  if (mapScale < 0.5) {
+    k = Math.pow(mapScale + 0.5, 0.35);
   }
-  return count;
-}
-
-
-function getDotScale2(shapes, ext) {
-  var pixRatio = GUI.getPixelRatio();
-  var scale = ext.scale();
-  var side = Math.min(ext.width(), ext.height());
-  var bounds = ext.getBounds();
-  var topTier = 50000;
-  var test, n, k, j;
-  if (scale >= 2) {
-    test = function(p) {
-      return bounds.containsPoint(p[0], p[1]);
-    };
+  if (mapScale > 1) {
+    // scale faster at first, so small dots in large datasets
+    // become easily visible and clickable after zooming in a bit
+    k *= Math.pow(Math.min(mapScale, 10), 0.3);
+    k *= Math.pow(mapScale, 0.1);
   }
-  n = countPoints(shapes, test, topTier + 2); // short-circuit point counting above top threshold
-  k = n >= topTier && 0.25 || n > 10000 && 0.45 || n > 2500 && 0.65 || n > 200 && 0.85 || 1;
-  j = side < 200 && 0.5 || side < 400 && 0.75 || 1;
-  return getDotScale(ext) * k * j * pixRatio;
+
+  return k * j * GUI.getPixelRatio();
 }
 
 function getScaledTransform(ext) {

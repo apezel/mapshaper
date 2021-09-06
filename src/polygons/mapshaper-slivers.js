@@ -1,6 +1,6 @@
 
 import { roundToSignificantDigits } from '../geom/mapshaper-rounding';
-import { getDatasetCRS } from '../geom/mapshaper-projections';
+import { getDatasetCRS } from '../crs/mapshaper-projections';
 import { convertAreaParam, getAreaLabel } from '../geom/mapshaper-units';
 import geom from '../geom/mapshaper-geom';
 import { forEachSegmentInPath } from '../paths/mapshaper-path-utils';
@@ -53,7 +53,7 @@ export function getSliverTest(arcs, threshold, strength) {
   if (strength >= 0 === false) {
     strength = 1; // default is 1 (full-strength)
   }
-  if (strength > 1 || threshold > 0 === false) {
+  if (strength > 1 || threshold >= 0 === false) {
     error('Invalid parameter');
   }
   var calcEffectiveArea = getSliverAreaFunction(arcs, strength);
@@ -92,7 +92,7 @@ export function getDefaultSliverThreshold(lyr, arcs) {
     ringCount++;
     forEachSegmentInPath(path, arcs, onSeg);
   });
-  var segPerRing = segCount / ringCount;
+  var segPerRing = segCount / ringCount || 0;
   var complexityFactor = Math.pow(segPerRing, 0.75); // use seg/ring as a proxy for complexity
   var threshold = avgSegLen * avgSegLen / 50 * complexityFactor;
   threshold = roundToSignificantDigits(threshold, 2); // round for display

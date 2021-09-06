@@ -16,18 +16,6 @@
   src: local('Source Sans Pro Semibold'), local('SourceSansPro-Semibold'), url('assets/SourceSansPro-Semibold.woff') format('woff');
 }
 
-/*
-@font-face {
-	font-family: 'Iosevka';
-	src: url('assets/iosevka-regular.woff2') format('woff2'), url('assets/iosevka-regular.woff') format('woff');
-}
-
-@font-face {
-	font-family: 'Iosevka';
-	src: url('assets/iosevka-slab-light.woff2') format('woff2'), url('assets/iosevka-slab-light.woff') format('woff');
-}
-*/
-
 @font-face {
 	font-family: 'Iosevka';
 	src: url('assets/iosevka-light.woff2') format('woff2'), url('assets/iosevka-light.woff') format('woff');
@@ -44,7 +32,7 @@ html, body {
 body {
 	overflow: hidden;
 	background-color: #fff;
-	font: 15px/1.4 'Source Sans Pro', Helvetica, sans-serif;
+	font: 14px/1.4 'Source Sans Pro', Helvetica, sans-serif;
 	color: #444;
 	user-select: none;
 	-webkit-user-select: none;
@@ -64,15 +52,20 @@ body {
 
 .page-header,
 .dialog-btn {
-	background-color: #1385b7;
+	background-color: #1385B7;
 }
 
-.colored-text {
-	color: #0774a5;
+.colored-text,
+.nav-menu-item {
+	color: #10699b;
 }
 
 .dot-underline {
-	border-bottom: 1px dotted #0774a5;
+	border-color: #10699b;
+}
+
+.dot-underline {
+	border-bottom: 1px dotted;
 }
 
 .dot-underline-black {
@@ -80,14 +73,14 @@ body {
 }
 
 .nav-btn * {
-	fill: #1385b7;
+	fill: #1385B7;
 }
 
 .dialog-btn:hover,
-.header-btn:hover,
+.btn.header-btn:hover,
 .dialog-btn.default-btn,
 .dialog-btn.selected-btn {
-	background-color: #0F5A84;
+	background-color: #1A6A96;
 }
 
 .colored-text::selection {
@@ -102,62 +95,6 @@ body {
 	background-color: #e6f7ff;
 }
 
-/* THEME 2  */
-
-.theme2 .page-header,
-.theme2 .dialog-btn {
-	background-color: #678691;
-}
-
-.theme2 .colored-text {
-	color: #678691;
-}
-
-.theme2 .dot-underline {
-	border-bottom: 1px dotted #678691;
-}
-
-.theme2 .nav-btn * {
-	fill: #678691;
-}
-
-.theme2 .dialog-btn:hover,
-.theme2 .header-btn:hover {
-	background-color: #365A68;
-}
-
-.theme2 .colored-text::selection {
-	background-color: #DEF1F9;
-}
-
-.theme2 .colored-text::-moz-selection {
-	background-color: #DEF1F9;
-}
-
-.theme2 .layer-item.active {
-	background-color: #DEF1F9;
-}
-
-/* THEME 3 -- GREY */
-
-.theme3 .page-header,
-.theme3 .dialog-btn {
-	background-color: #376E7F;
-}
-
-.theme3 .nav-btn * {
-	fill: #376E7F;
-}
-
-.theme3 .nav-btn.selected {
-	background-color: black;
-}
-
-.theme3 .dialog-btn:hover,
-.theme3 .header-btn:hover {
-	background-color: #1D5760;
-}
-
 /* --- Page header --------------- */
 
 .page-header {
@@ -167,7 +104,7 @@ body {
 	left: 0;
 	z-index: 40;
 	width: 100%;
-	height: 34px;
+	height: 29px;
 }
 
 .coordinate-info {
@@ -182,8 +119,8 @@ body {
 
 .mapshaper-logo {
 	font-weight: bold;
-	font-size: 18px;
-	margin: 3px 0 0 12px;
+	font-size: 17px;
+	margin: 2px 0 0 11px;
 }
 
 .mapshaper-logo .logo-highlight {
@@ -200,13 +137,34 @@ body {
 	top: 0px;
 	right: 0px;
 	display: none;
-	margin: 0 8px 3px 0;	
+	margin: 0 6px 3px 0;	
 }
 
+.btn.header-btn {
+	color: #fff;
+	border: none;
+	margin-top: 0px;
+	height: 29px;
+	box-sizing: border-box;
+	border-radius: 1px;
+	font-size: 14px;
+	font-weight: 700;
+	padding: 7px 8px 0px 8px;
+}
+
+.page-header .header-btn.disabled,
+.page-header .header-btn.disabled:hover {
+	background-color: transparent;
+}
+
+.page-header .btn.header-btn.active {
+	background-color: black;
+}
 .separator {
 	border-left: 1px solid white;
 	height: 10px;
 	margin: 0 2px 0 2px;
+	display: none;
 }
 
 /* --- Selection tool dialog --------- */
@@ -266,7 +224,7 @@ body {
 	right: 0;
 	bottom: 0;
 	left: 0;
-	margin: 34px 0 0 0;
+	margin: 29px 0 0 0;
 }
 
 
@@ -497,7 +455,8 @@ body.dragover #import-options-drop-area .drop-area {
 	word-wrap: break-word;
 	text-align: left;
 	margin-top: 12px;
-	padding: 11px 15px 9px 15px;
+	margin-right: 20px;
+	padding: 12px 18px 12px 18px;
 	vertical-align: top;
 	display: inline-block;
 	/* border: 1px solid #aaa; */
@@ -524,6 +483,8 @@ body.dragover #import-options-drop-area .drop-area {
 }
 
 .option-menu input {
+	position: relative;
+	top: 2px;
 	width: 12px;
 	height: 12px;
 }
@@ -672,10 +633,30 @@ body.console-open .map-area {
 
 .layer-control-btn {
 	top: 0;
+	width: 100%;
 	position: absolute;
 	text-align: center;
-	z-index: 10;
-	width: 100%;
+	z-index: 30;
+	display: none;
+	pointer-events: none;
+}
+
+.layer-control-btn.active {
+	display: block;
+}
+
+.layer-control-btn > .btn.header-btn {
+	white-space: nowrap;
+	position: relative;
+	background-color: #1A6A96;
+	padding-left: 12px;
+	padding-right: 12px;
+	pointer-events: auto;
+	margin-right: 20px;
+}
+
+.layer-control-btn > .btn.header-btn:hover {
+	background-color: #094B70;
 }
 
 body.simplify .layer-control-btn {
@@ -780,7 +761,7 @@ img.close-btn:hover,
 }
 
 .layer-item .row {
-	line-height: 18px;
+	line-height: 17px;
 	margin-bottom: 1px;
 	white-space: nowrap;
 }
@@ -923,7 +904,7 @@ img.close-btn:hover,
 	box-sizing: border-box;
 	overflow: hidden;
 	overflow-y: auto;
-	padding: 4px 12px;
+	padding: 4px 12px 3px;
 	line-height: 1.2;
 }
 
@@ -1038,8 +1019,8 @@ img.close-btn:hover,
 .nav-buttons {
 	z-index: 20;
 	position: absolute;
-	top: 6px;
-	right: 9px;
+	top: 7px;
+	right: 7px;
 	padding: 2px;
 	background-color: rgba(255, 255, 255, 0.85);
 }
@@ -1082,13 +1063,12 @@ img.close-btn:hover,
 
 .nav-menu-item {
 	background-color: #fff;
-	color: #0774a5; /* .colored-text color */
 	float: right;
 	clear: right;
 	white-space: nowrap;
 	display: inline-block;
 	padding: 2px 7px 4px 7px;
-	line-height: 13px;
+	line-height: 11px;
 	cursor: pointer;
 }
 
@@ -1110,20 +1090,25 @@ img.close-btn:hover,
 .nav-btn {
 	position: relative;
 	cursor:pointer;
-	padding: 3px;
-	margin-bottom: 1px;
+	padding: 3px 3px 5px 3px;
 	line-height: 1;
+}
+
+.nav-btn.menu-btn {
+	padding: 2px 3px;
 }
 
 .nav-btn.selected {
 	background-color: black;
-	border-radius: 4px;
-}
-.nav-btn.hover:not(.disabled) svg * {
-	fill: black;
+	border-radius: 3px;
 }
 
-.nav-btn.selected:not(.disabled) svg * {
+.nav-btn:hover:not(.disabled) svg *,
+.nav-btn.hover.menu-btn:not(.disabled) svg * {
+	fill: #1A6A96;
+}
+
+.nav-btn.menu-btn.selected:not(.disabled) svg * {
 	fill: white;
 }
 
@@ -1134,29 +1119,28 @@ img.close-btn:hover,
 
 .zoom-box {
 	position: absolute;
-	border: 1px solid #f74b80;
+	border: 1px solid #cc6acc;
 	z-index: 15;
 	pointer-events: none;
 }
 
 .zoom-box.zooming {
-	border-color: #0774a5;
+	border-color: #1385B7;
 }
-
 
 /* Simplification control ------------ */
 
 @media (max-width: 765px) {
 	body.simplify  .simplify-control-wrapper {
-		top: 22px;
+		top: 26px;
 	}
 
 	body.simplify .page-header {
-		height: 52px;
+		height: 55px;
 	}
 
 	body.simplify .main-area {
-		margin-top: 52px;
+		margin-top: 55px;
 	}
 }
 

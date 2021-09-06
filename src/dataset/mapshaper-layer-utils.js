@@ -127,6 +127,13 @@ export function requirePointLayer(lyr, msg) {
     stop(layerTypeMessage(lyr, "Expected a point layer", msg));
 }
 
+export function requireSinglePointLayer(lyr, msg) {
+  requirePointLayer(lyr);
+  if (countMultiPartFeatures(lyr) > 0) {
+    stop(msg || 'This command requires single points');
+  }
+}
+
 export function requirePolylineLayer(lyr, msg) {
   if (!lyr || lyr.geometry_type !== 'polyline')
     stop(layerTypeMessage(lyr, "Expected a polyline layer", msg));
@@ -176,6 +183,17 @@ export function divideFeaturesByType(shapes, properties, types) {
 // make a stub copy if the no_replace option is given, else pass thru src layer
 export function getOutputLayer(src, opts) {
   return opts && opts.no_replace ? {geometry_type: src.geometry_type} : src;
+}
+
+export function setOutputLayerName(dest, src, defName, opts) {
+  opts = opts || {};
+  if (opts.name) {
+    dest.name = opts.name;
+  } else if (opts.no_replace) {
+    dest.name = defName || undefined;
+  } else {
+    dest.name = src && src.name || defName || undefined;
+  }
 }
 
 // Make a deep copy of a layer

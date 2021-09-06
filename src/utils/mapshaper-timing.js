@@ -1,19 +1,19 @@
-import { verbose } from '../utils/mapshaper-logging';
-
-// Support for timing using T.start() and T.stop("message")
+// Support for timing using T.start() and T.stop()
 export var T = {
   stack: [],
   start: function() {
-    T.stack.push(+new Date());
+    T.stack.push(Date.now());
   },
-  stop: function(note) {
-    var elapsed = (+new Date() - T.stack.pop());
-    var msg = elapsed + 'ms';
-    if (note) {
-      msg = note + " " + msg;
-    }
-    verbose(msg);
-    return elapsed;
+  stop: function() {
+    return (Date.now() - T.stack.pop()) + 'ms';
   }
 };
 
+export function tick(msg) {
+  var now = Date.now();
+  var elapsed = tickTime ? ' - ' + (now - tickTime) + 'ms' : '';
+  tickTime = now;
+  console.log((msg || '') + elapsed);
+}
+
+var tickTime = 0;

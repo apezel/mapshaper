@@ -1,3 +1,90 @@
+v0.5.68
+* Bug fix
+
+v0.5.67
+* Bug fix
+
+v0.5.66
+* Improve interactive selection.
+* Added undocumented -define command.
+
+v0.5.65
+* Web UI zoom buttons respond to variable-length clicks.
+* Bug fixes
+
+v0.5.64
+* Bug fixes
+
+v0.5.63
+* Added -o decimal-comma function, for exporting CSV numbers with decimal commas.
+* Fix for issue #497 (error erasing with overlapping polygons).
+
+v0.5.62
+* Added -i decimal-comma option, for importing numbers from CSV files with numbers formatted like 1.000,23 or 1 000,23
+
+v0.5.61
+* Bug fixes
+
+v0.5.60
+* Added save-as= and values= options to -dots command (like -classify).
+
+v0.5.59
+* Added -merge-layers flatten option, for removing overlaps when merging multiple polygon layers.
+* Added -clean overlap-rule=[min-id|max-id|min-area|max-area] option.
+* Added -join max-distance= option for point-to-point spatial joins.
+* Added support for many-to-one point-to-point spatial joins.
+* Added -join largest-overlap option for polygon-to-polygon spatial joins, to select a single polygon to join when multiple source polygons overlap a target polygon, based on area of overlap.
+* Added undocumented -filter-points command.
+
+v0.5.58
+* Bug fixes
+
+v0.5.57
+* Added "allow-overlaps" option to -dissolve2 and -clean, which allows polygon features to overlap.
+* Added "Hill Eucyclic" projection (+proj=hill).
+* Fixed bug that removed overlapping polygons when projecting polygon layers.
+
+v0.5.56
+* Added "-graticule polygon" option, which creates a polygon matching the outline of the projected graticule.
+* Allow bare PROJ projection names in CRS definitions (e.g. "robin +lon_0=120").
+* Web UI style updates.
+
+v0.5.55
+* Improved support for projected graticules.
+* Fixed shape clipping for the bertin1953 projection.
+
+v0.5.54
+* Fix for issue #485 (error when using * wildcard to match all files in a directory)
+
+v0.5.53
+* Fixed clipping area of nsper (Near Side Perspective).
+
+v0.5.52
+* Automatically clip content to an appropriate circle when applying most of the azimuthal projections (including stere,ortho,gnom,laea,nsper).
+* Added the -proj clip-angle= option to override the default clipping circle.
+* Automatically clip away the poles when projecting to Mercator.
+* Added the -proj clip-bbox= to clip content to a lat-long bounding box before projecting.
+* Added the -graticule interval= option, for customizing the spacing of graticule lines.
+* Added a circular outline to the graticule when creating a graticule for an azimuthal projection.
+
+v0.5.51
+* Apply antimeridian cutting to more projections.
+* Assign categorical colors automatically using -classify categories=\*.
+* Add several 20-color categorical color schemes.
+
+v0.5.50
+* Bug fix for an argument parsing error.
+
+v0.5.49
+* Split polylines and lines that cross the rotated antimeridan when applying a world projection with a non-zero central meridian.
+* Fixed error when sending output to /dev/stdout.
+
+v0.5.48
+* Update to Cupola projection.
+
+v0.5.47
+* Updated projections library to include the "Cupola" projection.
+
 v0.5.46
 * Fix for issue #476.
 

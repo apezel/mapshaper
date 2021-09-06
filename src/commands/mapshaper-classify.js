@@ -18,6 +18,7 @@ import {
   interpolateValuesToClasses
 } from '../classification/mapshaper-interpolation';
 import cmd from '../mapshaper-cmd';
+import { getUniqFieldValues } from '../datatable/mapshaper-data-utils';
 
 cmd.classify = function(lyr, optsArg) {
   var opts = optsArg || {};
@@ -37,6 +38,7 @@ cmd.classify = function(lyr, optsArg) {
     numBuckets = opts.classes;
   }
 
+
   // TODO: better validation of breaks values
   if (opts.breaks) {
     numBuckets = opts.breaks.length + 1;
@@ -44,13 +46,24 @@ cmd.classify = function(lyr, optsArg) {
 
   if (opts.index_field) {
     dataField = opts.index_field;
-    numBuckets = validateClassIndexField(records, opts.index_field);
+    if (numBuckets > 0 === false) {
+      stop('The index-field= option requires the classes= option to be set');
+    }
+    // You can't infer the number of classes by looking at index values;
+    // this can cause unwanted interpolation if one or more values are
+    // not present in the index field
+    // numBuckets = validateClassIndexField(records, opts.index_field);
 
   } else if (opts.field) {
     dataField = opts.field;
 
   } else {
     stop('Missing a data field to classify');
+  }
+
+  // expand categories if value is '*'
+  if (dataField && opts.categories && opts.categories.includes('*')) {
+    opts.categories = getUniqFieldValues(records, dataField);
   }
 
   requireDataField(lyr.data, dataField);
@@ -76,7 +89,6 @@ cmd.classify = function(lyr, optsArg) {
 
     if (opts.categories) {
       classValues = getCategoricalColorScheme(colorScheme, opts.categories.length);
-      message('Colors:', formatValuesForLogging(classValues));
       numBuckets = numValues = classValues.length;
     } else {
       if (!numBuckets) {

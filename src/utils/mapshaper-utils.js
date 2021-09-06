@@ -231,6 +231,13 @@ export function difference(arr, other) {
   });
 }
 
+// Return the intersection of two arrays
+export function intersection(a, b) {
+  return a.filter(function(el) {
+    return b.includes(el);
+  });
+}
+
 export function indexOf(arr, item) {
   var nan = item !== item;
   for (var i = 0, len = arr.length || 0; i < len; i++) {
@@ -331,15 +338,29 @@ export function getArrayBounds(arr) {
   };
 }
 
+// export function uniq(src) {
+//   var index = {};
+//   return src.reduce(function(memo, el) {
+//     if (el in index === false) {
+//       index[el] = true;
+//       memo.push(el);
+//     }
+//     return memo;
+//   }, []);
+// }
+
 export function uniq(src) {
-  var index = {};
-  return src.reduce(function(memo, el) {
-    if (el in index === false) {
-      index[el] = true;
-      memo.push(el);
+  var index = new Set();
+  var arr = [];
+  var item;
+  for (var i=0, n=src.length; i<n; i++) {
+    item = src[i];
+    if (!index.has(item)) {
+      arr.push(item);
+      index.add(item);
     }
-    return memo;
-  }, []);
+  }
+  return arr;
 }
 
 export function pluck(arr, key) {
@@ -485,6 +506,15 @@ export function formatNumber(num, decimals, nullStr, showPos) {
   return fmt;
 }
 
+export function shuffle(arr) {
+  var tmp, i, j;
+  for (i = arr.length - 1; i > 0; i--) {
+    j = Math.floor(Math.random() * (i + 1));
+    tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+}
 
 // Sort an array of objects based on one or more properties.
 // Usage: sortOn(array, key1, asc?[, key2, asc? ...])
@@ -929,11 +959,6 @@ export function uniqifyNames(names, formatter) {
   return names2;
 }
 
-// Remove comma separators from strings
-// TODO: accept European-style numbers?
-export function cleanNumericString(str) {
-  return (str.indexOf(',') > 0) ? str.replace(/,([0-9]{3})/g, '$1') : str;
-}
 
 // Assume: @raw is string, undefined or null
 export function parseString(raw) {
@@ -945,9 +970,27 @@ export function parseString(raw) {
 // (in part because if NaN is used, empty strings get converted to "NaN"
 // when re-exported).
 export function parseNumber(raw) {
+  return parseToNum(raw, cleanNumericString);
+}
+
+export function parseIntlNumber(raw) {
+  return parseToNum(raw, convertIntlNumString);
+}
+
+function parseToNum(raw, clean) {
   var str = String(raw).trim();
-  var parsed = str ? Number(cleanNumericString(str)) : NaN;
+  var parsed = str ? Number(clean(str)) : NaN;
   return isNaN(parsed) ? null : parsed;
+}
+
+// Remove comma separators from strings
+export function cleanNumericString(str) {
+  return (str.indexOf(',') > 0) ? str.replace(/,([0-9]{3})/g, '$1') : str;
+}
+
+function convertIntlNumString(str) {
+  str = str.replace(/[ .]([0-9]{3})/g, '$1');
+  return str.replace(',', '.');
 }
 
 export function trimQuotes(raw) {
@@ -955,7 +998,8 @@ export function trimQuotes(raw) {
   if (len >= 2) {
     first = raw.charAt(0);
     last = raw.charAt(len-1);
-    if (first == '"' && last == '"' || first == "'" && last == "'") {
+    if (first == '"' && last == '"' && !raw.includes('","') ||
+        first == "'" && last == "'" && !raw.includes("','")) {
       return raw.substr(1, len-2);
     }
   }

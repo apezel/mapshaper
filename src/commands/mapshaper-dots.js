@@ -1,6 +1,6 @@
 
 import { requireDataField } from '../dataset/mapshaper-layer-utils';
-import { requirePolygonLayer, layerHasNonNullData } from '../dataset/mapshaper-layer-utils';
+import { requirePolygonLayer, layerHasNonNullData, setOutputLayerName } from '../dataset/mapshaper-layer-utils';
 import { parseColor } from '../color/color-utils';
 import cmd from '../mapshaper-cmd';
 import geom from '../geom/mapshaper-geom';
@@ -44,11 +44,11 @@ cmd.dots = function(lyr, arcs, opts) {
   });
 
   var lyr2 = {
-    name: opts.no_replace ? null : lyr.name,
     geometry_type: 'point',
     shapes: shapes2,
     data: new DataTable(records2)
   };
+  setOutputLayerName(lyr2, lyr, null, opts);
   return [lyr2];
 };
 
@@ -71,10 +71,10 @@ function makeDotsForShape(shp, arcs, rec, opts) {
   // randomize dot sequence so dots of the same color do not always overlap dots of
   // other colors in dense areas.
   // TODO: instead of random shuffling, interleave dot classes more regularly?
-  shuffle(indexes);
+  utils.shuffle(indexes);
   var idx, prevIdx = -1;
   var multipart = !!opts.multipart;
-  var coords, p;
+  var coords, p, d;
   for (var i=0; i<dots.length; i++) {
     p = dots[i];
     if (!p) continue;
@@ -85,7 +85,8 @@ function makeDotsForShape(shp, arcs, rec, opts) {
     if (!multipart || idx != prevIdx) {
       prevIdx = idx;
       retn.shapes.push(coords = []);
-      retn.attributes.push(getDataRecord(idx, rec, opts));
+      d = getDataRecord(idx, rec, opts);
+      retn.attributes.push(d);
     }
     coords.push(p);
   }
@@ -127,23 +128,15 @@ function expandCounts(counts) {
   return arr;
 }
 
-function shuffle(arr) {
-  var tmp, i, j;
-  for (i = arr.length - 1; i > 0; i--) {
-    j = Math.floor(Math.random() * (i + 1));
-    tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
-  }
-}
-
 // i: dot class index
 // d: properties of original polygon
 // opts: dots command options
 export function getDataRecord(i, d, opts) {
   var o = {};
-  if (opts.colors) {
-    o.fill = opts.colors[i];
+  var key = opts.save_as || 'fill';
+  var values = opts.colors || opts.values;
+  if (values) {
+    o[key] = values[i];
     o.r = opts.r || 1.3;
   } else if (opts.r) {
     o.r = opts.r;

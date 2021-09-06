@@ -1,4 +1,10 @@
-import { parseStringList, parseColorList, cleanArgv } from '../cli/mapshaper-option-parsing-utils';
+import {
+  parseStringList,
+  parseColorList,
+  cleanArgv,
+  isAssignment,
+  splitAssignment
+} from '../cli/mapshaper-option-parsing-utils';
 import utils from '../utils/mapshaper-utils';
 import { stop, print, error } from '../utils/mapshaper-logging';
 import { runningInBrowser } from '../mapshaper-state';
@@ -6,7 +12,6 @@ import { runningInBrowser } from '../mapshaper-state';
 export function CommandParser() {
   var commandRxp = /^--?([a-z][\w-]*)$/i,
       invalidCommandRxp = /^--?[a-z][\w-]*[=]/i, // e.g. -target=A // could be more general
-      assignmentRxp = /^([a-z0-9_+-]+)=(?!\=)(.*)$/i, // exclude ==
       _usage = "",
       _examples = [],
       _commands = [],
@@ -37,6 +42,9 @@ export function CommandParser() {
 
   this.command = function(name) {
     var opts = new CommandOptions(name);
+    // support 'verbose' and 'debug' flags for each command, without help entries
+    opts.option('verbose', {type: 'flag'});
+    opts.option('debug', {type: 'flag'});
     _commands.push(opts);
     return opts;
   };
@@ -44,6 +52,8 @@ export function CommandParser() {
   this.section = function(name) {
     return this.command("").title(name);
   };
+
+  this.isCommandName = tokenIsCommandName;
 
   this.parseArgv = function(raw) {
     var commandDefs = getCommands(),
@@ -114,7 +124,7 @@ export function CommandParser() {
       var token = argv.shift(),
           optName, optDef, parts;
 
-      if (assignmentRxp.test(token)) {
+      if (isAssignment(token)) {
         // token looks like name=value style option
         parts = splitAssignment(token);
         optDef = findOptionDefn(parts[0], cmdDef);
@@ -155,13 +165,6 @@ export function CommandParser() {
       } else {
         cmd.options[optName] = readOptionValue(argv, optDef);
       }
-    }
-
-    function splitAssignment(token) {
-      var match = assignmentRxp.exec(token),
-          name = match[1],
-          val = utils.trimQuotes(match[2]);
-      return [name, val];
     }
 
     // Read an option value for @optDef from @argv

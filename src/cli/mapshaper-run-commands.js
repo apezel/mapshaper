@@ -1,5 +1,5 @@
 import { runCommand } from '../cli/mapshaper-run-command';
-import { printProjections } from '../geom/mapshaper-projections';
+import { printProjections } from '../crs/mapshaper-projections';
 import { printEncodings } from '../text/mapshaper-encodings';
 import { printColorSchemeNames } from '../color/color-schemes';
 import { parseCommands } from '../cli/mapshaper-parse-commands';
@@ -228,6 +228,8 @@ export function runParsedCommands(commands, catalog, cb) {
 
   function nextCommand(catalog, cmd, next) {
     setStateVar('current_command', cmd.name); // for log msgs
+    setStateVar('verbose', !!cmd.options.verbose);
+    setStateVar('debug', !!cmd.options.debug);
     runCommand(cmd, catalog, next);
   }
 
@@ -235,6 +237,8 @@ export function runParsedCommands(commands, catalog, cb) {
     if (err) printError(err);
     cb(err, catalog);
     setStateVar('current_command', null);
+    setStateVar('verbose', false);
+    setStateVar('debug', false);
   }
 }
 

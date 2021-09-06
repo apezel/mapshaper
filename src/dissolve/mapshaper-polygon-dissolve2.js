@@ -69,13 +69,18 @@ export function dissolvePolygonGroups2(groups, lyr, dataset, opts) {
   var arcFilter = getArcPresenceTest(lyr.shapes, dataset.arcs);
   var nodes = new NodeCollection(dataset.arcs, arcFilter);
   var mosaicOpts = {
-    flat: true,
-    simple: groups.length == 1
+    flat: !opts.allow_overlaps,
+    simple: groups.length == 1,
+    overlap_rule: opts.overlap_rule
   };
   var mosaicIndex = new MosaicIndex(lyr, nodes, mosaicOpts);
-  var sliverOpts = utils.extend({sliver_control: 1}, opts);
-  var filterData = getSliverFilter(lyr, dataset, sliverOpts);
-  var cleanupData = mosaicIndex.removeGaps(filterData.filter);
+  var fillGaps = !opts.allow_overlaps; // gap fill doesn't work yet with overlapping shapes
+  var cleanupData, filterData;
+  if (fillGaps) {
+    var sliverOpts = utils.extend({sliver_control: 1}, opts);
+    filterData = getSliverFilter(lyr, dataset, sliverOpts);
+    cleanupData = mosaicIndex.removeGaps(filterData.filter);
+  }
   var pathfind = getRingIntersector(mosaicIndex.nodes);
   var dissolvedShapes = groups.map(function(shapeIds) {
     var tiles = mosaicIndex.getTilesByShapeIds(shapeIds);
@@ -89,8 +94,11 @@ export function dissolvePolygonGroups2(groups, lyr, dataset, opts) {
   // convert self-intersecting rings to outer/inner rings, for OGC
   // Simple Features compliance
   dissolvedShapes = fixTangentHoles(dissolvedShapes, pathfind);
-  var gapMessage = getGapRemovalMessage(cleanupData.removed, cleanupData.remaining, filterData.label);
-  if (gapMessage) message(gapMessage);
+
+  if (fillGaps && !opts.quiet) {
+    var msg = getGapRemovalMessage(cleanupData.removed, cleanupData.remaining, filterData.label);
+    if (msg) message(msg);
+  }
   return dissolvedShapes;
 }
 

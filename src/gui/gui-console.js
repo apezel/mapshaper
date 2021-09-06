@@ -345,7 +345,8 @@ export function Console(gui) {
   function submit(str) {
     // remove newlines
     // TODO: remove other whitespace at beginning + end of lines
-    var cmd = str.replace(/\\?\n/g, '').trim();
+    // var cmd = str.replace(/\\?\n/g, ' ').trim();
+    var cmd = str.trim();
     toLog(CURSOR + str);
     toCommandLine('');
     if (cmd) {
@@ -410,7 +411,6 @@ export function Console(gui) {
         prevTable = active.layer.data,
         prevTableSize = prevTable ? prevTable.size() : 0,
         prevArcCount = prevArcs ? prevArcs.size() : 0;
-
     internal.runParsedCommands(commands, model, function(err) {
       var flags = getCommandFlags(commands),
           active2 = model.getActiveLayer(),

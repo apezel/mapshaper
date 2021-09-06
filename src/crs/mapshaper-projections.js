@@ -1,9 +1,8 @@
-import { AlbersUSA, parseCustomProjection } from '../geom/mapshaper-custom-projections';
+import { AlbersUSA, parseCustomProjection } from '../crs/mapshaper-custom-projections';
 import { stop, print } from '../utils/mapshaper-logging';
 import { probablyDecimalDegreeBounds } from '../geom/mapshaper-latlon';
 import { getDatasetBounds } from '../dataset/mapshaper-dataset-utils';
 import { getStateVar } from '../mapshaper-state';
-
 import utils from '../utils/mapshaper-utils';
 import geom from '../geom/mapshaper-geom';
 
@@ -125,10 +124,15 @@ export function crsAreEqual(a, b) {
 export function getProjDefn(str) {
   var mproj = require('mproj');
   var defn;
+  // prepend '+proj=' to bare proj names
+  str = str.replace(/(^| )([\w]+)($| )/, function(a, b, c, d) {
+    if (c in mproj.internal.pj_list) {
+      return b + '+proj=' + c + d;
+    }
+    return a;
+  });
   if (looksLikeProj4String(str)) {
     defn = str;
-  } else if (str in mproj.internal.pj_list) {
-    defn = '+proj=' + str;
   } else if (str in projectionAliases) {
     defn = projectionAliases[str];  // defn is a function
   } else if (looksLikeInitString(str)) {
@@ -197,6 +201,18 @@ export function getDatasetCRS(dataset) {
   return P;
 }
 
+export function requireDatasetsHaveCompatibleCRS(arr) {
+  arr.reduce(function(memo, dataset) {
+    var P = getDatasetCRS(dataset);
+    if (memo && P) {
+      if (isLatLngCRS(memo) != isLatLngCRS(P)) {
+        stop("Unable to combine projected and unprojected datasets");
+      }
+    }
+    return P || memo;
+  }, null);
+}
+
 // Assumes conformal projections; consider returning average of vertical and
 // horizontal scale factors.
 // x, y: a point location in projected coordinates
@@ -216,6 +232,10 @@ export function isProjectedCRS(P) {
 
 export function isLatLngCRS(P) {
   return P && P.is_latlong || false;
+}
+
+export function isLatLngDataset(dataset) {
+  return isLatLngCRS(getDatasetCRS(dataset));
 }
 
 export function printProjections() {

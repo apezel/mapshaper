@@ -113,23 +113,6 @@ div.tip {
 
 /* -------- BUTTONS ---------- */
 
-.header-btn {
-	color: #fff;
-	border: none;
-	padding: 3px 7px 4px 7px;
-	border-radius: 3px;
-	margin-top: 5px;
-}
-
-.page-header .header-btn.disabled,
-.page-header .header-btn.disabled:hover {
-	background-color: transparent;
-}
-
-.page-header .header-btn.active {
-	background-color: black;
-}
-
 .btn.active {
 	cursor: pointer;
 }
@@ -161,7 +144,7 @@ div.tip {
 
 .dialog-btn {
 	display: inline-block;
-	margin-bottom: 4px;
+	margin-bottom: 1px;
 	margin-top: 1px;
 	font-size: 13px;
 	color: white;
@@ -182,5 +165,4 @@ div.tip {
 	cursor: auto;
 	color: #999;
 }
-
 
