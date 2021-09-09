@@ -1,6 +1,6 @@
 (function () {
 
-  var VERSION = "0.5.40";
+  var VERSION = "0.5.68";
 
 
   var utils = /*#__PURE__*/Object.freeze({
@@ -31,6 +31,7 @@
     get reduceAsync () { return reduceAsync; },
     get merge () { return merge; },
     get difference () { return difference; },
+    get intersection () { return intersection; },
     get indexOf () { return indexOf; },
     get contains () { return contains; },
     get some () { return some; },
@@ -38,7 +39,7 @@
     get find () { return find; },
     get range () { return range; },
     get repeat () { return repeat; },
-    get sum () { return sum; },
+    get sum () { return sum$1; },
     get getArrayBounds () { return getArrayBounds; },
     get uniq () { return uniq; },
     get pluck () { return pluck; },
@@ -60,7 +61,8 @@
     get rtrim () { return rtrim; },
     get addThousandsSep () { return addThousandsSep; },
     get numToStr () { return numToStr; },
-    get formatNumber () { return formatNumber$1; },
+    get formatNumber () { return formatNumber$2; },
+    get shuffle () { return shuffle; },
     get sortOn () { return sortOn; },
     get genericSort () { return genericSort; },
     get getSortedIds () { return getSortedIds; },
@@ -68,7 +70,7 @@
     get reorderArray () { return reorderArray; },
     get getKeyComparator () { return getKeyComparator; },
     get getGenericComparator () { return getGenericComparator; },
-    get quicksort () { return quicksort; },
+    get quicksort () { return quicksort$1; },
     get quicksortPartition () { return quicksortPartition; },
     get findRankByValue () { return findRankByValue; },
     get findValueByPct () { return findValueByPct; },
@@ -87,9 +89,10 @@
     get parsePercent () { return parsePercent; },
     get formatVersionedName () { return formatVersionedName; },
     get uniqifyNames () { return uniqifyNames; },
-    get cleanNumericString () { return cleanNumericString; },
     get parseString () { return parseString; },
     get parseNumber () { return parseNumber; },
+    get parseIntlNumber () { return parseIntlNumber; },
+    get cleanNumericString () { return cleanNumericString; },
     get trimQuotes () { return trimQuotes; }
   });
 
@@ -320,6 +323,13 @@
     });
   }
 
+  // Return the intersection of two arrays
+  function intersection(a, b) {
+    return a.filter(function(el) {
+      return b.includes(el);
+    });
+  }
+
   function indexOf(arr, item) {
     var nan = item !== item;
     for (var i = 0, len = arr.length || 0; i < len; i++) {
@@ -383,7 +393,7 @@
   // Calc sum, skip falsy and NaN values
   // Assumes: no other non-numeric objects in array
   //
-  function sum(arr, info) {
+  function sum$1(arr, info) {
     if (!isArrayLike(arr)) error ("sum() expects an array, received:", arr);
     var tot = 0,
         nan = 0,
@@ -420,15 +430,29 @@
     };
   }
 
+  // export function uniq(src) {
+  //   var index = {};
+  //   return src.reduce(function(memo, el) {
+  //     if (el in index === false) {
+  //       index[el] = true;
+  //       memo.push(el);
+  //     }
+  //     return memo;
+  //   }, []);
+  // }
+
   function uniq(src) {
-    var index = {};
-    return src.reduce(function(memo, el) {
-      if (el in index === false) {
-        index[el] = true;
-        memo.push(el);
+    var index = new Set();
+    var arr = [];
+    var item;
+    for (var i=0, n=src.length; i<n; i++) {
+      item = src[i];
+      if (!index.has(item)) {
+        arr.push(item);
+        index.add(item);
       }
-      return memo;
-    }, []);
+    }
+    return arr;
   }
 
   function pluck(arr, key) {
@@ -560,7 +584,7 @@
     return decimals >= 0 ? num.toFixed(decimals) : String(num);
   }
 
-  function formatNumber$1(num, decimals, nullStr, showPos) {
+  function formatNumber$2(num, decimals, nullStr, showPos) {
     var fmt;
     if (isNaN(num)) {
       fmt = nullStr || '-';
@@ -574,6 +598,15 @@
     return fmt;
   }
 
+  function shuffle(arr) {
+    var tmp, i, j;
+    for (i = arr.length - 1; i > 0; i--) {
+      j = Math.floor(Math.random() * (i + 1));
+      tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+  }
 
   // Sort an array of objects based on one or more properties.
   // Usage: sortOn(array, key1, asc?[, key2, asc? ...])
@@ -662,7 +695,7 @@
 
 
   // Generic in-place sort (null, NaN, undefined not handled)
-  function quicksort(arr, asc) {
+  function quicksort$1(arr, asc) {
     quicksortPartition(arr, 0, arr.length-1);
     if (asc === false) Array.prototype.reverse.call(arr); // Works with typed arrays
     return arr;
@@ -1018,11 +1051,6 @@
     return names2;
   }
 
-  // Remove comma separators from strings
-  // TODO: accept European-style numbers?
-  function cleanNumericString(str) {
-    return (str.indexOf(',') > 0) ? str.replace(/,([0-9]{3})/g, '$1') : str;
-  }
 
   // Assume: @raw is string, undefined or null
   function parseString(raw) {
@@ -1034,9 +1062,27 @@
   // (in part because if NaN is used, empty strings get converted to "NaN"
   // when re-exported).
   function parseNumber(raw) {
+    return parseToNum(raw, cleanNumericString);
+  }
+
+  function parseIntlNumber(raw) {
+    return parseToNum(raw, convertIntlNumString);
+  }
+
+  function parseToNum(raw, clean) {
     var str = String(raw).trim();
-    var parsed = str ? Number(cleanNumericString(str)) : NaN;
+    var parsed = str ? Number(clean(str)) : NaN;
     return isNaN(parsed) ? null : parsed;
+  }
+
+  // Remove comma separators from strings
+  function cleanNumericString(str) {
+    return (str.indexOf(',') > 0) ? str.replace(/,([0-9]{3})/g, '$1') : str;
+  }
+
+  function convertIntlNumString(str) {
+    str = str.replace(/[ .]([0-9]{3})/g, '$1');
+    return str.replace(',', '.');
   }
 
   function trimQuotes(raw) {
@@ -1044,7 +1090,8 @@
     if (len >= 2) {
       first = raw.charAt(0);
       last = raw.charAt(len-1);
-      if (first == '"' && last == '"' || first == "'" && last == "'") {
+      if (first == '"' && last == '"' && !raw.includes('","') ||
+          first == "'" && last == "'" && !raw.includes("','")) {
         return raw.substr(1, len-2);
       }
     }
@@ -1163,13 +1210,14 @@
   }
 
   function verbose() {
-    if (getStateVar('VERBOSE')) {
+    // verbose can be set globally with the -verbose command or separately for each command
+    if (getStateVar('VERBOSE') || getStateVar('verbose')) {
       message.apply(null, arguments);
     }
   }
 
   function debug() {
-    if (getStateVar('DEBUG')) {
+    if (getStateVar('DEBUG') || getStateVar('debug')) {
       logArgs(arguments);
     }
   }
@@ -1310,6 +1358,11 @@
       this.setBounds.apply(this, arguments);
     }
   }
+
+  Bounds.from = function() {
+    var b = new Bounds();
+    return b.setBounds.apply(b, arguments);
+  };
 
   Bounds.prototype.toString = function() {
     return JSON.stringify({
@@ -1584,7 +1637,7 @@
     return count;
   }
 
-  function getPointBounds(shapes) {
+  function getPointBounds$1(shapes) {
     var bounds = new Bounds();
     forEachPoint(shapes, function(p) {
       bounds.mergePoint(p[0], p[1]);
@@ -1603,6 +1656,15 @@
     return bounds;
   }
 
+  // NOTE: layers can have multipoint features and null features
+  function getPointsInLayer(lyr) {
+    var coords = [];
+    forEachPoint(lyr.shapes, function(p) {
+      coords.push(p);
+    });
+    return coords;
+  }
+
   // Iterate over each [x,y] point in a layer
   // shapes: one layer's "shapes" array
   function forEachPoint(shapes, cb) {
@@ -1618,8 +1680,9 @@
   var PointUtils = /*#__PURE__*/Object.freeze({
     __proto__: null,
     countPointsInLayer: countPointsInLayer,
-    getPointBounds: getPointBounds,
+    getPointBounds: getPointBounds$1,
     getPointFeatureBounds: getPointFeatureBounds,
+    getPointsInLayer: getPointsInLayer,
     forEachPoint: forEachPoint
   });
 
@@ -1648,12 +1711,13 @@
 
   // TODO: remove this constant, use actual data from dataset CRS
   //       also consider using ellipsoidal formulas when appropriate
-  var R = 6378137;
+  var R$1 = 6378137;
   var D2R = Math.PI / 180;
+  var R2D = 180 / Math.PI;
 
   // Equirectangular projection
   function degreesToMeters(deg) {
-    return deg * D2R * R;
+    return deg * D2R * R$1;
   }
 
   function distance3D(ax, ay, az, bx, by, bz) {
@@ -1810,9 +1874,9 @@
     lng *= D2R;
     lat *= D2R;
     cosLat = Math.cos(lat);
-    p[0] = Math.cos(lng) * cosLat * R;
-    p[1] = Math.sin(lng) * cosLat * R;
-    p[2] = Math.sin(lat) * R;
+    p[0] = Math.cos(lng) * cosLat * R$1;
+    p[1] = Math.sin(lng) * cosLat * R$1;
+    p[2] = Math.sin(lat) * R$1;
   }
 
   // Haversine formula (well conditioned at small distances)
@@ -1831,7 +1895,7 @@
   function greatCircleDistance(lng1, lat1, lng2, lat2) {
     var D2R = Math.PI / 180,
         dist = sphericalDistance(lng1 * D2R, lat1 * D2R, lng2 * D2R, lat2 * D2R);
-    return dist * R;
+    return dist * R$1;
   }
 
   // TODO: make this safe for small angles
@@ -1992,8 +2056,9 @@
 
   var Geom = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    R: R,
+    R: R$1,
     D2R: D2R,
+    R2D: R2D,
     degreesToMeters: degreesToMeters,
     distance3D: distance3D,
     distanceSq: distanceSq,
@@ -2364,8 +2429,12 @@
   }
 
   function getSphericalPathArea(ids, arcs) {
-    var iter = arcs.getShapeIter(ids),
-        sum = 0,
+    var iter = arcs.getShapeIter(ids);
+    return getSphericalPathArea2(iter);
+  }
+
+  function getSphericalPathArea2(iter) {
+    var sum = 0,
         started = false,
         deg2rad = Math.PI / 180,
         x, y, xp, yp;
@@ -2469,6 +2538,7 @@
     getRayIntersection: getRayIntersection,
     getPathArea: getPathArea,
     getSphericalPathArea: getSphericalPathArea,
+    getSphericalPathArea2: getSphericalPathArea2,
     getPlanarPathArea2: getPlanarPathArea2,
     getPlanarPathArea: getPlanarPathArea,
     getPathPerimeter: getPathPerimeter,
@@ -3576,8 +3646,15 @@
     return arr;
   }
 
+  function getFirstNonEmptyRecord(records) {
+    for (var i=0, n=records ? records.length : 0; i<n; i++) {
+      if (records[i]) return records[i];
+    }
+    return null;
+  }
+
   function findFieldNames(records, order) {
-    var first = records[0];
+    var first = getFirstNonEmptyRecord(records);
     var names = first ? Object.keys(first) : [];
     return applyFieldOrder(names, order);
   }
@@ -3595,6 +3672,7 @@
     getFieldValues: getFieldValues,
     getUniqFieldValues: getUniqFieldValues,
     applyFieldOrder: applyFieldOrder,
+    getFirstNonEmptyRecord: getFirstNonEmptyRecord,
     findFieldNames: findFieldNames
   });
 
@@ -3716,6 +3794,10 @@
     return data;
   }
 
+  function layerHasNonNullData(lyr) {
+    return lyr.data && getFirstNonEmptyRecord(lyr.data.getRecords()) ? true : false;
+  }
+
   function layerHasGeometry(lyr) {
     return layerHasPaths(lyr) || layerHasPoints(lyr);
   }
@@ -3807,6 +3889,13 @@
       stop(layerTypeMessage(lyr, "Expected a point layer", msg));
   }
 
+  function requireSinglePointLayer(lyr, msg) {
+    requirePointLayer(lyr);
+    if (countMultiPartFeatures(lyr) > 0) {
+      stop(msg || 'This command requires single points');
+    }
+  }
+
   function requirePolylineLayer(lyr, msg) {
     if (!lyr || lyr.geometry_type !== 'polyline')
       stop(layerTypeMessage(lyr, "Expected a polyline layer", msg));
@@ -3856,6 +3945,17 @@
   // make a stub copy if the no_replace option is given, else pass thru src layer
   function getOutputLayer(src, opts) {
     return opts && opts.no_replace ? {geometry_type: src.geometry_type} : src;
+  }
+
+  function setOutputLayerName(dest, src, defName, opts) {
+    opts = opts || {};
+    if (opts.name) {
+      dest.name = opts.name;
+    } else if (opts.no_replace) {
+      dest.name = defName || undefined;
+    } else {
+      dest.name = src && src.name || defName || undefined;
+    }
   }
 
   // Make a deep copy of a layer
@@ -3926,7 +4026,7 @@
   function getLayerBounds(lyr, arcs) {
     var bounds = null;
     if (lyr.geometry_type == 'point') {
-      bounds = getPointBounds(lyr.shapes);
+      bounds = getPointBounds$1(lyr.shapes);
     } else if (lyr.geometry_type == 'polygon' || lyr.geometry_type == 'polyline') {
       bounds = getPathBounds(lyr.shapes, arcs);
     } else {
@@ -3950,6 +4050,7 @@
     __proto__: null,
     insertFieldValues: insertFieldValues,
     getLayerDataTable: getLayerDataTable,
+    layerHasNonNullData: layerHasNonNullData,
     layerHasGeometry: layerHasGeometry,
     layerHasPaths: layerHasPaths,
     layerHasPoints: layerHasPoints,
@@ -3962,12 +4063,14 @@
     requireDataFields: requireDataFields,
     layerTypeMessage: layerTypeMessage,
     requirePointLayer: requirePointLayer,
+    requireSinglePointLayer: requireSinglePointLayer,
     requirePolylineLayer: requirePolylineLayer,
     requirePolygonLayer: requirePolygonLayer,
     requirePathLayer: requirePathLayer,
     getLayerSourceFile: getLayerSourceFile,
     divideFeaturesByType: divideFeaturesByType,
     getOutputLayer: getOutputLayer,
+    setOutputLayerName: setOutputLayerName,
     copyLayer: copyLayer,
     filterPathLayerByArcIds: filterPathLayerByArcIds,
     copyLayerShapes: copyLayerShapes,
@@ -4340,11 +4443,18 @@
         Math.min(bbox[2], 180), Math.min(bbox[3], 90));
   }
 
+  function getAntimeridian(lon0) {
+    var anti = lon0 - 180;
+    while (anti <= -180) anti += 360;
+    return anti;
+  }
+
   var LatLon = /*#__PURE__*/Object.freeze({
     __proto__: null,
     getWorldBounds: getWorldBounds,
     probablyDecimalDegreeBounds: probablyDecimalDegreeBounds,
-    clampToWorldBounds: clampToWorldBounds
+    clampToWorldBounds: clampToWorldBounds,
+    getAntimeridian: getAntimeridian
   });
 
   // An interface for managing a collection of paths.
@@ -5963,10 +6073,15 @@
   function getProjDefn(str) {
     var mproj = require('mproj');
     var defn;
+    // prepend '+proj=' to bare proj names
+    str = str.replace(/(^| )([\w]+)($| )/, function(a, b, c, d) {
+      if (c in mproj.internal.pj_list) {
+        return b + '+proj=' + c + d;
+      }
+      return a;
+    });
     if (looksLikeProj4String(str)) {
       defn = str;
-    } else if (str in mproj.internal.pj_list) {
-      defn = '+proj=' + str;
     } else if (str in projectionAliases) {
       defn = projectionAliases[str];  // defn is a function
     } else if (looksLikeInitString(str)) {
@@ -6035,6 +6150,18 @@
     return P;
   }
 
+  function requireDatasetsHaveCompatibleCRS(arr) {
+    arr.reduce(function(memo, dataset) {
+      var P = getDatasetCRS(dataset);
+      if (memo && P) {
+        if (isLatLngCRS(memo) != isLatLngCRS(P)) {
+          stop("Unable to combine projected and unprojected datasets");
+        }
+      }
+      return P || memo;
+    }, null);
+  }
+
   // Assumes conformal projections; consider returning average of vertical and
   // horizontal scale factors.
   // x, y: a point location in projected coordinates
@@ -6054,6 +6181,10 @@
 
   function isLatLngCRS(P) {
     return P && P.is_latlong || false;
+  }
+
+  function isLatLngDataset(dataset) {
+    return isLatLngCRS(getDatasetCRS(dataset));
   }
 
   function printProjections() {
@@ -6102,18 +6233,15 @@
     requireProjectedDataset: requireProjectedDataset,
     setDatasetCRS: setDatasetCRS,
     getDatasetCRS: getDatasetCRS,
+    requireDatasetsHaveCompatibleCRS: requireDatasetsHaveCompatibleCRS,
     getScaleFactorAtXY: getScaleFactorAtXY,
     isProjectedCRS: isProjectedCRS,
     isLatLngCRS: isLatLngCRS,
+    isLatLngDataset: isLatLngDataset,
     printProjections: printProjections,
     translatePrj: translatePrj,
     parsePrj: parsePrj
   });
-
-  function replaceFileExtension(path, ext) {
-    var info = parseLocalPath(path);
-    return info.pathbase + '.' + ext;
-  }
 
   function getPathSep(path) {
     // TODO: improve
@@ -6121,29 +6249,30 @@
   }
 
   // Parse the path to a file without using Node
-  // Assumes: not a directory path
+  // Guess if the path is a directory or file
   function parseLocalPath(path) {
-    var obj = {},
+    var obj = {
+          filename: '',
+          directory: '',
+          basename: '',
+          extension: ''
+        },
         sep = getPathSep(path),
         parts = path.split(sep),
-        i;
+        lastPart = parts.pop(),
+        // try to match typical extensions but reject directory names with dots
+        extRxp = /\.([a-z][a-z0-9]*)$/i,
+        extMatch = extRxp.test(lastPart) ? extRxp.exec(lastPart)[0] : '';
 
-    if (parts.length == 1) {
-      obj.filename = parts[0];
-      obj.directory = "";
-    } else {
-      obj.filename = parts.pop();
+    if (extMatch || lastPart.includes('*')) {
+      obj.filename = lastPart;
+      obj.extension = extMatch ? extMatch.slice(1) : '';
+      obj.basename = lastPart.slice(0, lastPart.length - extMatch.length);
       obj.directory = parts.join(sep);
-    }
-    i = obj.filename.lastIndexOf('.');
-    if (i > -1) {
-      obj.extension = obj.filename.substr(i + 1);
-      obj.basename = obj.filename.substr(0, i);
-      obj.pathbase = path.substr(0, path.lastIndexOf('.'));
+    } else if (!lastPart) { // path ends with separator
+      obj.directory = parts.join(sep);
     } else {
-      obj.extension = "";
-      obj.basename = obj.filename;
-      obj.pathbase = path;
+      obj.directory = path;
     }
     return obj;
   }
@@ -6157,7 +6286,13 @@
   }
 
   function getPathBase(path) {
-    return parseLocalPath(path).pathbase;
+    var info =  parseLocalPath(path);
+    if (!info.extension) return path;
+    return path.slice(0, path.length - info.extension.length - 1);
+  }
+
+  function replaceFileExtension(path, ext) {
+    return getPathBase(path) + '.' + ext;
   }
 
   function getCommonFileBase(names) {
@@ -6178,11 +6313,11 @@
 
   var FilenameUtils = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    replaceFileExtension: replaceFileExtension,
     parseLocalPath: parseLocalPath,
     getFileBase: getFileBase,
     getFileExtension: getFileExtension,
     getPathBase: getPathBase,
+    replaceFileExtension: replaceFileExtension,
     getCommonFileBase: getCommonFileBase,
     getOutputFileBase: getOutputFileBase
   });
@@ -6227,7 +6362,7 @@
 
   cli.createDirIfNeeded = function(fname) {
     var odir = parseLocalPath(fname).directory;
-    if (!odir || cli.isDirectory(odir)) return;
+    if (!odir || cli.isDirectory(odir) || fname == '/dev/stdout') return;
     try {
       require('fs').mkdirSync(odir, {recursive: true});
       message('Created output directory:', odir);
@@ -7095,122 +7230,356 @@
     getFormattedStringify: getFormattedStringify
   });
 
-  var cmd = {}; // command functions get added to this object
-
-  // Merge layers, checking for incompatible geometries and data fields.
-  // Assumes that input layers are members of the same dataset (and therefore
-  // share the same ArcCollection, if layers have paths).
-  cmd.mergeLayers = function(layersArg, opts) {
-    var layers = layersArg.filter(getFeatureCount); // ignore empty layers
-    var merged = {};
-    opts = opts || {};
-    if (!layers.length) return null;
-    if (layers.length == 1) {
-      message('Use the target= option to specify multiple layers for merging');
-      return layers.concat();
+  // Return id of rightmost connected arc in relation to @arcId
+  // Return @arcId if no arcs can be found
+  function getRightmostArc(arcId, nodes, filter) {
+    var ids = nodes.getConnectedArcs(arcId);
+    if (filter) {
+      ids = ids.filter(filter);
     }
-    merged.data = mergeDataFromLayers(layers, opts);
-    merged.name = mergeLayerNames(layers);
-    merged.geometry_type = getMergedLayersGeometryType(layers);
-    if (merged.geometry_type) {
-      merged.shapes = mergeShapesFromLayers(layers);
+    if (ids.length === 0) {
+      return arcId; // error condition, handled by caller
     }
-    if (merged.shapes && merged.data && merged.shapes.length != merged.data.size()) {
-      error("Mismatch between geometry and attribute data");
-    }
-    return [merged];
-  };
-
-  function getMergedLayersGeometryType(layers) {
-    var geoTypes = utils.uniq(utils.pluck(layers, 'geometry_type'))
-      .filter(function(type) {return !!type;}); // ignore null-type layers
-    if (geoTypes.length > 1) {
-      stop("Incompatible geometry types:", geoTypes.join(', '));
-    }
-    return geoTypes[0] || null;
+    return getRighmostArc2(arcId, ids, nodes.arcs);
   }
 
-  function mergeShapesFromLayers(layers) {
-    return layers.reduce(function(memo, lyr) {
-      var shapes = lyr.shapes || [];
-      var n = getFeatureCount(lyr);
-      var i = -1;
-      while (++i < n) memo.push(shapes[i] || null); // add null shapes if layer has no shapes
-      return memo;
-    }, []);
-  }
+  function getRighmostArc2 (fromId, ids, arcs) {
+    var coords = arcs.getVertexData(),
+        xx = coords.xx,
+        yy = coords.yy,
+        inode = arcs.indexOfVertex(fromId, -1),
+        nodeX = xx[inode],
+        nodeY = yy[inode],
+        ifrom = arcs.indexOfVertex(fromId, -2),
+        fromX = xx[ifrom],
+        fromY = yy[ifrom],
+        toId = fromId, // initialize to from-arc -- an error
+        ito, candId, icand, code, j;
 
-  function mergeDataFromLayers(layers, opts) {
-    var allFields = utils.uniq(layers.reduce(function(memo, lyr) {
-      return memo.concat(lyr.data ? lyr.data.getFields() : []);
-    }, []));
-    if (allFields.length === 0) return null; // no data in any fields
-    var mergedRecords = layers.reduce(function(memo, lyr) {
-      var records = lyr.data ? lyr.data.getRecords() : new DataTable(getFeatureCount(lyr)).getRecords();
-      return memo.concat(records);
-    }, []);
-    var missingFields = findInconsistentFields(allFields, layers);
-    handleMissingFields(missingFields, opts);
-    checkInconsistentFieldTypes(allFields, layers);
-    if (missingFields.length > 0) {
-      fixInconsistentFields(mergedRecords);
+    /*if (x == ax && y == ay) {
+      error("Duplicate point error");
+    }*/
+    if (ids.length > 0) {
+      toId = ids[0];
+      ito = arcs.indexOfVertex(toId, -2);
     }
-    return new DataTable(mergedRecords);
-  }
 
-  // handle fields that are missing from one or more layers
-  // (warn if force-merging, else error)
-  function handleMissingFields(missingFields, opts) {
-    var msg;
-    if (missingFields.length > 0) {
-      msg = '[' + missingFields.join(', ') + ']';
-      msg = (missingFields.length == 1 ? 'Field ' + msg + ' is missing' : 'Fields ' + msg + ' are missing') + ' from one or more layers';
-      if (!opts.force) {
-        stop(msg);
-      } else if (opts.verbose !== false) {
-        message('Warning: ' + msg);
+    for (j=1; j<ids.length; j++) {
+      candId = ids[j];
+      icand = arcs.indexOfVertex(candId, -2);
+      code = chooseRighthandPath(fromX, fromY, nodeX, nodeY, xx[ito], yy[ito], xx[icand], yy[icand]);
+      // code = internal.chooseRighthandPath(0, 0, nodeX - fromX, nodeY - fromY, xx[ito] - fromX, yy[ito] - fromY, xx[icand] - fromX, yy[icand] - fromY);
+      if (code == 2) {
+        toId = candId;
+        ito = icand;
       }
     }
+    if (toId == fromId) {
+      // This shouldn't occur, assuming that other arcs are present
+      error("Pathfinder error");
+    }
+    return toId;
   }
 
-  function findInconsistentFields(allFields, layers) {
-    var missingFields = utils.uniq(layers.reduce(function(memo, lyr) {
-      return memo.concat(utils.difference(allFields, lyr.data ? lyr.data.getFields() : []));
-    }, []));
-    return missingFields;
+  function chooseRighthandPath2(fromX, fromY, nodeX, nodeY, ax, ay, bx, by) {
+    return chooseRighthandVector(ax - nodeX, ay - nodeY, bx - nodeX, by - nodeY);
   }
 
-  // check for fields with incompatible data types (e.g. number, string)
-  function checkInconsistentFieldTypes(fields, layers) {
-    fields.forEach(function(key) {
-      var types = findFieldTypes(key, layers);
-      if (types.length > 1) {
-        stop("Inconsistent data types in \"" + key + "\" field:", types.join(', '));
+  // TODO: consider using simpler internal.chooseRighthandPath2()
+  // Returns 1 if node->a, return 2 if node->b, else return 0
+  // TODO: better handling of identical angles (better -- avoid creating them)
+  function chooseRighthandPath(fromX, fromY, nodeX, nodeY, ax, ay, bx, by) {
+    var angleA = geom.signedAngle(fromX, fromY, nodeX, nodeY, ax, ay);
+    var angleB = geom.signedAngle(fromX, fromY, nodeX, nodeY, bx, by);
+    var code;
+    if (angleA <= 0 || angleB <= 0) {
+      debug("[chooseRighthandPath()] 0 angle(s):", angleA, angleB);
+      if (angleA <= 0) {
+        debug('  A orient2D:', geom.orient2D(fromX, fromY, nodeX, nodeY, ax, ay));
       }
+      if (angleB <= 0) {
+        debug('  B orient2D:', geom.orient2D(fromX, fromY, nodeX, nodeY, bx, by));
+      }
+      // TODO: test against "from" segment
+      if (angleA > 0) {
+        code = 1;
+      } else if (angleB > 0) {
+        code = 2;
+      } else {
+        code = 0;
+      }
+    } else if (angleA < angleB) {
+      code = 1;
+    } else if (angleB < angleA) {
+      code = 2;
+    } else if (isNaN(angleA) || isNaN(angleB)) {
+      // probably a duplicate point, which should not occur
+      error('Invalid node geometry');
+    } else {
+      // Equal angles: use fallback test that is less sensitive to rounding error
+      code = chooseRighthandVector(ax - nodeX, ay - nodeY, bx - nodeX, by - nodeY);
+      debug('[chooseRighthandPath()] equal angles:', angleA, 'fallback test:', code);
+    }
+    return code;
+  }
+
+  function chooseRighthandVector(ax, ay, bx, by) {
+    var orient = geom.orient2D(ax, ay, 0, 0, bx, by);
+    var code;
+    if (orient > 0) {
+      code = 2;
+    } else if (orient < 0) {
+      code = 1;
+    } else {
+      code = 0;
+    }
+    return code;
+  }
+
+  var PathfinderUtils = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getRightmostArc: getRightmostArc,
+    chooseRighthandVector: chooseRighthandVector
+  });
+
+  // Functions for redrawing polygons for clipping / erasing / flattening / division
+  // These functions use 8 bit codes to control forward and reverse traversal of each arc.
+  //
+  // Function of path bits 0-7:
+  // 0: is fwd path hidden or visible? (0=hidden, 1=visible)
+  // 1: is fwd path open or closed for traversal? (0=closed, 1=open)
+  // 2: unused
+  // 3: unused
+  // 4: is rev path hidden or visible?
+  // 5: is rev path open or closed for traversal?
+  // 6: unused
+  // 7: unused
+  //
+  // Example codes:
+  // 0x3 (3): forward path is visible and open, reverse path is hidden and closed
+  // 0x10 (16): forward path is hidden and closed, reverse path is visible and closed
+  //
+
+  var FWD_VISIBLE = 0x1;
+  var FWD_OPEN = 0x2;
+  var REV_VISIBLE = 0x10;
+  var REV_OPEN = 0x20;
+
+  function setBits(bits, arcBits, mask) {
+    return (bits & ~mask) | (arcBits & mask);
+  }
+
+  function andBits(bits, arcBits, mask) {
+    return bits & (~mask | arcBits);
+  }
+
+  function setRouteBits(arcBits, arcId, routesArr) {
+    var idx = absArcId(arcId), // get index of path in
+        mask;
+    if (idx == arcId) { // arcBits controls fwd path
+      mask = ~3; // target fwd bits
+    } else { // arcBits controls rev. path
+      mask = ~0x30; // target rev bits
+      arcBits = arcBits << 4; // shift code to target rev path
+    }
+    routesArr[idx] &= (arcBits | mask);
+  }
+
+  function getRouteBits(arcId, routesArr) {
+    var idx = absArcId(arcId),
+        bits = routesArr[idx];
+    if (idx != arcId) bits = bits >> 4;
+    return bits & 7;
+  }
+
+  // Open arc pathways in a single shape or array of shapes
+  //
+  function openArcRoutes(paths, arcColl, routesArr, fwd, rev, dissolve, orBits) {
+    forEachArcId(paths, function(arcId) {
+      var isInv = arcId < 0,
+          idx = isInv ? ~arcId : arcId,
+          currBits = routesArr[idx],
+          openFwd = isInv ? rev : fwd,
+          openRev = isInv ? fwd : rev,
+          newBits = currBits;
+
+      // error condition: lollipop arcs can cause problems; ignore these
+      if (arcColl.arcIsLollipop(arcId)) {
+        debug('lollipop');
+        newBits = 0; // unset (i.e. make invisible)
+      } else {
+        if (openFwd) {
+          newBits |= 3; // set fwd path to visible and open
+        }
+        if (openRev) {
+          newBits |= 0x30; // set rev. path to visible and open
+        }
+
+        // placing this in front of dissolve - dissolve has to be able to hide
+        // pathways that are made visible by orBits
+        if (orBits > 0) {
+          newBits |= orBits;
+        }
+
+        // dissolve hides arcs that have both fw and rev pathways open
+        // (these arcs represent shared borders and will not be part of the dissolved path)
+        //
+        if (dissolve && (newBits & 0x22) === 0x22) {
+          newBits &= ~0x11; // make invisible
+        }
+      }
+
+      routesArr[idx] = newBits;
     });
   }
 
-  function findFieldTypes(key, layers) {
-    // ignores empty-type fields
-    return layers.reduce(function(memo, lyr) {
-      var type = lyr.data ? getColumnType(key, lyr.data.getRecords()) : null;
-      if (type && memo.indexOf(type) == -1) {
-        memo.push(type);
+  function closeArcRoutes(arcIds, arcs, routesArr, fwd, rev, hide) {
+    forEachArcId(arcIds, function(arcId) {
+      var isInv = arcId < 0,
+          idx = isInv ? ~arcId : arcId,
+          currBits = routesArr[idx],
+          mask = 0xff,
+          closeFwd = isInv ? rev : fwd,
+          closeRev = isInv ? fwd : rev;
+
+      if (closeFwd) {
+        if (hide) mask &= ~1;
+        mask ^= 0x2;
       }
-      return memo;
-    }, []);
+      if (closeRev) {
+        if (hide) mask &= ~0x10;
+        mask ^= 0x20;
+      }
+      routesArr[idx] = currBits & mask;
+    });
   }
 
-  function mergeLayerNames(layers) {
-    return layers.reduce(function(memo, lyr) {
-      if (memo === null) {
-        memo = lyr.name || null;
-      } else if (memo && lyr.name) {
-        memo = utils.mergeNames(memo, lyr.name);
-      }
-      return memo;
-    }, null) || '';
+  // Return a function for generating a path across a graph of connected arcs
+  // useRoute: function(arcId) {}
+  //           Tries to extend path to the given arc
+  //           Returns true and extends path by one arc on success
+  //           Returns false and rejects the entire path on failure
+  // routeIsUsable (optional): function(arcId) {}
+  //           An optional filter function; pathfinder ignores the given arc if
+  //           this function returns false;
+  // TODO: add option to use spherical geometry for lat-lng coords
+  //
+  function getPathFinder(nodes, useRoute, routeIsUsable) {
+    var testArc = null;
+    if (routeIsUsable) {
+      testArc = function(arcId) {
+        return routeIsUsable(~arcId); // outward path must be traversable
+      };
+    }
+
+    function getNextArc(prevId) {
+      // reverse arc to point onwards
+      return ~getRightmostArc(prevId, nodes, testArc);
+    }
+
+    return function(startId) {
+      var path = [],
+          nextId, msg,
+          candId = startId;
+
+      do {
+        if (useRoute(candId)) {
+          path.push(candId);
+          nextId = candId;
+          candId = getNextArc(nextId);
+        } else {
+          return null;
+        }
+
+        if (candId == ~nextId) {
+          // TODO: handle or prevent this error condition
+          debug("Pathfinder warning: dead-end path");
+          return null;
+        }
+      } while (candId != startId);
+      return path.length === 0 ? null : path;
+    };
   }
+
+  // Returns a function for flattening or dissolving a collection of rings
+  // Assumes rings are oriented in CW direction
+  //
+  function getRingIntersector(nodes, flagsArr) {
+    var arcs = nodes.arcs;
+    var findPath = getPathFinder(nodes, useRoute, routeIsActive);
+    flagsArr = flagsArr || new Uint8Array(arcs.size());
+
+    // types: "dissolve" "flatten"
+    return function(rings, type) {
+      var dissolve = type == 'dissolve',
+          openFwd = true,
+          openRev = type == 'flatten',
+          output;
+      // even single rings get transformed (e.g. to remove spikes)
+      if (rings.length > 0) {
+        output = [];
+        openArcRoutes(rings, arcs, flagsArr, openFwd, openRev, dissolve);
+        forEachShapePart(rings, function(ids) {
+          var path;
+          for (var i=0, n=ids.length; i<n; i++) {
+            path = findPath(ids[i]);
+            if (path) {
+              output.push(path);
+            }
+          }
+        });
+        closeArcRoutes(rings, arcs, flagsArr, openFwd, openRev, true);
+      } else {
+        output = rings;
+      }
+      return output;
+    };
+
+    function routeIsActive(arcId) {
+      var bits = getRouteBits(arcId, flagsArr);
+      return (bits & 1) == 1;
+    }
+
+    function useRoute(arcId) {
+      var route = getRouteBits(arcId, flagsArr),
+          isOpen = false;
+      if (route == 3) {
+        isOpen = true;
+        setRouteBits(1, arcId, flagsArr); // close the path, leave visible
+      }
+      return isOpen;
+    }
+  }
+
+  // function debugFlags(flags) {
+  //   var arr = [];
+  //   utils.forEach(flags, function(flag) {
+  //     arr.push(bitsToString(flag));
+  //   });
+  //   message(arr);
+
+  //   function bitsToString(bits) {
+  //     var str = "";
+  //     for (var i=0; i<8; i++) {
+  //       str += (bits & (1 << i)) > 0 ? "1" : "0";
+  //       if (i < 7) str += ' ';
+  //       if (i == 3) str += ' ';
+  //     }
+  //     return str;
+  //   }
+  // }
+
+  var Pathfinder = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    setBits: setBits,
+    andBits: andBits,
+    setRouteBits: setRouteBits,
+    getRouteBits: getRouteBits,
+    openArcRoutes: openArcRoutes,
+    closeArcRoutes: closeArcRoutes,
+    getPathFinder: getPathFinder,
+    getRingIntersector: getRingIntersector
+  });
 
   function roundToSignificantDigits(n, d) {
     return +n.toPrecision(d);
@@ -7298,973 +7667,298 @@
     setCoordinatePrecision: setCoordinatePrecision
   });
 
-  var GeoJSON = {};
-
-  GeoJSON.ID_FIELD = "FID"; // default field name of imported *JSON feature ids
-
-  GeoJSON.typeLookup = {
-    LineString: 'polyline',
-    MultiLineString: 'polyline',
-    Polygon: 'polygon',
-    MultiPolygon: 'polygon',
-    Point: 'point',
-    MultiPoint: 'point'
+  var UNITS_LOOKUP = {
+    m: 'meters',
+    meter: 'meters',
+    meters: 'meters',
+    mi: 'miles',
+    mile: 'miles',
+    miles: 'miles',
+    km: 'kilometers',
+    ft: 'feet',
+    feet: 'feet'
   };
 
-  GeoJSON.translateGeoJSONType = function(type) {
-    return GeoJSON.typeLookup[type] || null;
+  // From pj_units.js in mapshaper-proj
+  var TO_METERS = {
+    meters: 1,
+    kilometers: 1000,
+    feet: 0.3048, // International Standard Foot
+    miles: 1609.344 // International Statute Mile
   };
 
-  GeoJSON.pathIsRing = function(coords) {
-    var first = coords[0],
-        last = coords[coords.length - 1];
-    // TODO: consider detecting collapsed rings
-    return coords.length >= 4 && first[0] == last[0] && first[1] == last[1];
-  };
-
-  // switch to RFC 7946-compatible output (while retaining the original export function,
-  // so numerous tests will continue to work)
-  function exportGeoJSON2(dataset, opts) {
-    opts = utils.extend({}, opts);
-    opts.v2 = !opts.gj2008; // use RFC 7946 as the default
-    return exportGeoJSON(dataset, opts);
-  }
-
-  function exportGeoJSON(dataset, opts) {
-    opts = opts || {};
-    var extension = opts.extension || "json";
-    var layerGroups, warn;
-
-    // Apply coordinate precision
-    // rfc7946 flag is deprecated (default output is now RFC 7946 compatible)
-    // the flag is used here to preserve backwards compatibility
-    // (the rfc7946 flag applies a default precision threshold, even though rounding
-    // coordinates is only a recommendation, not a requirement of RFC 7946)
-    if (opts.precision || opts.rfc7946) {
-      dataset = copyDatasetForExport(dataset);
-      setCoordinatePrecision(dataset, opts.precision || 0.000001);
-    }
-
-    if (opts.v2 || opts.rfc7946) {
-      warn = getRFC7946Warnings(dataset);
-      if (warn) message(warn);
-    }
-
-    if (opts.file) {
-      // Override default output extension if output filename is given
-      extension = getFileExtension(opts.file);
-    }
-    if (opts.combine_layers) {
-      layerGroups = [dataset.layers];
-    } else {
-      layerGroups = dataset.layers.map(function(lyr) {
-        return [lyr];
-      });
-    }
-    return layerGroups.map(function(layers) {
-      // Use common part of layer names if multiple layers are being merged
-      var name = mergeLayerNames(layers) || 'output';
-      var d = utils.defaults({layers: layers}, dataset);
-      return {
-        content: exportDatasetAsGeoJSON(d, opts, 'buffer'),
-        filename: name + '.' + extension
-      };
-    });
-  }
-
-  // Return an array of Features or Geometries as objects or strings
+  // Return coeff. for converting a distance measure to dataset coordinates
+  // @paramUnits: units code of distance param, or null if units are not specified
+  // @crs: Proj.4 CRS object, or null (unknown latlong CRS);
   //
-  function exportLayerAsGeoJSON(lyr, dataset, opts, asFeatures, ofmt) {
-    var properties = exportProperties(lyr.data, opts),
-        shapes = lyr.shapes,
-        ids = exportIds(lyr.data, opts),
-        items, stringify;
+  function getIntervalConversionFactor(paramUnits, crs) {
+    var fromParam = 0,
+        fromCRS = 0,
+        k;
 
-    if (opts.ndjson) {
-      stringify = stringifyAsNDJSON;
-    } else if (opts.prettify) {
-      stringify = getFormattedStringify(['bbox', 'coordinates']);
-    } else {
-      stringify = JSON.stringify;
-    }
-
-    if (properties && shapes && properties.length !== shapes.length) {
-      error("Mismatch between number of properties and number of shapes");
-    }
-
-    return (shapes || properties || []).reduce(function(memo, o, i) {
-      var shape = shapes ? shapes[i] : null,
-          exporter = GeoJSON.exporters[lyr.geometry_type],
-          obj = shape ? exporter(shape, dataset.arcs, opts) : null;
-      if (asFeatures) {
-        obj = {
-          type: 'Feature',
-          geometry: obj,
-          properties: properties ? properties[i] : null
-        };
-        if (ids) {
-          obj.id = ids[i];
-        }
-      } else if (!obj) {
-        return memo; // don't add null objects to GeometryCollection
-      }
-      if (ofmt) {
-        // stringify features as soon as they are generated, to reduce the
-        // number of JS objects in memory (so larger files can be exported)
-        obj = stringify(obj);
-        if (ofmt == 'buffer') {
-          obj = encodeString(obj, 'utf8');
-          // obj = stringToBuffer(obj);
-          // obj = new Buffer(obj, 'utf8');
-        }
-      }
-      memo.push(obj);
-      return memo;
-    }, []);
-  }
-
-
-  function getRFC7946Warnings(dataset) {
-    var P = getDatasetCRS(dataset);
-    var str;
-    if (!P || !isLatLngCRS(P)) {
-      str = 'RFC 7946 warning: non-WGS84 GeoJSON output.';
-      if (P) str += ' Tip: use "-proj wgs84" to convert.';
-    }
-    return str;
-  }
-
-  function getDatasetBbox(dataset, rfc7946) {
-    var P = getDatasetCRS(dataset),
-        wrapped = rfc7946 && P && isLatLngCRS(P),
-        westBounds = new Bounds(),
-        eastBounds = new Bounds(),
-        mergedBounds, gutter, margins, bbox;
-
-    dataset.layers.forEach(function(lyr) {
-      if (layerHasPaths(lyr)) {
-        traversePaths(lyr.shapes, null, function(o) {
-          var bounds = dataset.arcs.getSimpleShapeBounds(o.arcs);
-          (bounds.centerX() < 0 ? westBounds : eastBounds).mergeBounds(bounds);
-        });
-      } else if (layerHasPoints(lyr)) {
-        forEachPoint(lyr.shapes, function(p) {
-          (p[0] < 0 ? westBounds : eastBounds).mergePoint(p[0], p[1]);
-        });
-      }
-    });
-    mergedBounds = (new Bounds()).mergeBounds(eastBounds).mergeBounds(westBounds);
-    if (mergedBounds.hasBounds()) {
-      bbox = mergedBounds.toArray();
-    }
-    if (wrapped && eastBounds.hasBounds() && westBounds.hasBounds()) {
-      gutter = eastBounds.xmin - westBounds.xmax;
-      margins = 360 + westBounds.xmin - eastBounds.xmax;
-      if (gutter > 0 && gutter > margins) {
-        bbox[0] = eastBounds.xmin;
-        bbox[2] = westBounds.xmax;
-      }
-    }
-    return bbox || null;
-  }
-
-  function exportDatasetAsGeoJSON(dataset, opts, ofmt) {
-    var geojson = {};
-    var layers = dataset.layers;
-    var useFeatures = useFeatureCollection(layers, opts);
-    var collection, bbox;
-
-    if (useFeatures) {
-      geojson.type = 'FeatureCollection';
-    } else {
-      geojson.type = 'GeometryCollection';
-    }
-
-    if (opts.gj2008) {
-      preserveOriginalCRS(dataset, geojson);
-    }
-
-    if (opts.bbox) {
-      bbox = getDatasetBbox(dataset, opts.rfc7946 || opts.v2);
-      if (bbox) {
-        geojson.bbox = bbox;
-      }
-    }
-
-    collection = layers.reduce(function(memo, lyr, i) {
-      var items = exportLayerAsGeoJSON(lyr, dataset, opts, useFeatures, ofmt);
-      return memo.length > 0 ? memo.concat(items) : items;
-    }, []);
-
-    if (opts.geojson_type == 'Feature' && collection.length == 1) {
-      return collection[0];
-    } else if (opts.ndjson) {
-      return GeoJSON.formatCollectionAsNDJSON(collection);
-    } else if (ofmt) {
-      return GeoJSON.formatCollection(geojson, collection);
-    } else {
-      geojson[collectionName(geojson.type)] = collection;
-      return geojson;
-    }
-  }
-
-  function collectionName(type) {
-    if (type == 'FeatureCollection') return 'features';
-    if (type == 'GeometryCollection') return 'geometries';
-    error('Invalid collection type:', type);
-  }
-
-  // collection: an array of Buffers, one per feature
-  GeoJSON.formatCollectionAsNDJSON = function(collection) {
-    var delim = utils.createBuffer('\n', 'utf8');
-    var parts = collection.reduce(function(memo, buf, i) {
-      if (i > 0) memo.push(delim);
-      memo.push(buf);
-      return memo;
-    }, []);
-    return Buffer.concat(parts);
-  };
-
-  // collection: an array of individual GeoJSON Features or geometries as strings or buffers
-  GeoJSON.formatCollection = function(container, collection) {
-    var head = JSON.stringify(container).replace(/\}$/, ', "' + collectionName(container.type) + '": [\n');
-    var tail = '\n]}';
-    if (utils.isString(collection[0])) {
-      return head + collection.join(',\n') + tail;
-    }
-    // assume buffers
-    return GeoJSON.joinOutputBuffers(head, tail, collection);
-  };
-
-  GeoJSON.joinOutputBuffers = function(head, tail, collection) {
-    var comma = utils.createBuffer(',\n', 'utf8');
-    var parts = collection.reduce(function(memo, buf, i) {
-      if (i > 0) memo.push(comma);
-      memo.push(buf);
-      return memo;
-    }, [utils.createBuffer(head, 'utf8')]);
-    parts.push(utils.createBuffer(tail, 'utf8'));
-    return Buffer.concat(parts);
-  };
-
-  // export GeoJSON or TopoJSON point geometry
-  GeoJSON.exportPointGeom = function(points, arcs) {
-    var geom = null;
-    if (points.length == 1) {
-      geom = {
-        type: "Point",
-        coordinates: points[0]
-      };
-    } else if (points.length > 1) {
-      geom = {
-        type: "MultiPoint",
-        coordinates: points
-      };
-    }
-    return geom;
-  };
-
-  GeoJSON.exportLineGeom = function(ids, arcs) {
-    var obj = exportPathData(ids, arcs, "polyline");
-    if (obj.pointCount === 0) return null;
-    var coords = obj.pathData.map(function(path) {
-      return path.points;
-    });
-    return coords.length == 1 ? {
-      type: "LineString",
-      coordinates: coords[0]
-    } : {
-      type: "MultiLineString",
-      coordinates: coords
-    };
-  };
-
-  GeoJSON.exportPolygonGeom = function(ids, arcs, opts) {
-    var obj = exportPathData(ids, arcs, "polygon");
-    if (obj.pointCount === 0) return null;
-    var groups = groupPolygonRings(obj.pathData, arcs, opts.invert_y);
-    // invert_y is used internally for SVG generation
-    // mapshaper's internal winding order is the opposite of RFC 7946
-    var reverse = (opts.rfc7946 || opts.v2) && !opts.invert_y;
-    var coords = groups.map(function(paths) {
-      return paths.map(function(path) {
-        if (reverse) path.points.reverse();
-        return path.points;
-      });
-    });
-    return coords.length == 1 ? {
-      type: "Polygon",
-      coordinates: coords[0]
-    } : {
-      type: "MultiPolygon",
-      coordinates: coords
-    };
-  };
-
-  GeoJSON.exporters = {
-    polygon: GeoJSON.exportPolygonGeom,
-    polyline: GeoJSON.exportLineGeom,
-    point: GeoJSON.exportPointGeom
-  };
-
-  // To preserve some backwards compatibility with old-style GeoJSON files,
-  // pass through any original CRS object if the crs has not been set by mapshaper
-  // jsonObj: a top-level GeoJSON or TopoJSON object
-  //
-  function preserveOriginalCRS(dataset, jsonObj) {
-    var info = dataset.info || {};
-    if (!info.crs && 'input_geojson_crs' in info) {
-      // use input geojson crs if available and coords have not changed
-      jsonObj.crs = info.input_geojson_crs;
-
-    }
-
-    // Removing the following (seems ineffectual at best)
-    // else if (info.crs && !isLatLngCRS(info.crs)) {
-    //   // Setting output crs to null if coords have been projected
-    //   // "If the value of CRS is null, no CRS can be assumed"
-    //   // source: http://geojson.org/geojson-spec.html#coordinate-reference-system-objects
-    //   jsonObj.crs = null;
-    // }
-  }
-
-  function useFeatureCollection(layers, opts) {
-    var type = opts.geojson_type || '';
-    if (type == 'Feature' || type == 'FeatureCollection') {
-      return true;
-    } else if (type == 'GeometryCollection') {
-      return false;
-    } else if (type) {
-      stop("Unsupported GeoJSON type:", opts.geojson_type);
-    }
-    // default is true iff layers contain attributes
-    return utils.some(layers, function(lyr) {
-      var fields = lyr.data ? lyr.data.getFields() : [];
-      var haveData = useFeatureProperties(fields, opts);
-      var haveId = !!getIdField(fields, opts);
-      return haveData || haveId;
-    });
-  }
-
-  function useFeatureProperties(fields, opts) {
-    return !(opts.drop_table || opts.cut_table || fields.length === 0 ||
-        fields.length == 1 && fields[0] == GeoJSON.ID_FIELD);
-  }
-
-  function exportProperties(table, opts) {
-    var fields = table ? table.getFields() : [],
-        idField = getIdField(fields, opts),
-        properties, records;
-    if (!useFeatureProperties(fields, opts)) {
-      return null;
-    }
-    records = table.getRecords();
-    if (idField == GeoJSON.ID_FIELD) {// delete default id field, not user-set fields
-      properties = records.map(function(rec) {
-        rec = utils.extend({}, rec); // copy rec;
-        delete rec[idField];
-        return rec;
-      });
-    } else {
-      properties = records;
-    }
-    return properties;
-  }
-
-  // @opt value of id-field option (empty, string or array of strings)
-  // @fields array
-  function getIdField(fields, opts) {
-    var ids = [];
-    var opt = opts.id_field;
-    if (utils.isString(opt)) {
-      ids.push(opt);
-    } else if (utils.isArray(opt)) {
-      ids = opt;
-    }
-    ids.push(GeoJSON.ID_FIELD); // default id field
-    return utils.find(ids, function(name) {
-      return utils.contains(fields, name);
-    });
-  }
-
-  function exportIds(table, opts) {
-    var fields = table ? table.getFields() : [],
-        idField = getIdField(fields, opts);
-    if (!idField) return null;
-    return table.getRecords().map(function(rec) {
-      return idField in rec ? rec[idField] : null;
-    });
-  }
-
-  var GeojsonExport = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    'default': GeoJSON,
-    exportGeoJSON2: exportGeoJSON2,
-    exportGeoJSON: exportGeoJSON,
-    exportLayerAsGeoJSON: exportLayerAsGeoJSON,
-    getRFC7946Warnings: getRFC7946Warnings,
-    getDatasetBbox: getDatasetBbox,
-    exportDatasetAsGeoJSON: exportDatasetAsGeoJSON,
-    preserveOriginalCRS: preserveOriginalCRS,
-    useFeatureCollection: useFeatureCollection,
-    exportProperties: exportProperties,
-    getIdField: getIdField,
-    exportIds: exportIds
-  });
-
-  var furnitureRenderers = {};
-
-  // @lyr a layer in a dataset
-  function layerHasFurniture(lyr) {
-    var type = getFurnitureLayerType(lyr);
-    return !!type && (type in furnitureRenderers);
-  }
-
-  // @mapLayer a map layer object
-  function isFurnitureLayer(mapLayer) {
-    return !!mapLayer.furniture;
-  }
-
-  // @lyr dataset layer
-  function getFurnitureLayerType(lyr) {
-    var rec = lyr.data && lyr.data.getReadOnlyRecordAt(0);
-    return rec && rec.type || null;
-  }
-
-  function getFurnitureLayerData(lyr) {
-    return lyr.data && lyr.data.getReadOnlyRecordAt(0);
-  }
-
-  function importFurniture(d, frame) {
-    var renderer = furnitureRenderers[d.type];
-    if (!renderer) {
-      stop('Missing renderer for', d.type, 'element');
-    }
-    return renderer(d, frame) || [];
-  }
-
-  var Furniture = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    furnitureRenderers: furnitureRenderers,
-    layerHasFurniture: layerHasFurniture,
-    isFurnitureLayer: isFurnitureLayer,
-    getFurnitureLayerType: getFurnitureLayerType,
-    getFurnitureLayerData: getFurnitureLayerData,
-    importFurniture: importFurniture
-  });
-
-  // Used for building topology
-  //
-  function ArcIndex(pointCount) {
-    var hashTableSize = Math.floor(pointCount * 0.25 + 1),
-        hash = getXYHash(hashTableSize),
-        hashTable = new Int32Array(hashTableSize),
-        chainIds = [],
-        arcs = [],
-        arcPoints = 0;
-
-    utils.initializeArray(hashTable, -1);
-
-    this.addArc = function(xx, yy) {
-      var end = xx.length - 1,
-          key = hash(xx[end], yy[end]),
-          chainId = hashTable[key],
-          arcId = arcs.length;
-      hashTable[key] = arcId;
-      arcs.push([xx, yy]);
-      arcPoints += xx.length;
-      chainIds.push(chainId);
-      return arcId;
-    };
-
-    // Look for a previously generated arc with the same sequence of coords, but in the
-    // opposite direction. (This program uses the convention of CW for space-enclosing rings, CCW for holes,
-    // so coincident boundaries should contain the same points in reverse sequence).
-    //
-    this.findDuplicateArc = function(xx, yy, start, end, getNext, getPrev) {
-      // First, look for a reverse match
-      var arcId = findArcNeighbor(xx, yy, start, end, getNext);
-      if (arcId === null) {
-        // Look for forward match
-        // (Abnormal topology, but we're accepting it because in-the-wild
-        // Shapefiles sometimes have duplicate paths)
-        arcId = findArcNeighbor(xx, yy, end, start, getPrev);
+    if (crs) {
+      if (crs.is_latlong) {
+        // calculations on latlong coordinates typically use meters
+        fromCRS = 1;
+      } else if (crs.to_meter > 0) {
+        fromCRS = crs.to_meter;
       } else {
-        arcId = ~arcId;
+        error('Invalid CRS');
       }
-      return arcId;
-    };
-
-    function findArcNeighbor(xx, yy, start, end, getNext) {
-      var next = getNext(start),
-          key = hash(xx[start], yy[start]),
-          arcId = hashTable[key],
-          arcX, arcY, len;
-
-      while (arcId != -1) {
-        // check endpoints and one segment...
-        // it would be more rigorous but slower to identify a match
-        // by comparing all segments in the coordinate sequence
-        arcX = arcs[arcId][0];
-        arcY = arcs[arcId][1];
-        len = arcX.length;
-        if (arcX[0] === xx[end] && arcX[len-1] === xx[start] && arcX[len-2] === xx[next] &&
-            arcY[0] === yy[end] && arcY[len-1] === yy[start] && arcY[len-2] === yy[next]) {
-          return arcId;
-        }
-        arcId = chainIds[arcId];
-      }
-      return null;
+    }
+    if (paramUnits) {
+      fromParam = TO_METERS[paramUnits];
+      if (!fromParam) error('Unknown units:', paramUnits);
     }
 
-    this.getVertexData = function() {
-      var xx = new Float64Array(arcPoints),
-          yy = new Float64Array(arcPoints),
-          nn = new Uint32Array(arcs.length),
-          copied = 0,
-          arc, len;
-      for (var i=0, n=arcs.length; i<n; i++) {
-        arc = arcs[i];
-        len = arc[0].length;
-        utils.copyElements(arc[0], 0, xx, copied, len);
-        utils.copyElements(arc[1], 0, yy, copied, len);
-        nn[i] = len;
-        copied += len;
-      }
-      return {
-        xx: xx,
-        yy: yy,
-        nn: nn
-      };
-    };
+    if (fromParam && fromCRS) {
+      // known param units, known CRS conversion
+      k = fromParam / fromCRS;
+    } else if (!fromParam && !fromCRS) {
+      // unknown param units, unknown (projected) CRS -- no scaling
+      k = 1;
+    } else if (fromParam && !fromCRS) {
+      // known param units, unknown CRS -- error condition, not convertible
+      stop('Unable to convert', paramUnits, 'to unknown coordinates');
+    } else if (!fromParam && fromCRS) {
+      // unknown param units, known CRS -- assume param in meters (bw compatibility)
+      k = 1 / fromCRS;
+    }
+    return k;
   }
 
-  // Converts all polygon and polyline paths in a dataset to a topological format
-  // (in-place)
-  function buildTopology(dataset) {
-    if (!dataset.arcs) return;
-    var raw = dataset.arcs.getVertexData(),
-        cooked = buildPathTopology(raw.nn, raw.xx, raw.yy);
-    dataset.arcs.updateVertexData(cooked.nn, cooked.xx, cooked.yy);
-    dataset.layers.forEach(function(lyr) {
-      if (lyr.geometry_type == 'polyline' || lyr.geometry_type == 'polygon') {
-        lyr.shapes = replaceArcIds(lyr.shapes, cooked.paths);
+  // throws an error if measure is non-parsable
+  function parseMeasure(m) {
+    var o = parseMeasure2(m);
+    if (isNaN(o.value)) {
+      stop('Invalid parameter:', m);
+    }
+    return o;
+  }
+
+  // returns NaN value if value is non-parsable
+  function parseMeasure2(m) {
+    var s = utils.isString(m) ? m : '';
+    var match = /(sq|)([a-z]+)(2|)$/i.exec(s); // units rxp
+    var o = {};
+    if (utils.isNumber(m)) {
+      o.value = m;
+    } else if (s === '') {
+      o.value = NaN;
+    } else if (match) {
+      o.units = UNITS_LOOKUP[match[2].toLowerCase()];
+      o.areal = !!(match[1] || match[3]);
+      o.value = Number(s.substring(0, s.length - match[0].length));
+      if (!o.units && !isNaN(o.value)) {
+        // throw error if string contains a number followed by unrecognized units string
+        stop('Unknown units: ' + match[0]);
       }
+    } else {
+      o.value = Number(s);
+    }
+    return o;
+  }
+
+  function convertAreaParam(opt, crs) {
+    var o = parseMeasure(opt);
+    var k = getIntervalConversionFactor(o.units, crs);
+    return o.value * k * k;
+  }
+
+  function convertDistanceParam(opt, crs) {
+    var o = parseMeasure(opt);
+    var k = getIntervalConversionFactor(o.units, crs);
+    if (o.areal) {
+      stop('Expected a distance, received an area:', opt);
+    }
+    return o.value * k;
+  }
+
+  // Same as convertDistanceParam(), except:
+  //   in the case of latlong datasets, coordinates are unitless (instead of meters),
+  //   and parameters with units trigger an error
+  function convertIntervalParam(opt, crs) {
+    var o = parseMeasure(opt);
+    var k = getIntervalConversionFactor(o.units, crs);
+    if (o.units && crs && crs.is_latlong) {
+      stop('Parameter does not support distance units with latlong datasets');
+    }
+    if (o.areal) {
+      stop('Expected a distance, received an area:', opt);
+    }
+    return o.value * k;
+  }
+
+  function convertIntervalPair(opt, crs) {
+    var a, b;
+    if (!Array.isArray(opt) || opt.length != 2) {
+      stop('Expected two distance parameters, received', opt);
+    }
+    a = parseMeasure(opt[0]);
+    b = parseMeasure(opt[1]);
+    if (a.units && !b.units || b.units && !a.units) {
+      stop('Both parameters should have units:', opt);
+    }
+    return [convertIntervalParam(opt[0], crs),
+            convertIntervalParam(opt[1], crs)];
+  }
+
+  // Accepts a single value or a list of four values. List order is l,b,t,r
+  function convertFourSides(opt, crs, bounds) {
+    var arr = opt.split(',');
+    if (arr.length == 1) {
+      arr = [arr[0], arr[0], arr[0], arr[0]];
+    } else if (arr.length != 4) {
+      stop("Expected a distance parameter or a list of four params");
+    }
+    return arr.map(function(param, i) {
+      var tmp;
+      if (param.indexOf('%') > 0) {
+        tmp = parseFloat(param) / 100 || 0;
+        return tmp * (i == 1 || i == 3 ? bounds.height() : bounds.width());
+      }
+      return convertIntervalParam(opt, crs);
     });
   }
 
-  // buildPathTopology() converts non-topological paths into
-  // a topological format
-  //
-  // Arguments:
-  //    xx: [Array|Float64Array],   // x coords of each point in the dataset
-  //    yy: [Array|Float64Array],   // y coords ...
-  //    nn: [Array]  // length of each path
-  //
-  // (x- and y-coords of all paths are concatenated into two arrays)
-  //
-  // Returns:
-  // {
-  //    xx, yy (array)   // coordinate data
-  //    nn: (array)      // points in each arc
-  //    paths: (array)   // Paths are arrays of one or more arc id.
-  // }
-  //
-  // Negative arc ids in the paths array indicate a reversal of arc -(id + 1)
-  //
-  function buildPathTopology(nn, xx, yy) {
-    var pointCount = xx.length,
-        chainIds = initPointChains(xx, yy),
-        pathIds = initPathIds(pointCount, nn),
-        index = new ArcIndex(pointCount),
-        slice = usingTypedArrays() ? xx.subarray : Array.prototype.slice,
-        paths, retn;
-    paths = convertPaths(nn);
-    retn = index.getVertexData();
-    retn.paths = paths;
-    return retn;
-
-    function usingTypedArrays() {
-      return !!(xx.subarray && yy.subarray);
-    }
-
-    function convertPaths(nn) {
-      var paths = [],
-          pointId = 0,
-          pathLen;
-      for (var i=0, len=nn.length; i<len; i++) {
-        pathLen = nn[i];
-        paths.push(pathLen < 2 ? null : convertPath(pointId, pointId + pathLen - 1));
-        pointId += pathLen;
-      }
-      return paths;
-    }
-
-    function nextPoint(id) {
-      var partId = pathIds[id],
-          nextId = id + 1;
-      if (nextId < pointCount && pathIds[nextId] === partId) {
-        return id + 1;
-      }
-      var len = nn[partId];
-      return sameXY(id, id - len + 1) ? id - len + 2 : -1;
-    }
-
-    function prevPoint(id) {
-      var partId = pathIds[id],
-          prevId = id - 1;
-      if (prevId >= 0 && pathIds[prevId] === partId) {
-        return id - 1;
-      }
-      var len = nn[partId];
-      return sameXY(id, id + len - 1) ? id + len - 2 : -1;
-    }
-
-    function sameXY(a, b) {
-      return xx[a] == xx[b] && yy[a] == yy[b];
-    }
-
-    // Convert a non-topological path to one or more topological arcs
-    // @start, @end are ids of first and last points in the path
-    // TODO: don't allow id ~id pairs
-    //
-    function convertPath(start, end) {
-      var arcIds = [],
-          firstNodeId = -1,
-          arcStartId;
-
-      // Visit each point in the path, up to but not including the last point
-      for (var i = start; i < end; i++) {
-        if (pointIsArcEndpoint(i)) {
-          if (firstNodeId > -1) {
-            arcIds.push(addEdge(arcStartId, i));
-          } else {
-            firstNodeId = i;
-          }
-          arcStartId = i;
-        }
-      }
-
-      // Identify the final arc in the path
-      if (firstNodeId == -1) {
-        // Not in an arc, i.e. no nodes have been found...
-        // Assuming that path is either an island or is congruent with one or more rings
-        arcIds.push(addRing(start, end));
-      }
-      else if (firstNodeId == start) {
-        // path endpoint is a node;
-        if (!pointIsArcEndpoint(end)) {
-          error("Topology error"); // TODO: better error handling
-        }
-        arcIds.push(addEdge(arcStartId, i));
-      } else {
-        // final arc wraps around
-        arcIds.push(addSplitEdge(arcStartId, end, start + 1, firstNodeId));
-      }
-      return arcIds;
-    }
-
-    // Test if a point @id is an endpoint of a topological path
-    function pointIsArcEndpoint(id) {
-      var id2 = chainIds[id],
-          prev = prevPoint(id),
-          next = nextPoint(id),
-          prev2, next2;
-      if (prev == -1 || next == -1) {
-        // @id is an endpoint if it is the start or end of an open path
-        return true;
-      }
-      while (id != id2) {
-        prev2 = prevPoint(id2);
-        next2 = nextPoint(id2);
-        if (prev2 == -1 || next2 == -1 || brokenEdge(prev, next, prev2, next2)) {
-          // there is a discontinuity at @id -- point is arc endpoint
-          return true;
-        }
-        id2 = chainIds[id2];
-      }
-      return false;
-    }
-
-    // a and b are two vertices with the same x, y coordinates
-    // test if the segments on either side of them are also identical
-    function brokenEdge(aprev, anext, bprev, bnext) {
-      var apx = xx[aprev],
-          anx = xx[anext],
-          bpx = xx[bprev],
-          bnx = xx[bnext],
-          apy = yy[aprev],
-          any = yy[anext],
-          bpy = yy[bprev],
-          bny = yy[bnext];
-      if (apx == bnx && anx == bpx && apy == bny && any == bpy ||
-          apx == bpx && anx == bnx && apy == bpy && any == bny) {
-        return false;
-      }
-      return true;
-    }
-
-    function mergeArcParts(src, startId, endId, startId2, endId2) {
-      var len = endId - startId + endId2 - startId2 + 2,
-          ArrayClass = usingTypedArrays() ? Float64Array : Array,
-          dest = new ArrayClass(len),
-          j = 0, i;
-      for (i=startId; i <= endId; i++) {
-        dest[j++] = src[i];
-      }
-      for (i=startId2; i <= endId2; i++) {
-        dest[j++] = src[i];
-      }
-      return dest;
-    }
-
-    function addSplitEdge(start1, end1, start2, end2) {
-      var arcId = index.findDuplicateArc(xx, yy, start1, end2, nextPoint, prevPoint);
-      if (arcId === null) {
-        arcId = index.addArc(mergeArcParts(xx, start1, end1, start2, end2),
-            mergeArcParts(yy, start1, end1, start2, end2));
-      }
-      return arcId;
-    }
-
-    function addEdge(start, end) {
-      // search for a matching edge that has already been generated
-      var arcId = index.findDuplicateArc(xx, yy, start, end, nextPoint, prevPoint);
-      if (arcId === null) {
-        arcId = index.addArc(slice.call(xx, start, end + 1),
-            slice.call(yy, start, end + 1));
-      }
-      return arcId;
-    }
-
-    function addRing(startId, endId) {
-      var chainId = chainIds[startId],
-          pathId = pathIds[startId],
-          arcId;
-
-      while (chainId != startId) {
-        if (pathIds[chainId] < pathId) {
-          break;
-        }
-        chainId = chainIds[chainId];
-      }
-
-      if (chainId == startId) {
-        return addEdge(startId, endId);
-      }
-
-      for (var i=startId; i<endId; i++) {
-        arcId = index.findDuplicateArc(xx, yy, i, i, nextPoint, prevPoint);
-        if (arcId !== null) return arcId;
-      }
-      error("Unmatched ring; id:", pathId, "len:", nn[pathId]);
-    }
+  // Convert an area measure to a label in sqkm or sqm
+  function getAreaLabel(area, crs) {
+    var sqm = crs && crs.to_meter ? area * crs.to_meter * crs.to_meter : area;
+    var sqkm = sqm / 1e6;
+    return sqkm < 0.01 ? Math.round(sqm) + ' sqm' : sqkm + ' sqkm';
   }
 
-
-  // Create a lookup table for path ids; path ids are indexed by point id
-  //
-  function initPathIds(size, pathSizes) {
-    var pathIds = new Int32Array(size),
-        j = 0;
-    for (var pathId=0, pathCount=pathSizes.length; pathId < pathCount; pathId++) {
-      for (var i=0, n=pathSizes[pathId]; i<n; i++, j++) {
-        pathIds[j] = pathId;
-      }
-    }
-    return pathIds;
-  }
-
-  function replaceArcIds(src, replacements) {
-    return src.map(function(shape) {
-      return replaceArcsInShape(shape, replacements);
-    });
-
-    function replaceArcsInShape(shape, replacements) {
-      if (!shape) return null;
-      return shape.map(function(path) {
-        return replaceArcsInPath(path, replacements);
-      });
-    }
-
-    function replaceArcsInPath(path, replacements) {
-      return path.reduce(function(memo, id) {
-        var abs = absArcId(id);
-        var topoPath = replacements[abs];
-        if (topoPath) {
-          if (id < 0) {
-            topoPath = topoPath.concat(); // TODO: need to copy?
-            reversePath(topoPath);
-          }
-          for (var i=0, n=topoPath.length; i<n; i++) {
-            memo.push(topoPath[i]);
-          }
-        }
-        return memo;
-      }, []);
-    }
-  }
-
-  var Topology = /*#__PURE__*/Object.freeze({
+  var Units = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    buildTopology: buildTopology,
-    buildPathTopology: buildPathTopology
+    getIntervalConversionFactor: getIntervalConversionFactor,
+    parseMeasure: parseMeasure,
+    parseMeasure2: parseMeasure2,
+    convertAreaParam: convertAreaParam,
+    convertDistanceParam: convertDistanceParam,
+    convertIntervalParam: convertIntervalParam,
+    convertIntervalPair: convertIntervalPair,
+    convertFourSides: convertFourSides,
+    getAreaLabel: getAreaLabel
   });
 
-  function mergeDatasetsIntoDataset(dataset, datasets) {
-    var merged = mergeDatasets([dataset].concat(datasets));
-    var mergedLayers = datasets.reduce(function(memo, dataset) {
-      return memo.concat(dataset.layers);
-    }, []);
-    dataset.arcs = merged.arcs;
-    return mergedLayers;
-  }
-
-  // Don't modify input layers (mergeDatasets() updates arc ids in-place)
-  function mergeDatasetsForExport(arr) {
-    // copy layers but not arcs, which get copied in mergeDatasets()
-    var copy = arr.map(function(dataset) {
-      return utils.defaults({
-        layers: dataset.layers.map(copyLayerShapes)
-      }, dataset);
-    });
-    return mergeDatasets(copy);
-  }
-
-  function mergeCommandTargets(targets, catalog) {
-    var targetLayers = [];
-    var targetDatasets = [];
-    var datasetsWithArcs = 0;
-    var merged;
-
-    targets.forEach(function(target) {
-      targetLayers = targetLayers.concat(target.layers);
-      targetDatasets = targetDatasets.concat(target.dataset);
-      if (target.dataset.arcs && target.dataset.arcs.size() > 0) datasetsWithArcs++;
-    });
-
-    merged = mergeDatasets(targetDatasets);
-
-    // Rebuild topology, if multiple datasets contain arcs
-    if (datasetsWithArcs > 1) {
-      buildTopology(merged);
+  // Used by -clean -dissolve2 -filter-slivers -filter-islands to generate area filters
+  // for removing small polygon rings.
+  // Assumes lyr is a polygon layer.
+  function getSliverFilter(lyr, dataset, opts) {
+    var areaArg = opts.min_gap_area || opts.min_area || opts.gap_fill_area || 0;
+    if (+areaArg == 0) {
+      return {
+        filter: function() {return false;}, // don't fill any gaps
+        threshold: 0
+      };
     }
-
-    // remove old datasets after merging, so catalog is not affected if merge throws an error
-    targetDatasets.forEach(catalog.removeDataset);
-    catalog.addDataset(merged); // sets default target to all layers in merged dataset
-    catalog.setDefaultTarget(targetLayers, merged); // reset default target
-    return [{
-      layers: targetLayers,
-      dataset: merged
-    }];
-  }
-
-  // Combine multiple datasets into one using concatenation
-  // (any shared topology is ignored)
-  function mergeDatasets(arr) {
-    var arcSources = [],
-        arcCount = 0,
-        mergedLayers = [],
-        mergedInfo = {},
-        mergedArcs;
-
-    // Error if incompatible CRS
-    requireDatasetsHaveCompatibleCRS(arr);
-
-    arr.forEach(function(dataset) {
-      var n = dataset.arcs ? dataset.arcs.size() : 0;
-      if (n > 0) {
-        arcSources.push(dataset.arcs);
-      }
-
-      mergeDatasetInfo(mergedInfo, dataset);
-      dataset.layers.forEach(function(lyr) {
-        if (lyr.geometry_type == 'polygon' || lyr.geometry_type == 'polyline') {
-          forEachArcId(lyr.shapes, function(id) {
-            return id < 0 ? id - arcCount : id + arcCount;
-          });
-        }
-        mergedLayers.push(lyr);
-      });
-      arcCount += n;
-    });
-
-    mergedArcs = mergeArcs(arcSources);
-    if (mergedArcs.size() != arcCount) {
-      error("[mergeDatasets()] Arc indexing error");
-    }
-
+    var sliverControl = opts.sliver_control >= 0 ? opts.sliver_control : 0; // 0 is default
+    var crs = getDatasetCRS(dataset);
+    var threshold = areaArg ?
+        convertAreaParam(areaArg, crs) :
+        getDefaultSliverThreshold(lyr, dataset.arcs);
+    var filter = sliverControl > 0 ?
+        getSliverTest(dataset.arcs, threshold, sliverControl) :
+        getMinAreaTest(threshold, dataset);
+    var label = getSliverLabel(getAreaLabel(threshold, crs), sliverControl > 0);
     return {
-      info: mergedInfo,
-      arcs: mergedArcs,
-      layers: mergedLayers
+      threshold: threshold,
+      filter: filter,
+      label: label
     };
   }
 
-  function requireDatasetsHaveCompatibleCRS(arr) {
-    arr.reduce(function(memo, dataset) {
-      var P = getDatasetCRS(dataset);
-      if (memo && P) {
-        if (isLatLngCRS(memo) != isLatLngCRS(P)) {
-          stop("Unable to combine projected and unprojected datasets");
-        }
-      }
-      return P || memo;
-    }, null);
+  function getSliverLabel(areaStr, variable) {
+    if (variable) {
+      areaStr = areaStr.replace(' ', '+ ') + ' variable';
+    }
+    return areaStr + ' threshold';
   }
 
-  function mergeDatasetInfo(merged, dataset) {
-    var info = dataset.info || {};
-    merged.input_files = utils.uniq((merged.input_files || []).concat(info.input_files || []));
-    merged.input_formats = utils.uniq((merged.input_formats || []).concat(info.input_formats || []));
-    // merge other info properties (e.g. input_geojson_crs, input_delimiter, prj, crs)
-    utils.defaults(merged, info);
+  function getMinAreaTest(minArea, dataset) {
+    var pathArea = dataset.arcs.isPlanar() ? geom.getPlanarPathArea : geom.getSphericalPathArea;
+    return function(path) {
+      var area = pathArea(path, dataset.arcs);
+      return Math.abs(area) < minArea;
+    };
   }
 
-  function mergeArcs(arr) {
-    var dataArr = arr.map(function(arcs) {
-      if (arcs.getRetainedInterval() > 0) {
-        verbose("Baking-in simplification setting.");
-        arcs.flatten();
-      }
-      return arcs.getVertexData();
+  function getSliverTest(arcs, threshold, strength) {
+    if (strength >= 0 === false) {
+      strength = 1; // default is 1 (full-strength)
+    }
+    if (strength > 1 || threshold >= 0 === false) {
+      error('Invalid parameter');
+    }
+    var calcEffectiveArea = getSliverAreaFunction(arcs, strength);
+    return function(ring) {
+      return Math.abs(calcEffectiveArea(ring)) < threshold;
+    };
+  }
+
+  // Strength: 0-1
+  function getSliverAreaFunction(arcs, strength) {
+    var k = Math.sqrt(strength); // more sensible than linear weighted avg.
+    return function(ring) {
+      var area = geom.getPathArea(ring, arcs);
+      var perim = geom.getPathPerimeter(ring, arcs);
+      var compactness = geom.calcPolsbyPopperCompactness(area, perim);
+      var effectiveArea = area * (k * compactness + 1 - k);
+      return effectiveArea;
+    };
+  }
+
+  // Calculate a default area threshold using average segment length,
+  // but increase the threshold for high-detail datasets and decrease it for
+  // low-detail datasets (using segments per ring as a measure of detail).
+  //
+  function getDefaultSliverThreshold(lyr, arcs) {
+    var ringCount = 0;
+    var calcLen = arcs.isPlanar() ? geom.distance2D : geom.greatCircleDistance;
+    var avgSegLen = 0;
+    var segCount = 0;
+    var onSeg = function(i, j, xx, yy) {
+      var len = calcLen(xx[i], yy[i], xx[j], yy[j]);
+      segCount++;
+      avgSegLen += (len - avgSegLen) / segCount;
+    };
+    editShapes(lyr.shapes, function(path) {
+      ringCount++;
+      forEachSegmentInPath(path, arcs, onSeg);
     });
-    var xx = mergeArrays(utils.pluck(dataArr, 'xx'), Float64Array),
-        yy = mergeArrays(utils.pluck(dataArr, 'yy'), Float64Array),
-        nn = mergeArrays(utils.pluck(dataArr, 'nn'), Int32Array);
-
-    return new ArcCollection(nn, xx, yy);
+    var segPerRing = segCount / ringCount || 0;
+    var complexityFactor = Math.pow(segPerRing, 0.75); // use seg/ring as a proxy for complexity
+    var threshold = avgSegLen * avgSegLen / 50 * complexityFactor;
+    threshold = roundToSignificantDigits(threshold, 2); // round for display
+    return threshold;
   }
 
-  function countElements(arrays) {
-    return arrays.reduce(function(memo, arr) {
-      return memo + (arr.length || 0);
-    }, 0);
-  }
 
-  function mergeArrays(arrays, TypedArr) {
-    var size = countElements(arrays),
-        Arr = TypedArr || Array,
-        merged = new Arr(size),
-        offs = 0;
-    arrays.forEach(function(src) {
-      var n = src.length;
-      for (var i = 0; i<n; i++) {
-        merged[i + offs] = src[i];
+  // Original function for calculating default area threshold
+  function calcMaxSliverArea(arcs) {
+    var k = 2,
+        dxMax = arcs.getBounds().width() / k,
+        dyMax = arcs.getBounds().height() / k,
+        count = 0,
+        mean = 0;
+    arcs.forEachSegment(function(i, j, xx, yy) {
+      var dx = Math.abs(xx[i] - xx[j]),
+          dy = Math.abs(yy[i] - yy[j]);
+      if (dx < dxMax && dy < dyMax) {
+        // TODO: write utility function for calculating mean this way
+        mean += (Math.sqrt(dx * dx + dy * dy) - mean) / ++count;
       }
-      offs += n;
     });
-    return merged;
+    return mean * mean;
   }
 
-  var Merging = /*#__PURE__*/Object.freeze({
+  var Slivers = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    mergeDatasetsIntoDataset: mergeDatasetsIntoDataset,
-    mergeDatasetsForExport: mergeDatasetsForExport,
-    mergeCommandTargets: mergeCommandTargets,
-    mergeDatasets: mergeDatasets,
-    mergeArcs: mergeArcs
+    getSliverFilter: getSliverFilter,
+    getSliverTest: getSliverTest,
+    getSliverAreaFunction: getSliverAreaFunction,
+    getDefaultSliverThreshold: getDefaultSliverThreshold,
+    calcMaxSliverArea: calcMaxSliverArea
   });
 
   // Returns undefined if not found
@@ -8564,19 +8258,25 @@
     };
   }
 
-  function blend() {
-    var args = Array.from(arguments);
-    var colors = [],
-        weights = [],
-        col, weight, i;
-    for (i=0; i<args.length; i+= 2) {
-      colors.push(parseColor(args[i]));
-      weights.push(+args[i + 1] || 0);
+  function blend(a, b) {
+    var colors, weights, args;
+    if (Array.isArray(a)) {
+      colors = a;
+      weights = b;
+    } else {
+      colors = [];
+      weights = [];
+      args = Array.from(arguments);
+      for (var i=0; i<args.length; i+= 2) {
+        colors.push(args[i]);
+        weights.push(args[i + 1]);
+      }
     }
     weights = normalizeWeights(weights);
     if (!weights) return '#eee';
-    var blended = colors.reduce(function(memo, rgb, i) {
-      var w = weights[i];
+    var blended = colors.reduce(function(memo, col, i) {
+      var rgb = parseColor(col);
+      var w = +weights[i] || 0;
       memo.r += rgb.r * w;
       memo.g += rgb.g * w;
       memo.b += rgb.b * w;
@@ -8584,6 +8284,7 @@
     }, {r: 0, g: 0, b: 0});
     return formatColor(blended);
   }
+
 
   function normalizeWeights(weights) {
     var sum = utils.sum(weights);
@@ -9328,13 +9029,14 @@
   // Return array of variables on the left side of assignment operations
   // @hasDot (bool) Return property assignments via dot notation
   function getAssignedVars(exp, hasDot) {
-    var rxp = /[a-z_][.a-z0-9_]*(?= *=[^>=])/ig; // ignore arrow functions and comparisons
+    var rxp = /[a-z_$][.a-z0-9_$]*(?= *=[^>=])/ig; // ignore arrow functions and comparisons
     var matches = exp.match(rxp) || [];
     var f = function(s) {
       var i = s.indexOf('.');
       return hasDot ? i > -1 : i == -1;
     };
-    return utils.uniq(matches.filter(f));
+    var vars = utils.uniq(matches.filter(f));
+    return vars;
   }
 
   // Return array of objects with properties assigned via dot notation
@@ -9399,30 +9101,32 @@
   }
 
   function getExpressionContext(lyr, mixins, opts) {
+    var defs = getStateVar('defs');
     var env = getBaseContext();
     var ctx = {};
     var fields = lyr.data ? lyr.data.getFields() : [];
     opts = opts || {};
     addUtils(env); // mix in round(), sprintf(), etc.
-    if (lyr.data) {
-      // default to null values when a data field is missing
+    if (fields.length > 0) {
+      // default to null values, so assignments to missing data properties
+      // are applied to the data record, not the global object
       nullifyUnsetProperties(fields, env);
     }
-    if (mixins) {
-      Object.keys(mixins).forEach(function(key) {
-        // Catch name collisions between data fields and user-defined functions
-        var d = Object.getOwnPropertyDescriptor(mixins, key);
-        if (key in env) {
-        }
-        if (d.get) {
-          // copy accessor function from mixins to context
-          Object.defineProperty(ctx, key, {get: d.get}); // copy getter function to context
-        } else {
-          // copy regular property from mixins to context, but make it non-writable
-          Object.defineProperty(ctx, key, {value: mixins[key]});
-        }
-      });
-    }
+    // Add global 'defs' to the expression context
+    mixins = utils.defaults(mixins || {}, defs);
+    // also add defs as 'global' object
+    env.global = defs;
+    Object.keys(mixins).forEach(function(key) {
+      // Catch name collisions between data fields and user-defined functions
+      var d = Object.getOwnPropertyDescriptor(mixins, key);
+      if (d.get) {
+        // copy accessor function from mixins to context
+        Object.defineProperty(ctx, key, {get: d.get}); // copy getter function to context
+      } else {
+        // copy regular property from mixins to context, but make it non-writable
+        Object.defineProperty(ctx, key, {value: mixins[key]});
+      }
+    });
     // make context properties non-writable, so they can't be replaced by an expression
     return Object.keys(env).reduce(function(memo, key) {
       if (key in memo) {
@@ -9467,178 +9171,3913 @@
     getBaseContext: getBaseContext
   });
 
-  var UNITS_LOOKUP = {
-    m: 'meters',
-    meter: 'meters',
-    meters: 'meters',
-    mi: 'miles',
-    mile: 'miles',
-    miles: 'miles',
-    km: 'kilometers',
-    ft: 'feet',
-    feet: 'feet'
-  };
+  function getMode(values) {
+    var data = getModeData(values);
+    return data.modes[0];
+  }
 
-  // From pj_units.js in mapshaper-proj
-  var TO_METERS = {
-    meters: 1,
-    kilometers: 1000,
-    feet: 0.3048, // International Standard Foot
-    miles: 1609.344 // International Statute Mile
-  };
-
-  // Return coeff. for converting a distance measure to dataset coordinates
-  // @paramUnits: units code of distance param, or null if units are not specified
-  // @crs: Proj.4 CRS object, or null (unknown latlong CRS);
-  //
-  function getIntervalConversionFactor(paramUnits, crs) {
-    var fromParam = 0,
-        fromCRS = 0,
-        k;
-
-    if (crs) {
-      if (crs.is_latlong) {
-        // calculations on latlong coordinates typically use meters
-        fromCRS = 1;
-      } else if (crs.to_meter > 0) {
-        fromCRS = crs.to_meter;
+  function getValueCountData(values) {
+    var uniqValues = [],
+        uniqIndex = {},
+        counts = [];
+    var i, val;
+    for (i=0; i<values.length; i++) {
+      val = values[i];
+      if (val in uniqIndex === false) {
+        uniqIndex[val] = uniqValues.length;
+        uniqValues.push(val);
+        counts.push(1);
       } else {
-        error('Invalid CRS');
+        counts[uniqIndex[val]]++;
       }
     }
-    if (paramUnits) {
-      fromParam = TO_METERS[paramUnits];
-      if (!fromParam) error('Unknown units:', paramUnits);
-    }
-
-    if (fromParam && fromCRS) {
-      // known param units, known CRS conversion
-      k = fromParam / fromCRS;
-    } else if (!fromParam && !fromCRS) {
-      // unknown param units, unknown (projected) CRS -- no scaling
-      k = 1;
-    } else if (fromParam && !fromCRS) {
-      // known param units, unknown CRS -- error condition, not convertible
-      stop('Unable to convert', paramUnits, 'to unknown coordinates');
-    } else if (!fromParam && fromCRS) {
-      // unknown param units, known CRS -- assume param in meters (bw compatibility)
-      k = 1 / fromCRS;
-    }
-    return k;
+    return {
+      values: uniqValues,
+      counts: counts
+    };
   }
 
-  // throws an error if measure is non-parsable
-  function parseMeasure(m) {
-    var o = parseMeasure2(m);
-    if (isNaN(o.value)) {
-      stop('Invalid parameter:', m);
+  function getMaxValue(values) {
+    var max = -Infinity;
+    var i;
+    for (i=0; i<values.length; i++) {
+      if (values[i] > max) max = values[i];
     }
-    return o;
+    return max;
   }
 
-  // returns NaN value if value is non-parsable
-  function parseMeasure2(m) {
-    var s = utils.isString(m) ? m : '';
-    var match = /(sq|)([a-z]+)(2|)$/i.exec(s); // units rxp
-    var o = {};
-    if (utils.isNumber(m)) {
-      o.value = m;
-    } else if (s === '') {
-      o.value = NaN;
-    } else if (match) {
-      o.units = UNITS_LOOKUP[match[2].toLowerCase()];
-      o.areal = !!(match[1] || match[3]);
-      o.value = Number(s.substring(0, s.length - match[0].length));
-      if (!o.units && !isNaN(o.value)) {
-        // throw error if string contains a number followed by unrecognized units string
-        stop('Unknown units: ' + match[0]);
+  function getCountDataSummary(o) {
+    var counts = o.counts;
+    var values = o.values;
+    var maxCount = counts.length > 0 ? getMaxValue(counts) : 0;
+    var nextCount = 0;
+    var modes = [];
+    var i, count;
+    for (i=0; i<counts.length; i++) {
+      count = counts[i];
+      if (count === maxCount) {
+        modes.push(values[i]);
+      } else if (count > nextCount) {
+        nextCount = count;
       }
-    } else {
-      o.value = Number(s);
     }
-    return o;
+    return {
+      modes: modes,
+      margin: modes.length > 1 ? 0 : maxCount - nextCount,
+      count: maxCount
+    };
   }
 
-  function convertAreaParam(opt, crs) {
-    var o = parseMeasure(opt);
-    var k = getIntervalConversionFactor(o.units, crs);
-    return o.value * k * k;
+  function getModeData(values, verbose) {
+    var counts = getValueCountData(values);
+    var modes = getCountDataSummary(counts);
+    if (verbose) {
+      modes.counts = counts.counts;
+      modes.values = counts.values;
+    }
+    return modes;
   }
 
-  function convertDistanceParam(opt, crs) {
-    var o = parseMeasure(opt);
-    var k = getIntervalConversionFactor(o.units, crs);
-    if (o.areal) {
-      stop('Expected a distance, received an area:', opt);
-    }
-    return o.value * k;
+  var CalcUtils = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getMode: getMode,
+    getModeData: getModeData
+  });
+
+  var cmd = {}; // command functions get added to this object
+
+  // Get a copy of a layer containing a subset of the layer's features,
+  // given a "where" expression in the options object
+  function getLayerSelection(lyr, arcs, opts) {
+    var lyr2 = utils.extend({}, lyr);
+    var filterOpts = {
+          expression: opts.where,
+          invert: !!opts.invert,
+          verbose: false,   // don't print status message
+          no_replace: opts.no_replace // copy features if original features will be retained
+        };
+    return cmd.filterFeatures(lyr2, arcs, filterOpts);
   }
 
-  // Same as convertDistanceParam(), except:
-  //   in the case of latlong datasets, coordinates are unitless (instead of meters),
-  //   and parameters with units trigger an error
-  function convertIntervalParam(opt, crs) {
-    var o = parseMeasure(opt);
-    var k = getIntervalConversionFactor(o.units, crs);
-    if (o.units && crs && crs.is_latlong) {
-      stop('Parameter does not support distance units with latlong datasets');
+  // Used to run -dissolve with the where= option; could be generalized to support
+  // other commands
+  function applyCommandToLayerSelection(commandFunc, lyr, arcs, opts) {
+    if (!opts || !opts.where) {
+      error('Missing required "where" parameter');
     }
-    if (o.areal) {
-      stop('Expected a distance, received an area:', opt);
-    }
-    return o.value * k;
+    var subsetLyr = getLayerSelection(lyr, arcs, opts);
+    var cmdOpts = utils.defaults({where: null}, opts); // prevent infinite recursion
+    var outputLyr = commandFunc(subsetLyr, arcs, cmdOpts);
+    var filterOpts = utils.defaults({invert: true}, opts);
+    var filteredLyr = getLayerSelection(lyr, arcs, filterOpts);
+    var merged = cmd.mergeLayers([filteredLyr, outputLyr], {verbose: false, force: true});
+    return merged[0];
   }
 
-  function convertIntervalPair(opt, crs) {
-    var a, b;
-    if (!Array.isArray(opt) || opt.length != 2) {
-      stop('Expected two distance parameters, received', opt);
+  // Calculate an expression across a group of features, print and return the result
+  // Supported functions include sum(), average(), max(), min(), median(), count()
+  // Functions receive an expression to be applied to each feature (like the -each command)
+  // Examples: 'sum($.area)' 'min(income)'
+  // opts.expression  Expression to evaluate
+  // opts.where  Optional filter expression (see -filter command)
+  //
+  cmd.calc = function(lyr, arcs, opts) {
+    var msg = opts.expression,
+        result, compiled, defs;
+    if (opts.where) {
+      // TODO: implement no_replace option for filter() instead of this
+      lyr = getLayerSelection(lyr, arcs, opts);
+      msg += ' where ' + opts.where;
     }
-    a = parseMeasure(opt[0]);
-    b = parseMeasure(opt[1]);
-    if (a.units && !b.units || b.units && !a.units) {
-      stop('Both parameters should have units:', opt);
-    }
-    return [convertIntervalParam(opt[0], crs),
-            convertIntervalParam(opt[1], crs)];
+    // Save any assigned variables to the defs object, so they will be available
+    // for later -each expressions to use.
+    defs = getStateVar('defs');
+    compiled = compileCalcExpression(lyr, arcs, opts.expression);
+    result = compiled(null, defs);
+    message(msg + ":  " + result);
+    return result;
+  };
+
+  function evalCalcExpression(lyr, arcs, exp) {
+    return compileCalcExpression(lyr, arcs, exp)();
   }
 
-  // Accepts a single value or a list of four values. List order is l,b,t,r
-  function convertFourSides(opt, crs, bounds) {
-    var arr = opt.split(',');
-    if (arr.length == 1) {
-      arr = [arr[0], arr[0], arr[0], arr[0]];
-    } else if (arr.length != 4) {
-      stop("Expected a distance parameter or a list of four params");
+  function compileCalcExpression(lyr, arcs, exp) {
+    var rowNo = 0, colNo = 0, cols = [];
+    var ctx1 = { // context for first phase (capturing values for each feature)
+          count: assign,
+          sum: captureNum,
+          sums: capture,
+          average: captureNum,
+          median: captureNum,
+          min: captureNum,
+          max: captureNum,
+          mode: capture,
+          collect: capture,
+          first: assignOnce,
+          every: every,
+          some: some,
+          last: assign
+        },
+        ctx2 = { // context for second phase (calculating results)
+          count: wrap(function() {return rowNo;}, 0),
+          sum: wrap(utils.sum, 0),
+          sums: wrap(sums),
+          median: wrap(utils.findMedian),
+          min: wrap(min),
+          max: wrap(max),
+          average: wrap(utils.mean),
+          mode: wrap(getMode),
+          collect: wrap(pass),
+          first: wrap(pass),
+          every: wrap(pass, false),
+          some: wrap(pass, false),
+          last: wrap(pass)
+        },
+        len = getFeatureCount(lyr),
+        calc1, calc2, result;
+
+    if (lyr.geometry_type) {
+      // add functions related to layer geometry (e.g. for subdivide())
+      ctx1.width = ctx1.height = noop;
+      ctx2.width = function() {return getLayerBounds(lyr, arcs).width();};
+      ctx2.height = function() {return getLayerBounds(lyr, arcs).height();};
     }
-    return arr.map(function(param, i) {
-      var tmp;
-      if (param.indexOf('%') > 0) {
-        tmp = parseFloat(param) / 100 || 0;
-        return tmp * (i == 1 || i == 3 ? bounds.height() : bounds.width());
+
+    calc1 = compileFeatureExpression(exp, lyr, arcs, {context: ctx1,
+        no_assign: true, no_warn: true});
+    // changed data-only layer to full layer to expose layer geometry, etc
+    // (why not do this originally?)
+    // calc2 = compileFeatureExpression(exp, {data: lyr.data}, null,
+    //     {returns: true, context: ctx2, no_warn: true});
+    calc2 = compileFeatureExpression(exp, lyr, arcs,
+        {returns: true, context: ctx2, no_warn: true});
+
+    // @destRec: optional destination record for assignments
+    return function(ids, destRec) {
+      var result;
+      // phase 1: capture data
+      if (ids) procRecords(ids);
+      else procAll();
+      // phase 2: calculate
+      result = calc2(undefined, destRec);
+      reset();
+      return result;
+    };
+
+    function pass(o) {return o;}
+
+    function max(arr) {
+      return utils.getArrayBounds(arr).max;
+    }
+
+    function sums(arr) {
+      var n = arr && arr.length ? arr[0].length : 0;
+      var output = utils.initializeArray(Array(n), 0);
+      arr.forEach(function(arr) {
+        if (!arr || !arr.length) return;
+        for (var i=0; i<n; i++) {
+          output[i] += +arr[i] || 0;
+        }
+      });
+      return output;
+    }
+
+    function min(arr) {
+      return utils.getArrayBounds(arr).min;
+    }
+
+    // process captured data, or return nodata value if no records have been captured
+    function wrap(proc, nullVal) {
+      var nodata = arguments.length > 1 ? nullVal : null;
+      return function() {
+        var c = colNo++;
+        return rowNo > 0 ? proc(cols[c]) : nodata;
+      };
+    }
+
+    function procAll() {
+      for (var i=0; i<len; i++) {
+        procRecord(i);
       }
-      return convertIntervalParam(opt, crs);
+    }
+
+    function procRecords(ids) {
+      ids.forEach(procRecord);
+    }
+
+    function procRecord(i) {
+      if (i < 0 || i >= len) error("Invalid record index");
+      calc1(i);
+      rowNo++;
+      colNo = 0;
+    }
+
+    function noop() {}
+
+    function reset() {
+      rowNo = 0;
+      colNo = 0;
+      cols = [];
+    }
+
+    function captureNum(val) {
+      if (isNaN(val) && val) { // accepting falsy values (be more strict?)
+        stop("Expected a number, received:", val);
+      }
+      return capture(val);
+    }
+
+    function assignOnce(val) {
+      if (rowNo === 0) cols[colNo] = val;
+      colNo++;
+      return val;
+    }
+
+    function every(val) {
+      val = !!val;
+      cols[colNo] = rowNo === 0 ? val : cols[colNo] && val;
+      colNo++;
+    }
+
+    function some(val) {
+      val = !!val;
+      cols[colNo] = cols[colNo] || val;
+      colNo++;
+    }
+
+    function assign(val) {
+      cols[colNo++] = val;
+      return val;
+    }
+    /*
+    function captureArr(val) {
+      capture(val);
+      return [];
+    }
+    */
+
+    function capture(val) {
+      var col;
+      if (rowNo === 0) {
+        cols[colNo] = [];
+      }
+      col = cols[colNo];
+      if (col.length != rowNo) {
+        // make sure all functions are called each time
+        // (if expression contains a condition, it will throw off the calculation)
+        // TODO: allow conditions
+        stop("Evaluation failed");
+      }
+      col.push(val);
+      colNo++;
+      return val;
+    }
+  }
+
+  var Calc = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    evalCalcExpression: evalCalcExpression,
+    compileCalcExpression: compileCalcExpression
+  });
+
+  // get function that returns an object containing calculated values
+  function getJoinCalc(src, exp) {
+    var calc = compileCalcExpression({data: src}, null, exp);
+    return function(ids, destRec) {
+      if (!ids) ids = [];
+      calc(ids, destRec);
+    };
+  }
+
+  var JoinCalc = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getJoinCalc: getJoinCalc
+  });
+
+  // Return a function to convert indexes of original features into indexes of grouped features
+  // Uses categorical classification (a different id for each unique combination of values)
+  function getCategoryClassifier(fields, data) {
+    if (!fields || fields.length === 0) return function() {return 0;};
+    fields.forEach(function(f) {
+      requireDataField(data, f);
+    });
+    var index = {},
+        count = 0,
+        records = data.getRecords(),
+        getKey = getMultiFieldKeyFunction(fields);
+    return function(i) {
+      var key = getKey(records[i]);
+      if (key in index === false) {
+        index[key] = count++;
+      }
+      return index[key];
+    };
+  }
+
+  function getMultiFieldKeyFunction(fields) {
+    return fields.reduce(function(partial, field) {
+      // TODO: consider using JSON.stringify for fields that contain objects
+      var strval = function(rec) {return String(rec[field]);};
+      return partial ? function(rec) {return partial(rec) + '~~' + strval(rec);} : strval;
+    }, null);
+  }
+
+  // Performs many-to-one data record aggregation on an array of data records
+  // Returns an array of data records for a set of aggregated features
+  //
+  // @records input records
+  // @getGroupId()  converts input record id to id of aggregated record
+  //
+  function aggregateDataRecords(records, getGroupId, opts) {
+    var groups = groupIds(getGroupId, records.length);
+    return aggregateDataRecords2(records, groups, opts);
+  }
+
+  // Performs many-to-many data record aggregation on an array of data records
+  // (used by the -mosaic command)
+  // getSourceIds()  receives the id of an output record and returns
+  //    an array of input record ids
+  //
+  function recombineDataRecords(records, getSourceIds, n, opts) {
+    var groups = [];
+    for (var i=0; i<n; i++) {
+      groups.push(getSourceIds(i));
+    }
+    return aggregateDataRecords2(records, groups, opts);
+  }
+
+  function aggregateDataRecords2(records, groups, opts) {
+    var sumFields = opts.sum_fields || [],
+        copyFields = opts.copy_fields || [],
+        calc;
+
+    if (opts.fields) {
+      copyFields = copyFields.concat(opts.fields);
+    }
+
+    if (opts.calc) {
+      calc = getJoinCalc(new DataTable(records), opts.calc);
+    }
+
+    function sum(field, group) {
+      var tot = 0, rec;
+      for (var i=0; i<group.length; i++) {
+        rec = records[group[i]];
+        tot += rec && rec[field] || 0;
+      }
+      return tot;
+    }
+
+    return groups.map(function(group) {
+      var rec = {},
+          j, first;
+      group = group || [];
+      first = records[group[0]];
+      for (j=0; j<sumFields.length; j++) {
+        rec[sumFields[j]] = sum(sumFields[j], group);
+      }
+      for (j=0; j<copyFields.length; j++) {
+        rec[copyFields[j]] = first ? first[copyFields[j]] : null;
+      }
+      if (calc) {
+        calc(group, rec);
+      }
+      return rec;
     });
   }
 
-  // Convert an area measure to a label in sqkm or sqm
-  function getAreaLabel(area, crs) {
-    var sqm = crs && crs.to_meter ? area * crs.to_meter * crs.to_meter : area;
-    var sqkm = sqm / 1e6;
-    return sqkm < 0.01 ? Math.round(sqm) + ' sqm' : sqkm + ' sqkm';
+  // Returns array containing groups of feature indexes
+  // @getId() (function) converts feature index into group index
+  // @n number of features
+  //
+  function groupIds(getId, n) {
+    var groups = [], id;
+    for (var i=0; i<n; i++) {
+      id = getId(i);
+      if (id in groups) {
+        groups[id].push(i);
+      } else {
+        groups[id] = [i];
+      }
+    }
+    return groups;
   }
 
-  var Units = /*#__PURE__*/Object.freeze({
+  var DataAggregation = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    getIntervalConversionFactor: getIntervalConversionFactor,
-    parseMeasure: parseMeasure,
-    parseMeasure2: parseMeasure2,
-    convertAreaParam: convertAreaParam,
-    convertDistanceParam: convertDistanceParam,
-    convertIntervalParam: convertIntervalParam,
-    convertIntervalPair: convertIntervalPair,
-    convertFourSides: convertFourSides,
-    getAreaLabel: getAreaLabel
+    getCategoryClassifier: getCategoryClassifier,
+    getMultiFieldKeyFunction: getMultiFieldKeyFunction,
+    aggregateDataRecords: aggregateDataRecords,
+    recombineDataRecords: recombineDataRecords
+  });
+
+  function dissolvePointGeometry(lyr, getGroupId, opts) {
+    var useSph = !opts.planar && probablyDecimalDegreeBounds(getLayerBounds(lyr));
+    var getWeight = opts.weight ? compileValueExpression(opts.weight, lyr) : null;
+    var groups = [];
+
+    // TODO: support multipoints
+    if (countMultiPartFeatures(lyr.shapes) !== 0) {
+      stop("Dissolving multi-part points is not supported");
+    }
+
+    lyr.shapes.forEach(function(shp, i) {
+      var groupId = getGroupId(i);
+      var weight = getWeight ? getWeight(i) : 1;
+      var p = shp && shp[0]; // Using first point (TODO: handle multi-point features)
+      var tmp;
+      if (!p) return;
+      if (useSph) {
+        tmp = [];
+        geom.lngLatToXYZ(p[0], p[1], tmp);
+        p = tmp;
+      }
+      groups[groupId] = reducePointCentroid(groups[groupId], p, weight);
+    });
+
+    return groups.map(function(memo) {
+      var p1, p2;
+      if (!memo) return null;
+      if (useSph) {
+        p1 = memo.centroid;
+        p2 = [];
+        geom.xyzToLngLat(p1[0], p1[1], p1[2], p2);
+      } else {
+        p2 = memo.centroid;
+      }
+      return memo ? [p2] : null;
+    });
+  }
+
+  function reducePointCentroid(memo, p, weight) {
+    var x = p[0],
+        y = p[1],
+        sum, k;
+
+    if (x == x && y == y && weight > 0) {
+      if (!memo) {
+        memo = {sum: weight, centroid: p.concat()};
+      } else {
+        sum = memo.sum + weight;
+        k = memo.sum / sum;
+        memo.centroid[0] = k * memo.centroid[0] + weight * x / sum;
+        memo.centroid[1] = k * memo.centroid[1] + weight * y / sum;
+        if (p.length == 3) {
+          memo.centroid[2] = k * memo.centroid[2] + weight * p[2] / sum;
+        }
+        memo.sum = sum;
+      }
+    }
+    return memo;
+  }
+
+  // Dissolve polyline features
+  function dissolvePolylineGeometry(lyr, getGroupId, arcs, opts) {
+    var groups = getPolylineDissolveGroups(lyr.shapes, getGroupId);
+    var dissolve = getPolylineDissolver(arcs);
+    return groups.map(dissolve);
+  }
+
+  // Create one array of arc ids for each group
+  function getPolylineDissolveGroups(shapes, getGroupId) {
+    var groups = [];
+    traversePaths(shapes, function(o) {
+      var groupId = getGroupId(o.shapeId);
+      if (groupId in groups === false) {
+        groups[groupId] = [];
+      }
+      groups[groupId].push(o.arcId);
+    });
+    return groups;
+  }
+
+  function getPolylineDissolver(arcs) {
+    var flags = new Uint8Array(arcs.size());
+    var testArc = function(id) {return flags[absArcId(id)] > 0;};
+    var useArc = function(id) {flags[absArcId(id)] = 0;};
+    var nodes = new NodeCollection(arcs);
+    return function(ids) {
+      ids.forEach(function(id) {flags[absArcId(id)] = 1;});
+      var ends = findPolylineEnds(ids, nodes, testArc);
+      var straightParts = collectPolylineArcs(ends, nodes, testArc, useArc);
+      var ringParts = collectPolylineArcs(ids, nodes, testArc, useArc);
+      var allParts = straightParts.concat(ringParts);
+      ids.forEach(function(id) {flags[absArcId(id)] = 0;}); // may not be necessary
+      return allParts;
+    };
+  }
+
+  // TODO: use polygon pathfinder shared code
+  function collectPolylineArcs(ids, nodes, testArc, useArc) {
+    var parts = [];
+    ids.forEach(function(startId) {
+      var part = [];
+      var nextId = startId;
+      var nextIds;
+      while (testArc(nextId)) {
+        part.push(nextId);
+        nextIds = testArc(nextId) ? nodes.getConnectedArcs(nextId, testArc) : [];
+        useArc(nextId); // use (unset) arc after connections have been found
+        if (nextIds.length > 0) {
+          nextId = ~nextIds[0]; // switch arc direction to lead away from node
+        } else {
+          break;
+        }
+      }
+      if (part.length > 0) parts.push(part);
+    });
+    return parts;
+  }
+
+  // Return array of dead-end arcs for a dissolved group.
+  function findPolylineEnds(ids, nodes, filter) {
+    var ends = [];
+    ids.forEach(function(arcId) {
+      if (nodes.getConnectedArcs(arcId, filter).length === 0) {
+        ends.push(~arcId); // arc points away from terminus
+      }
+      if (nodes.getConnectedArcs(~arcId, filter).length === 0) {
+        ends.push(arcId);
+      }
+    });
+    return ends;
+  }
+
+  function dissolvePolygonGeometry(shapes, getGroupId) {
+    var segments = dissolveFirstPass(shapes, getGroupId);
+    return dissolveSecondPass(segments, shapes, getGroupId);
+  }
+
+  // First pass -- identify pairs of segments that can be dissolved
+  function dissolveFirstPass(shapes, getGroupId) {
+    var groups = [],
+        largeGroups = [],
+        segments = [],
+        ids = shapes.map(function(shp, i) {
+          return getGroupId(i);
+        });
+
+    traversePaths(shapes, procArc);
+    largeGroups.forEach(splitGroup);
+    return segments;
+
+    function procArc(obj) {
+      var arcId = obj.arcId,
+          idx = arcId < 0 ? ~arcId : arcId,
+          segId = segments.length,
+          group = groups[idx];
+      if (!group) {
+        group = [];
+        groups[idx] = group;
+      }
+      group.push(segId);
+      obj.group = group;
+      segments.push(obj);
+
+      // Three or more segments sharing the same arc is abnormal topology...
+      // Need to try to identify pairs of matching segments in each of these
+      // groups.
+      //
+      if (group.length == 3) {
+        largeGroups.push(group);
+      }
+    }
+
+    function findMatchingPair(group, cb) {
+      var arc1, arc2;
+      for (var i=0; i<group.length - 1; i++) {
+        arc1 = segments[group[i]];
+        for (var j=i+1; j<group.length; j++) {
+          arc2 = segments[group[j]];
+          if (cb(arc1, arc2)) {
+            return [arc1.segId, arc2.segId];
+          }
+        }
+      }
+      return null;
+    }
+
+    function checkFwExtension(arc1, arc2) {
+      return getNextSegment(arc1, segments, shapes).arcId ===
+          ~getNextSegment(arc2, segments, shapes).arcId;
+    }
+
+    function checkBwExtension(arc1, arc2) {
+      return getPrevSegment(arc1, segments, shapes).arcId ===
+          ~getPrevSegment(arc2, segments, shapes).arcId;
+    }
+
+    function checkDoubleExtension(arc1, arc2) {
+      return checkPairwiseMatch(arc1, arc2) &&
+          checkFwExtension(arc1, arc2) &&
+          checkBwExtension(arc1, arc2);
+    }
+
+    function checkSingleExtension(arc1, arc2) {
+      return checkPairwiseMatch(arc1, arc2) &&
+          (checkFwExtension(arc1, arc2) ||
+          checkBwExtension(arc1, arc2));
+    }
+
+    function checkPairwiseMatch(arc1, arc2) {
+      return arc1.arcId === ~arc2.arcId && ids[arc1.shapeId] ===
+          ids[arc2.shapeId];
+    }
+
+    function updateGroupIds(ids) {
+      ids.forEach(function(id) {
+        segments[id].group = ids;
+      });
+    }
+
+    // split a group of segments into pairs of matching segments + a residual group
+    // @group Array of segment ids
+    //
+    function splitGroup(group) {
+      // find best-match segment pair
+      var group2 = findMatchingPair(group, checkDoubleExtension) ||
+          findMatchingPair(group, checkSingleExtension) ||
+          findMatchingPair(group, checkPairwiseMatch);
+      if (group2) {
+        group = group.filter(function(i) {
+          return !utils.contains(group2, i);
+        });
+        updateGroupIds(group);
+        updateGroupIds(group2);
+        // Split again if reduced group is still large
+        if (group.length > 2) splitGroup(group);
+      }
+    }
+  }
+
+  // Second pass -- generate dissolved shapes
+  //
+  function dissolveSecondPass(segments, shapes, getGroupId) {
+    var dissolveShapes = [];
+    segments.forEach(procSegment);
+    return dissolveShapes;
+
+    // @obj is an arc instance
+    function procSegment(obj) {
+      if (obj.used) return;
+      var match = findDissolveArc(obj);
+      if (!match) buildRing(obj);
+    }
+
+    function addRing(arcs, i) {
+      if (i in dissolveShapes === false) {
+        dissolveShapes[i] = [];
+      }
+      dissolveShapes[i].push(arcs);
+    }
+
+    // Generate a dissolved ring
+    // @firstArc the first arc instance in the ring
+    //
+    function buildRing(firstArc) {
+      var newArcs = [firstArc.arcId],
+          nextArc = getNextArc(firstArc);
+          firstArc.used = true;
+
+      while (nextArc && nextArc != firstArc) {
+        newArcs.push(nextArc.arcId);
+        nextArc.used = true;
+        nextArc = getNextArc(nextArc);
+        if (nextArc && nextArc != firstArc && nextArc.used) error("buildRing() topology error");
+      }
+
+      if (!nextArc) error("buildRing() traversal error");
+      firstArc.used = true;
+      addRing(newArcs, getGroupId(firstArc.shapeId));
+    }
+
+    // Get the next arc in a dissolved polygon ring
+    // @obj an undissolvable arc instance
+    //
+    function getNextArc(obj, depth) {
+      var next = getNextSegment(obj, segments, shapes),
+          match;
+      depth = depth || 0;
+      if (next != obj) {
+        match = findDissolveArc(next);
+        if (match) {
+          if (depth > 100) {
+            error ('deep recursion -- unhandled topology problem');
+          }
+          // if (match.part.arcs.length == 1) {
+          if (shapes[match.shapeId][match.partId].length == 1) {
+            // case: @obj has an island inclusion -- keep traversing @obj
+            // TODO: test case if @next is first arc in the ring
+            next = getNextArc(next, depth + 1);
+          } else {
+            next = getNextArc(match, depth + 1);
+          }
+        }
+      }
+      return next;
+    }
+
+    // Look for an arc instance that can be dissolved with segment @obj
+    // (must be going the opposite direction and have same dissolve key, etc)
+    // Return matching segment or null if no match
+    //
+    function findDissolveArc(obj) {
+      var dissolveId = getGroupId(obj.shapeId), // obj.shape.dissolveKey,
+          match, matchId;
+      matchId = utils.find(obj.group, function(i) {
+        var a = obj,
+            b = segments[i];
+        if (a == b ||
+            b.used ||
+            getGroupId(b.shapeId) !== dissolveId ||
+            // don't prevent rings from dissolving with themselves (risky?)
+            // a.shapeId == b.shapeId && a.partId == b.partId ||
+            a.arcId != ~b.arcId) return false;
+        return true;
+      });
+      match = matchId === null ? null : segments[matchId];
+      return match;
+    }
+  }
+
+  function getNextSegment(seg, segments, shapes) {
+    return getSegmentByOffs(seg, segments, shapes, 1);
+  }
+
+  function getPrevSegment(seg, segments, shapes) {
+    return getSegmentByOffs(seg, segments, shapes, -1);
+  }
+
+  function getSegmentByOffs(seg, segments, shapes, offs) {
+    var arcs = shapes[seg.shapeId][seg.partId],
+        partLen = arcs.length,
+        nextOffs = (seg.i + offs) % partLen,
+        nextSeg;
+    if (nextOffs < 0) nextOffs += partLen;
+    nextSeg = segments[seg.segId - seg.i + nextOffs];
+    if (!nextSeg || nextSeg.shapeId != seg.shapeId) error("index error");
+    return nextSeg;
+  }
+
+  var PolygonDissolve = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    dissolvePolygonGeometry: dissolvePolygonGeometry
+  });
+
+  // Generate a dissolved layer
+  // @opts.fields (optional) names of data fields (dissolves all if falsy)
+  // @opts.sum-fields (Array) (optional)
+  // @opts.copy-fields (Array) (optional)
+  //
+  cmd.dissolve = function(lyr, arcs, opts) {
+    var dissolveShapes, getGroupId;
+    opts = utils.extend({}, opts);
+    if (opts.where) {
+      return applyCommandToLayerSelection(cmd.dissolve, lyr, arcs, opts);
+    }
+    if (opts.field) opts.fields = [opts.field]; // support old "field" parameter
+    getGroupId = getCategoryClassifier(opts.fields, lyr.data);
+    if (opts.multipart || opts.group_points) {
+      dissolveShapes = makeMultipartShapes(lyr, getGroupId);
+    } else if (lyr.geometry_type == 'polygon') {
+      dissolveShapes = dissolvePolygonGeometry(lyr.shapes, getGroupId);
+    } else if (lyr.geometry_type == 'polyline') {
+      dissolveShapes = dissolvePolylineGeometry(lyr, getGroupId, arcs, opts);
+    } else if (lyr.geometry_type == 'point') {
+      dissolveShapes = dissolvePointGeometry(lyr, getGroupId, opts);
+    }
+    return composeDissolveLayer(lyr, dissolveShapes, getGroupId, opts);
+  };
+
+  function makeMultipartShapes(lyr, getGroupId) {
+    if (!lyr.shapes || !lyr.geometry_type) {
+      stop('Layer is missing geometry');
+    }
+    var shapes = cloneShapes(lyr.shapes);
+    var shapes2 = [];
+    lyr.shapes.forEach(function(shp, i) {
+      var groupId = getGroupId(i);
+      if (!shp) return;
+      if (!shapes2[groupId]) {
+        shapes2[groupId] = shp;
+      } else {
+        shapes2[groupId].push.apply(shapes2[groupId], shp);
+      }
+    });
+    return shapes2;
+  }
+
+  // @lyr: original undissolved layer
+  // @shapes: dissolved shapes
+  function composeDissolveLayer(lyr, shapes, getGroupId, opts) {
+    var records = null;
+    var lyr2;
+    if (lyr.data) {
+      records = aggregateDataRecords(lyr.data.getRecords(), getGroupId, opts);
+      // replace missing shapes with nulls
+      for (var i=0, n=records.length; i<n; i++) {
+        if (shapes && !shapes[i]) {
+          shapes[i] = null;
+        }
+      }
+    }
+    lyr2 = {
+      name: opts.no_replace ? null : lyr.name,
+      shapes: shapes,
+      data: records ? new DataTable(records) : null,
+      geometry_type: lyr.geometry_type
+    };
+    if (!opts.silent) {
+      printDissolveMessage(lyr, lyr2);
+    }
+    return lyr2;
+  }
+
+  function printDissolveMessage(pre, post) {
+    var n1 = getFeatureCount(pre),
+        n2 = getFeatureCount(post),
+        msg = utils.format('Dissolved %,d feature%s into %,d feature%s',
+          n1, utils.pluralSuffix(n1), n2,
+          utils.pluralSuffix(n2));
+    message(msg);
+  }
+
+  // Maps tile ids to shape ids (both are non-negative integers). Supports
+  //    one-to-many mapping (a tile may belong to multiple shapes)
+  // Also maps shape ids to tile ids. A shape may contain multiple tiles
+  // Also supports 'flattening' -- removing one-to-many tile-shape mappings by
+  //    removing all but one shape from a tile.
+  // Supports one-to-many mapping
+  function TileShapeIndex(mosaic, opts) {
+    // indexes for mapping tile ids to shape ids
+    var singleIndex = new Int32Array(mosaic.length);
+    utils.initializeArray(singleIndex, -1);
+    var multipleIndex = [];
+    // index that maps shape ids to tile ids
+    var shapeIndex = [];
+
+    this.getTileIdsByShapeId = function(shapeId) {
+      var ids = shapeIndex[shapeId];
+      // need to filter out tile ids that have been set to -1 (indicating removal)
+      return ids ? ids.filter(function(id) {return id >= 0;}) : [];
+    };
+
+    // assumes index has been flattened
+    this.getShapeIdByTileId = function(id) {
+      var shapeId = singleIndex[id];
+      return shapeId >= 0 ? shapeId : -1;
+    };
+
+    // return ids of all shapes that include a tile
+    this.getShapeIdsByTileId = function(id) {
+      var singleId = singleIndex[id];
+      if (singleId >= 0) {
+        return [singleId];
+      }
+      if (singleId == -1) {
+        return [];
+      }
+      return multipleIndex[id];
+    };
+
+    this.indexTileIdsByShapeId = function(shapeId, tileIds, weightFunction) {
+      shapeIndex[shapeId] = [];
+      for (var i=0; i<tileIds.length; i++) {
+        indexShapeIdByTileId(shapeId, tileIds[i], weightFunction);
+      }
+    };
+
+    // remove many-to-one tile=>shape mappings
+    this.flatten = function() {
+      multipleIndex.forEach(function(shapeIds, tileId) {
+        flattenStackedTile(tileId);
+      });
+      multipleIndex = [];
+    };
+
+    this.getUnusedTileIds = function() {
+      var ids = [];
+      for (var i=0, n=singleIndex.length; i<n; i++) {
+        if (singleIndex[i] == -1) ids.push(i);
+      }
+      return ids;
+    };
+
+    // used by gap fill; assumes that flatten() has been called
+    this.addTileToShape = function(shapeId, tileId) {
+      if (shapeId in shapeIndex === false || singleIndex[tileId] != -1) {
+        error('Internal error');
+      }
+      singleIndex[tileId] = shapeId;
+      shapeIndex[shapeId].push(tileId);
+    };
+
+    // add a shape id to a tile
+    function indexShapeIdByTileId(shapeId, tileId, weightFunction) {
+      var singleId = singleIndex[tileId];
+      if (singleId != -1 && opts.flat) {
+        // pick the best shape if we have a weight function
+        if (weightFunction && weightFunction(shapeId) > weightFunction(singleId)) {
+          // replace existing shape reference
+          removeTileFromShape(tileId, singleId); // bottleneck when overlaps are many
+          singleIndex[tileId] = singleId;
+          singleId = -1;
+        } else {
+          // keep existing shape reference
+          return;
+        }
+      }
+      if (singleId == -1) {
+        singleIndex[tileId] = shapeId;
+      } else if (singleId == -2) {
+        multipleIndex[tileId].push(shapeId);
+      } else {
+        multipleIndex[tileId] = [singleId, shapeId];
+        singleIndex[tileId] = -2;
+      }
+      shapeIndex[shapeId].push(tileId);
+    }
+
+
+    function flattenStackedTile(tileId) {
+      // TODO: select the best shape (using some metric)
+      var shapeIds = multipleIndex[tileId];
+      // if (!shapeIds || shapeIds.length > 1 === false) error('flattening error');
+      var selectedId = shapeIds[0];
+      var shapeId;
+      singleIndex[tileId] = selectedId; // add shape to single index
+      // remove tile from other stacked shapes
+      for (var i=0; i<shapeIds.length; i++) {
+        shapeId = shapeIds[i];
+        if (shapeId != selectedId) {
+          removeTileFromShape(tileId, shapeId);
+        }
+      }
+    }
+
+    function removeTileFromShape(tileId, shapeId) {
+      var tileIds = shapeIndex[shapeId];
+      for (var i=0; i<tileIds.length; i++) {
+        if (tileIds[i] === tileId) {
+          tileIds[i] = -1;
+          break;
+        }
+      }
+    }
+
+    // This function was a bottleneck in datasets with many overlaps
+    function removeTileFromShape_old(tileId, shapeId) {
+      shapeIndex[shapeId] = shapeIndex[shapeId].filter(function(tileId2) {
+        return tileId2 != tileId;
+      });
+      if (shapeIndex[shapeId].length > 0 === false) {
+        // TODO: make sure to test the case where a shape becomes empty
+        // error("empty shape")
+      }
+    }
+  }
+
+  // Keep track of whether positive or negative integer ids are 'used' or not.
+
+  function IdTestIndex(n) {
+    var index = new Uint8Array(n);
+    var setList = [];
+
+    this.setId = function(id) {
+      if (!this.hasId(id)) {
+        setList.push(id);
+      }
+      if (id < 0) {
+        index[~id] |= 2;
+      } else {
+        index[id] |= 1;
+      }
+    };
+
+    this.clear = function() {
+      var index = this;
+      setList.forEach(function(id) {
+        index.clearId(id);
+      });
+      setList = [];
+    };
+
+    this.hasId = function(id) {
+      return id < 0 ? (index[~id] & 2) == 2 : (index[id] & 1) == 1;
+    };
+
+    // clear a signed id
+    this.clearId = function(id) {
+      if (id < 0) {
+        index[~id] &= 1; // clear reverse arc, preserve fwd arc
+      } else {
+        index[id] &= 2; // clear fwd arc, preserve rev arc
+      }
+    };
+
+    this.getIds = function() {
+      return setList;
+    };
+
+    this.setIds = function(ids) {
+      for (var i=0; i<ids.length; i++) {
+        this.setId(ids[i]);
+      }
+    };
+  }
+
+  // Clean polygon or polyline shapes (in-place)
+  //
+  function cleanShapes(shapes, arcs, type) {
+    for (var i=0, n=shapes.length; i<n; i++) {
+      shapes[i] = cleanShape(shapes[i], arcs, type);
+    }
+  }
+
+  // Remove defective arcs and zero-area polygon rings
+  // Remove simple polygon spikes of form: [..., id, ~id, ...]
+  // Don't remove duplicate points
+  // Don't check winding order of polygon rings
+  function cleanShape(shape, arcs, type) {
+    return editShapeParts(shape, function(path) {
+      var cleaned = cleanPath(path, arcs);
+      if (type == 'polygon' && cleaned) {
+        removeSpikesInPath(cleaned); // assumed by addIntersectionCuts()
+        if (geom.getPlanarPathArea(cleaned, arcs) === 0) {
+          cleaned = null;
+        }
+      }
+      return cleaned;
+    });
+  }
+
+  function cleanPath(path, arcs) {
+    var nulls = 0;
+    for (var i=0, n=path.length; i<n; i++) {
+      if (arcs.arcIsDegenerate(path[i])) {
+        nulls++;
+        path[i] = null;
+      }
+    }
+    return nulls > 0 ? path.filter(function(id) {return id !== null;}) : path;
+  }
+
+
+  // Remove pairs of ids where id[n] == ~id[n+1] or id[0] == ~id[n-1];
+  // (in place)
+  function removeSpikesInPath(ids) {
+    var n = ids.length;
+    if (n >= 2) {
+      if (ids[0] == ~ids[n-1]) {
+        ids.pop();
+        ids.shift();
+      } else {
+        for (var i=1; i<n; i++) {
+          if (ids[i-1] == ~ids[i]) {
+            ids.splice(i-1, 2);
+            break;
+          }
+        }
+      }
+      if (ids.length < n) {
+        removeSpikesInPath(ids);
+      }
+    }
+  }
+
+
+  // Returns a function for splitting self-intersecting polygon rings
+  // The splitter function receives a single polygon ring represented as an array
+  // of arc ids, and returns an array of split-apart rings.
+  //
+  // Self-intersections in the input ring are assumed to occur at vertices, not along segments.
+  // This requires that internal.addIntersectionCuts() has already been run.
+  //
+  // The rings output by this function may overlap each other, but each ring will
+  // be non-self-intersecting. For example, a figure-eight shaped ring will be
+  // split into two rings that touch each other where the original ring crossed itself.
+  //
+  function getSelfIntersectionSplitter(nodes) {
+    var pathIndex = new IdTestIndex(nodes.arcs.size(), true);
+    var filter = function(arcId) {
+      return pathIndex.hasId(~arcId);
+    };
+    return function(path) {
+      pathIndex.setIds(path);
+      var paths = dividePath(path);
+      pathIndex.clear();
+      return paths;
+    };
+
+    // Returns array of 0 or more divided paths
+    function dividePath(path) {
+      var subPaths = null;
+      for (var i=0, n=path.length; i < n - 1; i++) { // don't need to check last arc
+        subPaths = dividePathAtNode(path, path[i]);
+        if (subPaths !== null) {
+          return subPaths;
+        }
+      }
+      // indivisible path -- clean it by removing any spikes
+      removeSpikesInPath(path);
+      return path.length > 0 ? [path] : [];
+    }
+
+    // If arc @enterId enters a node with more than one open routes leading out:
+    //   return array of sub-paths
+    // else return null
+    function dividePathAtNode(path, enterId) {
+      var nodeIds = nodes.getConnectedArcs(enterId, filter),
+          exitArcIndexes, exitArcId, idx;
+      if (nodeIds.length < 2) return null;
+      exitArcIndexes = [];
+      for (var i=0; i<nodeIds.length; i++) {
+        exitArcId = ~nodeIds[i];
+        idx = indexOf(path, exitArcId);
+        if (idx > -1) { // repeated scanning may be bottleneck
+          // important optimization (TODO: explain this)
+          // TODO: test edge case: exitArcId occurs twice in the path
+          pathIndex.clearId(exitArcId);
+          exitArcIndexes.push(idx);
+        } else {
+          // TODO: investigate why this happens
+        }
+      }
+      if (exitArcIndexes.length < 2) {
+        return null;
+      }
+      // path forks -- recursively subdivide
+      var subPaths = splitPathByIds(path, exitArcIndexes);
+      return subPaths.reduce(accumulatePaths, null);
+    }
+
+    function accumulatePaths(memo, path) {
+      var subPaths = dividePath(path);
+      if (memo === null) {
+        return subPaths;
+      }
+      memo.push.apply(memo, subPaths);
+      return memo;
+    }
+
+    // Added as an optimization -- faster than using Array#indexOf()
+    function indexOf(arr, el) {
+      for (var i=0, n=arr.length; i<n; i++) {
+        if (arr[i] === el) return i;
+      }
+      return -1;
+    }
+
+  }
+
+  // Function returns an array of split-apart rings
+  // @path An array of arc ids describing a self-intersecting polygon ring
+  // @ids An array of two or more indexes of arcs that originate from a single vertex
+  //      where @path intersects itself -- assumes indexes are in ascending sequence
+  function splitPathByIds(path, indexes) {
+    var subPaths = [];
+    utils.genericSort(indexes, true); // sort ascending
+    if (indexes[0] > 0) {
+      subPaths.push(path.slice(0, indexes[0]));
+    }
+    for (var i=0, n=indexes.length; i<n; i++) {
+      if (i < n-1) {
+        subPaths.push(path.slice(indexes[i], indexes[i+1]));
+      } else {
+        subPaths.push(path.slice(indexes[i]));
+      }
+    }
+    // handle case where first subring is split across endpoint of @path
+    if (subPaths.length > indexes.length) {
+      utils.merge(subPaths[0], subPaths.pop());
+    }
+    return subPaths;
+  }
+
+  var PathRepair = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    cleanShapes: cleanShapes,
+    removeSpikesInPath: removeSpikesInPath,
+    getSelfIntersectionSplitter: getSelfIntersectionSplitter,
+    splitPathByIds: splitPathByIds
+  });
+
+  // TODO: also delete positive-space rings nested inside holes
+  function deleteHoles(lyr, arcs) {
+    editShapes(lyr.shapes, function(path) {
+      if (geom.getPathArea(path, arcs) <= 0) {
+        return null; // null deletes the path
+      }
+    });
+  }
+
+  // Returns a function that separates rings in a polygon into space-enclosing rings
+  // and holes. Also fixes self-intersections.
+  //
+  function getHoleDivider(nodes, spherical) {
+    var split = getSelfIntersectionSplitter(nodes);
+    // var split = internal.getSelfIntersectionSplitter_v1(nodes); console.log('split')
+
+    return function(rings, cw, ccw) {
+      var pathArea = spherical ? geom.getSphericalPathArea : geom.getPlanarPathArea;
+      forEachShapePart(rings, function(ringIds) {
+        var splitRings = split(ringIds);
+        if (splitRings.length === 0) {
+          debug("[getRingDivider()] Defective path:", ringIds);
+        }
+        splitRings.forEach(function(ringIds, i) {
+          var ringArea = pathArea(ringIds, nodes.arcs);
+          if (ringArea > 0) {
+            cw.push(ringIds);
+          } else if (ringArea < 0) {
+            ccw.push(ringIds);
+          }
+        });
+      });
+    };
+  }
+
+  var PolygonHoles = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    deleteHoles: deleteHoles,
+    getHoleDivider: getHoleDivider
+  });
+
+  // Used for building topology
+  //
+  function ArcIndex(pointCount) {
+    var hashTableSize = Math.floor(pointCount * 0.25 + 1),
+        hash = getXYHash(hashTableSize),
+        hashTable = new Int32Array(hashTableSize),
+        chainIds = [],
+        arcs = [],
+        arcPoints = 0;
+
+    utils.initializeArray(hashTable, -1);
+
+    this.addArc = function(xx, yy) {
+      var end = xx.length - 1,
+          key = hash(xx[end], yy[end]),
+          chainId = hashTable[key],
+          arcId = arcs.length;
+      hashTable[key] = arcId;
+      arcs.push([xx, yy]);
+      arcPoints += xx.length;
+      chainIds.push(chainId);
+      return arcId;
+    };
+
+    // Look for a previously generated arc with the same sequence of coords, but in the
+    // opposite direction. (This program uses the convention of CW for space-enclosing rings, CCW for holes,
+    // so coincident boundaries should contain the same points in reverse sequence).
+    //
+    this.findDuplicateArc = function(xx, yy, start, end, getNext, getPrev) {
+      // First, look for a reverse match
+      var arcId = findArcNeighbor(xx, yy, start, end, getNext);
+      if (arcId === null) {
+        // Look for forward match
+        // (Abnormal topology, but we're accepting it because in-the-wild
+        // Shapefiles sometimes have duplicate paths)
+        arcId = findArcNeighbor(xx, yy, end, start, getPrev);
+      } else {
+        arcId = ~arcId;
+      }
+      return arcId;
+    };
+
+    function findArcNeighbor(xx, yy, start, end, getNext) {
+      var next = getNext(start),
+          key = hash(xx[start], yy[start]),
+          arcId = hashTable[key],
+          arcX, arcY, len;
+
+      while (arcId != -1) {
+        // check endpoints and one segment...
+        // it would be more rigorous but slower to identify a match
+        // by comparing all segments in the coordinate sequence
+        arcX = arcs[arcId][0];
+        arcY = arcs[arcId][1];
+        len = arcX.length;
+        if (arcX[0] === xx[end] && arcX[len-1] === xx[start] && arcX[len-2] === xx[next] &&
+            arcY[0] === yy[end] && arcY[len-1] === yy[start] && arcY[len-2] === yy[next]) {
+          return arcId;
+        }
+        arcId = chainIds[arcId];
+      }
+      return null;
+    }
+
+    this.getVertexData = function() {
+      var xx = new Float64Array(arcPoints),
+          yy = new Float64Array(arcPoints),
+          nn = new Uint32Array(arcs.length),
+          copied = 0,
+          arc, len;
+      for (var i=0, n=arcs.length; i<n; i++) {
+        arc = arcs[i];
+        len = arc[0].length;
+        utils.copyElements(arc[0], 0, xx, copied, len);
+        utils.copyElements(arc[1], 0, yy, copied, len);
+        nn[i] = len;
+        copied += len;
+      }
+      return {
+        xx: xx,
+        yy: yy,
+        nn: nn
+      };
+    };
+  }
+
+  // Converts all polygon and polyline paths in a dataset to a topological format
+  // (in-place)
+  function buildTopology(dataset) {
+    if (!dataset.arcs) return;
+    var raw = dataset.arcs.getVertexData(),
+        cooked = buildPathTopology(raw.nn, raw.xx, raw.yy);
+    dataset.arcs.updateVertexData(cooked.nn, cooked.xx, cooked.yy);
+    dataset.layers.forEach(function(lyr) {
+      if (lyr.geometry_type == 'polyline' || lyr.geometry_type == 'polygon') {
+        lyr.shapes = replaceArcIds(lyr.shapes, cooked.paths);
+      }
+    });
+  }
+
+  // buildPathTopology() converts non-topological paths into
+  // a topological format
+  //
+  // Arguments:
+  //    xx: [Array|Float64Array],   // x coords of each point in the dataset
+  //    yy: [Array|Float64Array],   // y coords ...
+  //    nn: [Array]  // length of each path
+  //
+  // (x- and y-coords of all paths are concatenated into two arrays)
+  //
+  // Returns:
+  // {
+  //    xx, yy (array)   // coordinate data
+  //    nn: (array)      // points in each arc
+  //    paths: (array)   // Paths are arrays of one or more arc id.
+  // }
+  //
+  // Negative arc ids in the paths array indicate a reversal of arc -(id + 1)
+  //
+  function buildPathTopology(nn, xx, yy) {
+    var pointCount = xx.length,
+        chainIds = initPointChains(xx, yy),
+        pathIds = initPathIds(pointCount, nn),
+        index = new ArcIndex(pointCount),
+        slice = usingTypedArrays() ? xx.subarray : Array.prototype.slice,
+        paths, retn;
+    paths = convertPaths(nn);
+    retn = index.getVertexData();
+    retn.paths = paths;
+    return retn;
+
+    function usingTypedArrays() {
+      return !!(xx.subarray && yy.subarray);
+    }
+
+    function convertPaths(nn) {
+      var paths = [],
+          pointId = 0,
+          pathLen;
+      for (var i=0, len=nn.length; i<len; i++) {
+        pathLen = nn[i];
+        paths.push(pathLen < 2 ? null : convertPath(pointId, pointId + pathLen - 1));
+        pointId += pathLen;
+      }
+      return paths;
+    }
+
+    function nextPoint(id) {
+      var partId = pathIds[id],
+          nextId = id + 1;
+      if (nextId < pointCount && pathIds[nextId] === partId) {
+        return id + 1;
+      }
+      var len = nn[partId];
+      return sameXY(id, id - len + 1) ? id - len + 2 : -1;
+    }
+
+    function prevPoint(id) {
+      var partId = pathIds[id],
+          prevId = id - 1;
+      if (prevId >= 0 && pathIds[prevId] === partId) {
+        return id - 1;
+      }
+      var len = nn[partId];
+      return sameXY(id, id + len - 1) ? id + len - 2 : -1;
+    }
+
+    function sameXY(a, b) {
+      return xx[a] == xx[b] && yy[a] == yy[b];
+    }
+
+    // Convert a non-topological path to one or more topological arcs
+    // @start, @end are ids of first and last points in the path
+    // TODO: don't allow id ~id pairs
+    //
+    function convertPath(start, end) {
+      var arcIds = [],
+          firstNodeId = -1,
+          arcStartId;
+
+      // Visit each point in the path, up to but not including the last point
+      for (var i = start; i < end; i++) {
+        if (pointIsArcEndpoint(i)) {
+          if (firstNodeId > -1) {
+            arcIds.push(addEdge(arcStartId, i));
+          } else {
+            firstNodeId = i;
+          }
+          arcStartId = i;
+        }
+      }
+
+      // Identify the final arc in the path
+      if (firstNodeId == -1) {
+        // Not in an arc, i.e. no nodes have been found...
+        // Assuming that path is either an island or is congruent with one or more rings
+        arcIds.push(addRing(start, end));
+      }
+      else if (firstNodeId == start) {
+        // path endpoint is a node;
+        if (!pointIsArcEndpoint(end)) {
+          error("Topology error"); // TODO: better error handling
+        }
+        arcIds.push(addEdge(arcStartId, i));
+      } else {
+        // final arc wraps around
+        arcIds.push(addSplitEdge(arcStartId, end, start + 1, firstNodeId));
+      }
+      return arcIds;
+    }
+
+    // Test if a point @id is an endpoint of a topological path
+    function pointIsArcEndpoint(id) {
+      var id2 = chainIds[id],
+          prev = prevPoint(id),
+          next = nextPoint(id),
+          prev2, next2;
+      if (prev == -1 || next == -1) {
+        // @id is an endpoint if it is the start or end of an open path
+        return true;
+      }
+      while (id != id2) {
+        prev2 = prevPoint(id2);
+        next2 = nextPoint(id2);
+        if (prev2 == -1 || next2 == -1 || brokenEdge(prev, next, prev2, next2)) {
+          // there is a discontinuity at @id -- point is arc endpoint
+          return true;
+        }
+        id2 = chainIds[id2];
+      }
+      return false;
+    }
+
+    // a and b are two vertices with the same x, y coordinates
+    // test if the segments on either side of them are also identical
+    function brokenEdge(aprev, anext, bprev, bnext) {
+      var apx = xx[aprev],
+          anx = xx[anext],
+          bpx = xx[bprev],
+          bnx = xx[bnext],
+          apy = yy[aprev],
+          any = yy[anext],
+          bpy = yy[bprev],
+          bny = yy[bnext];
+      if (apx == bnx && anx == bpx && apy == bny && any == bpy ||
+          apx == bpx && anx == bnx && apy == bpy && any == bny) {
+        return false;
+      }
+      return true;
+    }
+
+    function mergeArcParts(src, startId, endId, startId2, endId2) {
+      var len = endId - startId + endId2 - startId2 + 2,
+          ArrayClass = usingTypedArrays() ? Float64Array : Array,
+          dest = new ArrayClass(len),
+          j = 0, i;
+      for (i=startId; i <= endId; i++) {
+        dest[j++] = src[i];
+      }
+      for (i=startId2; i <= endId2; i++) {
+        dest[j++] = src[i];
+      }
+      return dest;
+    }
+
+    function addSplitEdge(start1, end1, start2, end2) {
+      var arcId = index.findDuplicateArc(xx, yy, start1, end2, nextPoint, prevPoint);
+      if (arcId === null) {
+        arcId = index.addArc(mergeArcParts(xx, start1, end1, start2, end2),
+            mergeArcParts(yy, start1, end1, start2, end2));
+      }
+      return arcId;
+    }
+
+    function addEdge(start, end) {
+      // search for a matching edge that has already been generated
+      var arcId = index.findDuplicateArc(xx, yy, start, end, nextPoint, prevPoint);
+      if (arcId === null) {
+        arcId = index.addArc(slice.call(xx, start, end + 1),
+            slice.call(yy, start, end + 1));
+      }
+      return arcId;
+    }
+
+    function addRing(startId, endId) {
+      var chainId = chainIds[startId],
+          pathId = pathIds[startId],
+          arcId;
+
+      while (chainId != startId) {
+        if (pathIds[chainId] < pathId) {
+          break;
+        }
+        chainId = chainIds[chainId];
+      }
+
+      if (chainId == startId) {
+        return addEdge(startId, endId);
+      }
+
+      for (var i=startId; i<endId; i++) {
+        arcId = index.findDuplicateArc(xx, yy, i, i, nextPoint, prevPoint);
+        if (arcId !== null) return arcId;
+      }
+      error("Unmatched ring; id:", pathId, "len:", nn[pathId]);
+    }
+  }
+
+
+  // Create a lookup table for path ids; path ids are indexed by point id
+  //
+  function initPathIds(size, pathSizes) {
+    var pathIds = new Int32Array(size),
+        j = 0;
+    for (var pathId=0, pathCount=pathSizes.length; pathId < pathCount; pathId++) {
+      for (var i=0, n=pathSizes[pathId]; i<n; i++, j++) {
+        pathIds[j] = pathId;
+      }
+    }
+    return pathIds;
+  }
+
+  function replaceArcIds(src, replacements) {
+    return src.map(function(shape) {
+      return replaceArcsInShape(shape, replacements);
+    });
+
+    function replaceArcsInShape(shape, replacements) {
+      if (!shape) return null;
+      return shape.map(function(path) {
+        return replaceArcsInPath(path, replacements);
+      });
+    }
+
+    function replaceArcsInPath(path, replacements) {
+      return path.reduce(function(memo, id) {
+        var abs = absArcId(id);
+        var topoPath = replacements[abs];
+        if (topoPath) {
+          if (id < 0) {
+            topoPath = topoPath.concat(); // TODO: need to copy?
+            reversePath(topoPath);
+          }
+          for (var i=0, n=topoPath.length; i<n; i++) {
+            memo.push(topoPath[i]);
+          }
+        }
+        return memo;
+      }, []);
+    }
+  }
+
+  var Topology = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    buildTopology: buildTopology,
+    buildPathTopology: buildPathTopology
+  });
+
+  // Convert an array of intersections into an ArcCollection (for display)
+  //
+
+  function getIntersectionPoints(intersections) {
+    return intersections.map(function(obj) {
+          return [obj.x, obj.y];
+        });
+  }
+
+  // Identify intersecting segments in an ArcCollection
+  //
+  // To find all intersections:
+  // 1. Assign each segment to one or more horizontal stripes/bins
+  // 2. Find intersections inside each stripe
+  // 3. Concat and dedup
+  //
+  // Re-use buffer for temp data -- Chrome's gc starts bogging down
+  // if large buffers are repeatedly created.
+  var buf;
+  function getUint32Array(count) {
+    var bytes = count * 4;
+    if (!buf || buf.byteLength < bytes) {
+      buf = new ArrayBuffer(bytes);
+    }
+    return new Uint32Array(buf, 0, count);
+  }
+
+  function findSegmentIntersections(arcs, optArg) {
+    var opts = utils.extend({}, optArg),
+        bounds = arcs.getBounds(),
+        // TODO: handle spherical bounds
+        spherical = !arcs.isPlanar() &&
+            geom.containsBounds(getWorldBounds(), bounds.toArray()),
+        ymin = bounds.ymin,
+        yrange = bounds.ymax - ymin,
+        stripeCount = opts.stripes || calcSegmentIntersectionStripeCount(arcs),
+        stripeSizes = new Uint32Array(stripeCount),
+        stripeId = stripeCount > 1 && yrange > 0 ? multiStripeId : singleStripeId,
+        i, j;
+
+    if (opts.tolerance >= 0 === false) {
+      // by default, use a small tolerance when detecting segment intersections
+      // (intended to overcome the effects of floating point rounding errors in geometrical formulas)
+      opts.tolerance = getHighPrecisionSnapInterval(bounds.toArray());
+    }
+
+    function multiStripeId(y) {
+      return Math.floor((stripeCount-1) * (y - ymin) / yrange);
+    }
+
+    function singleStripeId(y) {return 0;}
+    // Count segments in each stripe
+    arcs.forEachSegment(function(id1, id2, xx, yy) {
+      var s1 = stripeId(yy[id1]),
+          s2 = stripeId(yy[id2]);
+      while (true) {
+        stripeSizes[s1] = stripeSizes[s1] + 2;
+        if (s1 == s2) break;
+        s1 += s2 > s1 ? 1 : -1;
+      }
+    });
+
+    // Allocate arrays for segments in each stripe
+    var stripeData = getUint32Array(utils.sum(stripeSizes)),
+        offs = 0;
+    var stripes = [];
+    utils.forEach(stripeSizes, function(stripeSize) {
+      var start = offs;
+      offs += stripeSize;
+      stripes.push(stripeData.subarray(start, offs));
+    });
+    // Assign segment ids to each stripe
+    utils.initializeArray(stripeSizes, 0);
+
+    arcs.forEachSegment(function(id1, id2, xx, yy) {
+      var s1 = stripeId(yy[id1]),
+          s2 = stripeId(yy[id2]),
+          count, stripe;
+      while (true) {
+        count = stripeSizes[s1];
+        stripeSizes[s1] = count + 2;
+        stripe = stripes[s1];
+        stripe[count] = id1;
+        stripe[count+1] = id2;
+        if (s1 == s2) break;
+        s1 += s2 > s1 ? 1 : -1;
+      }
+    });
+
+    // Detect intersections among segments in each stripe.
+    var raw = arcs.getVertexData(),
+        intersections = [],
+        arr;
+    for (i=0; i<stripeCount; i++) {
+      arr = intersectSegments(stripes[i], raw.xx, raw.yy, opts);
+      for (j=0; j<arr.length; j++) {
+        intersections.push(arr[j]);
+      }
+    }
+    return dedupIntersections(intersections, opts.unique ? getUniqueIntersectionKey : null);
+  }
+
+
+  function sortIntersections(arr) {
+    arr.sort(function(a, b) {
+      return a.x - b.x || a.y - b.y;
+    });
+  }
+
+
+
+  function dedupIntersections(arr, keyFunction) {
+    var index = {};
+    var getKey = keyFunction || getIntersectionKey;
+    return arr.filter(function(o) {
+      var key = getKey(o);
+      if (key in index) {
+        return false;
+      }
+      index[key] = true;
+      return true;
+    });
+  }
+
+  // Get an indexable key from an intersection object
+  // Assumes that vertex ids of o.a and o.b are sorted
+  function getIntersectionKey(o) {
+    return o.a.join(',') + ';' + o.b.join(',');
+  }
+
+  function getUniqueIntersectionKey(o) {
+    return o.x + ',' + o.y;
+  }
+
+  // Fast method
+  // TODO: measure performance using a range of input data
+  function calcSegmentIntersectionStripeCount2(arcs) {
+    var segs = arcs.getFilteredPointCount() - arcs.size();
+    var stripes = Math.pow(segs, 0.4) * 2;
+    return Math.ceil(stripes) || 1;
+  }
+
+  // Alternate fast method
+  function calcSegmentIntersectionStripeCount(arcs) {
+    var segs = arcs.getFilteredPointCount() - arcs.size();
+    var stripes = Math.ceil(Math.pow(segs * 10, 0.6) / 40);
+    return stripes > 0 ? stripes : 1;
+  }
+
+  // Old method calculates average segment length -- slow
+  function calcSegmentIntersectionStripeCount_old(arcs) {
+    var yrange = arcs.getBounds().height(),
+        segLen = getAvgSegment2(arcs)[1], // slow
+        count = 1;
+    if (segLen > 0 && yrange > 0) {
+      count = Math.ceil(yrange / segLen / 20);
+    }
+    return count || 1;
+  }
+
+  // Find intersections among a group of line segments
+  //
+  // TODO: handle case where a segment starts and ends at the same point (i.e. duplicate coords);
+  //
+  // @ids: Array of indexes: [s0p0, s0p1, s1p0, s1p1, ...] where xx[sip0] <= xx[sip1]
+  // @xx, @yy: Arrays of x- and y-coordinates
+  //
+  function intersectSegments(ids, xx, yy, optsArg) {
+    var lim = ids.length - 2,
+        opts = optsArg || {},
+        intersections = [],
+        tolerance = opts.tolerance, // may be undefined
+        s1p1, s1p2, s2p1, s2p2,
+        s1p1x, s1p2x, s2p1x, s2p2x,
+        s1p1y, s1p2y, s2p1y, s2p2y,
+        hit, seg1, seg2, i, j;
+
+    // Sort segments by xmin, to allow efficient exclusion of segments with
+    // non-overlapping x extents.
+    sortSegmentIds(xx, ids); // sort by ascending xmin
+
+    i = 0;
+    while (i < lim) {
+      s1p1 = ids[i];
+      s1p2 = ids[i+1];
+      s1p1x = xx[s1p1];
+      s1p2x = xx[s1p2];
+      s1p1y = yy[s1p1];
+      s1p2y = yy[s1p2];
+      // count++;
+
+      j = i;
+      while (j < lim) {
+        j += 2;
+        s2p1 = ids[j];
+        s2p1x = xx[s2p1];
+
+        if (s1p2x < s2p1x) break; // x extent of seg 2 is greater than seg 1: done with seg 1
+        //if (s1p2x <= s2p1x) break; // this misses point-segment intersections when s1 or s2 is vertical
+
+        s2p1y = yy[s2p1];
+        s2p2 = ids[j+1];
+        s2p2x = xx[s2p2];
+        s2p2y = yy[s2p2];
+
+        // skip segments with non-overlapping y ranges
+        if (s1p1y >= s2p1y) {
+          if (s1p1y > s2p2y && s1p2y > s2p1y && s1p2y > s2p2y) continue;
+        } else {
+          if (s1p1y < s2p2y && s1p2y < s2p1y && s1p2y < s2p2y) continue;
+        }
+
+        // skip segments that are adjacent in a path (optimization)
+        // TODO: consider if this eliminates some cases that should
+        // be detected, e.g. spikes formed by unequal segments
+        if (s1p1 == s2p1 || s1p1 == s2p2 || s1p2 == s2p1 || s1p2 == s2p2) {
+          continue;
+        }
+
+        // test two candidate segments for intersection
+        hit = geom.segmentIntersection(s1p1x, s1p1y, s1p2x, s1p2y,
+            s2p1x, s2p1y, s2p2x, s2p2y, tolerance);
+        if (hit) {
+          seg1 = [s1p1, s1p2];
+          seg2 = [s2p1, s2p2];
+          intersections.push(formatIntersection(hit, seg1, seg2, xx, yy));
+          if (hit.length == 4) {
+            // two collinear segments may have two endpoint intersections
+            intersections.push(formatIntersection(hit.slice(2), seg1, seg2, xx, yy));
+          }
+        }
+      }
+      i += 2;
+    }
+    return intersections;
+
+    // @p is an [x, y] location along a segment defined by ids @id1 and @id2
+    // return array [i, j] where i and j are the same endpoint ids with i <= j
+    // if @p coincides with an endpoint, return the id of that endpoint twice
+    function getEndpointIds(id1, id2, p) {
+      var i = id1 < id2 ? id1 : id2,
+          j = i === id1 ? id2 : id1;
+      if (xx[i] == p[0] && yy[i] == p[1]) {
+        j = i;
+      } else if (xx[j] == p[0] && yy[j] == p[1]) {
+        i = j;
+      }
+      return [i, j];
+    }
+  }
+
+  function formatIntersection(xy, s1, s2, xx, yy) {
+    var x = xy[0],
+        y = xy[1],
+        a, b;
+    s1 = formatIntersectingSegment(x, y, s1[0], s1[1], xx, yy);
+    s2 = formatIntersectingSegment(x, y, s2[0], s2[1], xx, yy);
+    a = s1[0] < s2[0] ? s1 : s2;
+    b = a == s1 ? s2 : s1;
+    return {x: x, y: y, a: a, b: b};
+  }
+
+  // Receives:
+  //   x, y: coordinates of intersection
+  //   i, j: two segment endpoints, as indexes in xx and yy arrays
+  // Returns:
+  //   if x,y falls within the segment, returns ascending indexes
+  //   if x,y coincides with an endpoint, returns the id of that endpoint twice
+  function formatIntersectingSegment(x, y, i, j, xx, yy) {
+    if (xx[i] == x && yy[i] == y) {
+      return [i, i];
+    }
+    if (xx[j] == x && yy[j] == y) {
+      return [j, j];
+    }
+    return i < j ? [i, j] : [j, i];
+  }
+
+  var SegmentIntersection = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getIntersectionPoints: getIntersectionPoints,
+    findSegmentIntersections: findSegmentIntersections,
+    sortIntersections: sortIntersections,
+    dedupIntersections: dedupIntersections,
+    calcSegmentIntersectionStripeCount2: calcSegmentIntersectionStripeCount2,
+    calcSegmentIntersectionStripeCount: calcSegmentIntersectionStripeCount,
+    intersectSegments: intersectSegments,
+    formatIntersection: formatIntersection,
+    formatIntersectingSegment: formatIntersectingSegment
+  });
+
+  // Functions for dividing polygons and polygons at points where arc-segments intersect
+
+  // TODO:
+  //    Consider inserting cut points on import, when building initial topology
+  //    Improve efficiency (e.g. only update ArcCollection once)
+  //    Remove junk arcs (collapsed and duplicate arcs) instead of just removing
+  //       references to them
+
+  // Divide a collection of arcs at points where segments intersect
+  // and re-index the paths of all the layers that reference the arc collection.
+  // (in-place)
+  function addIntersectionCuts(dataset, _opts) {
+    var opts = _opts || {};
+    var arcs = dataset.arcs;
+    var arcBounds = arcs && arcs.getBounds();
+    var snapDist, nodes;
+    if (!arcBounds || !arcBounds.hasBounds()) {
+      return new NodeCollection([]);
+    }
+
+    if (opts.snap_interval) {
+      snapDist = convertIntervalParam(opts.snap_interval, getDatasetCRS(dataset));
+    } else if (!opts.no_snap && arcBounds.hasBounds()) {
+      snapDist = getHighPrecisionSnapInterval(arcBounds.toArray());
+    } else {
+      snapDist = 0;
+    }
+    debug('addIntersectionCuts() snap dist:', snapDist);
+
+    // bake-in any simplification (bug fix; before, -simplify followed by dissolve2
+    // used to reset simplification)
+    arcs.flatten();
+
+    var changed = snapAndCut(dataset, snapDist);
+    // Detect topology again if coordinates have changed
+    if (changed || opts.rebuild_topology) {
+      buildTopology(dataset);
+    }
+
+    // Clean shapes by removing collapsed arc references, etc.
+    // TODO: consider alternative -- avoid creating degenerate arcs
+    // in insertCutPoints()
+    dataset.layers.forEach(function(lyr) {
+      if (layerHasPaths(lyr)) {
+        cleanShapes(lyr.shapes, arcs, lyr.geometry_type);
+      }
+    });
+
+    // Further clean-up -- remove duplicate and missing arcs
+    nodes = cleanArcReferences(dataset);
+    return nodes;
+  }
+
+  function snapAndCut(dataset, snapDist) {
+    var arcs = dataset.arcs;
+    var cutOpts = snapDist > 0 ? {} : {tolerance: 0};
+    var coordsHaveChanged = false;
+    var snapCount, dupeCount, cutCount;
+    snapCount = snapCoordsByInterval(arcs, snapDist);
+    dupeCount = arcs.dedupCoords();
+
+    // why was topology built here previously????
+    // if (snapCount > 0 || dupeCount > 0) {
+    //   // Detect topology again if coordinates have changed
+    //   internal.buildTopology(dataset);
+    // }
+
+    // cut arcs at points where segments intersect
+    cutCount = cutPathsAtIntersections(dataset, cutOpts);
+    if (cutCount > 0 || snapCount > 0 || dupeCount > 0) {
+      coordsHaveChanged = true;
+    }
+    // perform a second snap + cut pass if needed
+    if (cutCount > 0) {
+      cutCount = 0;
+      snapCount = snapCoordsByInterval(arcs, snapDist);
+      arcs.dedupCoords(); // need to do this here?
+      if (snapCount > 0) {
+        cutCount = cutPathsAtIntersections(dataset, cutOpts);
+      }
+      if (cutCount > 0) {
+        arcs.dedupCoords(); // need to do this here?
+        debug('Second-pass vertices added:', cutCount, 'consider third pass?');
+      }
+    }
+    return coordsHaveChanged;
+  }
+
+
+  // Remap any references to duplicate arcs in paths to use the same arcs
+  // Remove any unused arcs from the dataset's ArcCollection.
+  // Return a NodeCollection
+  function cleanArcReferences(dataset) {
+    var nodes = new NodeCollection(dataset.arcs);
+    var map = findDuplicateArcs(nodes);
+    var dropCount;
+    if (map) {
+      replaceIndexedArcIds(dataset, map);
+    }
+    dropCount = deleteUnusedArcs(dataset);
+    if (dropCount > 0) {
+      // rebuild nodes if arcs have changed
+      nodes = new NodeCollection(dataset.arcs);
+    }
+    return nodes;
+  }
+
+
+  // @map an Object mapping old to new ids
+  function replaceIndexedArcIds(dataset, map) {
+    var remapPath = function(ids) {
+      var arcId, absId, id2;
+      for (var i=0; i<ids.length; i++) {
+        arcId = ids[i];
+        absId = absArcId(arcId);
+        id2 = map[absId];
+        ids[i] = arcId == absId ? id2 : ~id2;
+      }
+      return ids;
+    };
+    dataset.layers.forEach(function(lyr) {
+      if (layerHasPaths(lyr)) {
+        editShapes(lyr.shapes, remapPath);
+      }
+    });
+  }
+
+  function findDuplicateArcs(nodes) {
+    var map = new Int32Array(nodes.arcs.size()),
+        count = 0,
+        i2;
+    for (var i=0, n=nodes.arcs.size(); i<n; i++) {
+      i2 = nodes.findDuplicateArc(i);
+      map[i] = i2;
+      if (i != i2) count++;
+    }
+    return count > 0 ? map : null;
+  }
+
+  function deleteUnusedArcs(dataset) {
+    var test = getArcPresenceTest2(dataset.layers, dataset.arcs);
+    var count1 = dataset.arcs.size();
+    var map = dataset.arcs.deleteArcs(test); // condenses arcs
+    var count2 = dataset.arcs.size();
+    var deleteCount = count1 - count2;
+    if (deleteCount > 0) {
+      replaceIndexedArcIds(dataset, map);
+    }
+    return deleteCount;
+  }
+
+  // Return a function for updating a path (array of arc ids)
+  // @map array generated by insertCutPoints()
+  // @arcCount number of arcs in divided collection (kludge)
+  function getDividedArcUpdater(map, arcCount) {
+    return function(ids) {
+      var ids2 = [];
+      for (var j=0; j<ids.length; j++) {
+        remapArcId2(ids[j], ids2);
+      }
+      return ids2;
+    };
+
+    function remapArcId2(id, ids) {
+      var rev = id < 0,
+          absId = rev ? ~id : id,
+          min = map[absId],
+          max = (absId >= map.length - 1 ? arcCount : map[absId + 1]) - 1,
+          id2;
+      do {
+        if (rev) {
+          id2 = ~max;
+          max--;
+        } else {
+          id2 = min;
+          min++;
+        }
+        ids.push(id2);
+      } while (max - min >= 0);
+    }
+  }
+
+  // Divides a collection of arcs at points where arc paths cross each other
+  // Returns array for remapping arc ids
+  function divideArcs(arcs, opts) {
+    var points = findClippingPoints(arcs, opts);
+    // TODO: avoid the following if no points need to be added
+    var map = insertCutPoints(points, arcs);
+    // segment-point intersections currently create duplicate points
+    // TODO: consider dedup in a later cleanup pass?
+    // arcs.dedupCoords();
+    return map;
+  }
+
+  function cutPathsAtIntersections(dataset, opts) {
+    var n = dataset.arcs.getPointCount();
+    var map = divideArcs(dataset.arcs, opts);
+    var n2 = dataset.arcs.getPointCount();
+    remapDividedArcs(dataset, map);
+    return n2 - n;
+  }
+
+  function remapDividedArcs(dataset, map) {
+    var remapPath = getDividedArcUpdater(map, dataset.arcs.size());
+    dataset.layers.forEach(function(lyr) {
+      if (layerHasPaths(lyr)) {
+        editShapes(lyr.shapes, remapPath);
+      }
+    });
+  }
+
+  // Inserts array of cutting points into an ArcCollection
+  // Returns array for remapping arc ids
+  function insertCutPoints(unfilteredPoints, arcs) {
+    var data = arcs.getVertexData(),
+        xx0 = data.xx,
+        yy0 = data.yy,
+        nn0 = data.nn,
+        i0 = 0,
+        i1 = 0,
+        nn1 = [],
+        srcArcTotal = arcs.size(),
+        map = new Uint32Array(srcArcTotal),
+        points = filterSortedCutPoints(sortCutPoints(unfilteredPoints, xx0, yy0), arcs),
+        destPointTotal = arcs.getPointCount() + points.length * 2,
+        xx1 = new Float64Array(destPointTotal),
+        yy1 = new Float64Array(destPointTotal),
+        n0, n1, arcLen, p;
+
+    points.reverse(); // reverse sorted order to use pop()
+    p = points.pop();
+
+    for (var srcArcId=0, destArcId=0; srcArcId < srcArcTotal; srcArcId++) {
+      // start merging an arc
+      arcLen = nn0[srcArcId];
+      map[srcArcId] = destArcId;
+      n0 = 0;
+      n1 = 0;
+      while (n0 < arcLen) {
+        // copy another point
+        xx1[i1] = xx0[i0];
+        yy1[i1] = yy0[i0];
+        i1++;
+        n1++;
+        while (p && p.i == i0) {
+          // interpolate any clip points that fall within the current segment
+          xx1[i1] = p.x;
+          yy1[i1] = p.y;
+          i1++;
+          n1++;
+          nn1[destArcId++] = n1; // end current arc at intersection
+          n1 = 0; // begin new arc
+          xx1[i1] = p.x;
+          yy1[i1] = p.y;
+          i1++;
+          n1++;
+          p = points.pop();
+        }
+        n0++;
+        i0++;
+      }
+      nn1[destArcId++] = n1;
+    }
+
+    if (i1 != destPointTotal) error("[insertCutPoints()] Counting error");
+    arcs.updateVertexData(nn1, xx1, yy1, null);
+    return map;
+  }
+
+  function convertIntersectionsToCutPoints(intersections, xx, yy) {
+    var points = [], ix, a, b;
+    for (var i=0, n=intersections.length; i<n; i++) {
+      ix = intersections[i];
+      a = getCutPoint(ix.x, ix.y, ix.a[0], ix.a[1], xx, yy);
+      b = getCutPoint(ix.x, ix.y, ix.b[0], ix.b[1], xx, yy);
+      if (a) points.push(a);
+      if (b) points.push(b);
+    }
+    return points;
+  }
+
+  // i, j: indexes of segment endpoints in xx, yy, or of a single endpoint
+  //   if point x,y falls on an endpoint
+  // Assumes: i <= j
+  function getCutPoint(x, y, i, j, xx, yy) {
+    var ix = xx[i],
+        iy = yy[i],
+        jx = xx[j],
+        jy = yy[j];
+    if (j < i || j > i + 1) {
+      error("Out-of-sequence arc ids:", i, j);
+    }
+
+    // Removed out-of-range check: small out-of-range intersection points are now allowed.
+    // (Such points may occur due to fp rounding, when intersections occur along
+    // vertical or horizontal segments)
+    // if (geom.outsideRange(x, ix, jx) || geom.outsideRange(y, iy, jy)) {
+      // return null;
+    // }
+
+    // Removed endpoint check: intersecting arcs need to be cut both at vertices
+    // and between vertices, so pathfinding functions will work correctly.
+    // if (x == ix && y == iy || x == jx && y == jy) {
+      // return null;
+    // }
+    return {x: x, y: y, i: i};
+  }
+
+  // Sort insertion points in order of insertion
+  // Insertion order: ascending id of first endpoint of containing segment and
+  //   ascending distance from same endpoint.
+  function sortCutPoints(points, xx, yy) {
+    points.sort(function(a, b) {
+      if (a.i != b.i) return a.i - b.i;
+      return geom.distanceSq(xx[a.i], yy[a.i], a.x, a.y) - geom.distanceSq(xx[b.i], yy[b.i], b.x, b.y);
+      // The old code below is no longer reliable, now that out-of-range intersection
+      // points are allowed.
+      // return Math.abs(a.x - xx[a.i]) - Math.abs(b.x - xx[b.i]) ||
+      // Math.abs(a.y - yy[a.i]) - Math.abs(b.y - yy[b.i]);
+    });
+    return points;
+  }
+
+  // Removes duplicate points and arc endpoints
+  function filterSortedCutPoints(points, arcs) {
+    var filtered = [],
+        pointId = 0;
+    arcs.forEach2(function(i, n, xx, yy) {
+      var j = i + n - 1,
+          x0 = xx[i],
+          y0 = yy[i],
+          xn = xx[j],
+          yn = yy[j],
+          p, pp;
+
+      while (pointId < points.length && points[pointId].i <= j) {
+        p = points[pointId];
+        pp = filtered[filtered.length - 1]; // previous point
+        if (p.x == x0 && p.y == y0 || p.x == xn && p.y == yn) {
+          // clip point is an arc endpoint -- discard
+        } else if (pp && pp.x == p.x && pp.y == p.y && pp.i == p.i) {
+          // clip point is a duplicate -- discard
+        } else {
+          filtered.push(p);
+        }
+        pointId++;
+      }
+    });
+    return filtered;
+  }
+
+  function findClippingPoints(arcs, opts) {
+    var intersections = findSegmentIntersections(arcs, opts),
+        data = arcs.getVertexData();
+    return convertIntersectionsToCutPoints(intersections, data.xx, data.yy);
+  }
+
+  var IntersectionCuts = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    addIntersectionCuts: addIntersectionCuts,
+    divideArcs: divideArcs,
+    cutPathsAtIntersections: cutPathsAtIntersections,
+    remapDividedArcs: remapDividedArcs,
+    insertCutPoints: insertCutPoints,
+    getCutPoint: getCutPoint,
+    sortCutPoints: sortCutPoints,
+    filterSortedCutPoints: filterSortedCutPoints,
+    findClippingPoints: findClippingPoints
+  });
+
+  // Support for timing using T.start() and T.stop()
+  var T$1 = {
+    stack: [],
+    start: function() {
+      T$1.stack.push(Date.now());
+    },
+    stop: function() {
+      return (Date.now() - T$1.stack.pop()) + 'ms';
+    }
+  };
+
+  function tick(msg) {
+    var now = Date.now();
+    var elapsed = tickTime ? ' - ' + (now - tickTime) + 'ms' : '';
+    tickTime = now;
+    console.log((msg || '') + elapsed);
+  }
+
+  var tickTime = 0;
+
+  // Create a mosaic layer from a dataset (useful for debugging commands like -clean
+  //    that create a mosaic as an intermediate data structure)
+  // Create additional layers if the "debug" flag is present
+  //
+  function mosaic(dataset, opts) {
+    var layers2 = [];
+    var nodes, output;
+    if (!dataset.arcs) stop("Dataset is missing path data");
+    nodes = addIntersectionCuts(dataset, opts);
+    output = buildPolygonMosaic(nodes);
+    layers2.push({
+      name: 'mosaic',
+      shapes: output.mosaic,
+      geometry_type: 'polygon'
+    });
+    if (opts.debug) {
+      layers2.push({
+        geometry_type: 'polygon',
+        name: 'mosaic-enclosure',
+        shapes: output.enclosures
+      });
+
+      if (output.lostArcs.length > 0) {
+        layers2 = layers2.concat(getLostArcLayers(output.lostArcs, nodes.arcs));
+      }
+    }
+    return layers2;
+
+    function getLostArcLayers(lostArcs, arcs) {
+      var arcLyr = {geometry_type: 'polyline', name: 'lost-arcs', shapes: []};
+      var pointLyr = {geometry_type: 'point', name: 'lost-arc-endpoints', shapes: []};
+      var arcData = [];
+      var pointData = [];
+      lostArcs.forEach(function(arcId) {
+        var first = arcs.getVertex(arcId, 0);
+        var last = arcs.getVertex(arcId, -1);
+        arcData.push({ARCID: arcId});
+        arcLyr.shapes.push([[arcId]]);
+        pointData.push({ARCID: arcId}, {ARCID: arcId});
+        pointLyr.shapes.push([[first.x, first.y]], [[last.x, last.y]]);
+      });
+      arcLyr.data = new DataTable(arcData);
+      pointLyr.data = new DataTable(pointData);
+      return [arcLyr, pointLyr];
+    }
+  }
+
+  // Process arc-node topology to generate a layer of indivisible mosaic "tiles" {mosaic}
+  //   ... also return a layer of outer-boundary polygons {enclosures}
+  //   ... also return an array of arcs that were dropped from the mosaic {lostArcs}
+  //
+  // Assumes that the arc-node topology of @nodes NodeCollection meets several
+  //    conditions (expected to be true if addIntersectionCuts() has just been run)
+  // 1. Arcs only touch at endpoints.
+  // 2. The angle between any two segments that meet at a node is never zero.
+  //      (this should follow from 1... but may occur due to FP errors)
+  // TODO: a better job of handling FP errors
+  //
+  function buildPolygonMosaic(nodes) {
+    T$1.start();
+    // Detach any acyclic paths (spikes) from arc graph (these would interfere with
+    //    the ring finding operation). This modifies @nodes -- a side effect.
+    nodes.detachAcyclicArcs();
+    var data = findMosaicRings(nodes);
+
+    // Process CW rings: these are indivisible space-enclosing boundaries of mosaic tiles
+    var mosaic = data.cw.map(function(ring) {return [ring];});
+    debug('Find mosaic rings', T$1.stop());
+    T$1.start();
+
+    // Process CCW rings: these are either holes or enclosure
+    // TODO: optimize -- testing CCW path of every island is costly
+    var enclosures = [];
+    var index = new PathIndex(mosaic, nodes.arcs); // index CW rings to help identify holes
+    data.ccw.forEach(function(ring) {
+      var id = index.findSmallestEnclosingPolygon(ring);
+      if (id > -1) {
+        // Enclosed CCW rings are holes in the enclosing mosaic tile
+        mosaic[id].push(ring);
+      } else {
+        // Non-enclosed CCW rings are outer boundaries -- add to enclosures layer
+        reversePath(ring);
+        enclosures.push([ring]);
+      }
+    });
+    debug(utils.format("Detect holes (holes: %d, enclosures: %d)", data.ccw.length - enclosures.length, enclosures.length), T$1.stop());
+
+    return {mosaic: mosaic, enclosures: enclosures, lostArcs: data.lostArcs};
+  }
+
+  function findMosaicRings(nodes) {
+    var arcs = nodes.arcs,
+        cw = [],
+        ccw = [],
+        empty = [],
+        lostArcs = [];
+
+    var flags = new Uint8Array(arcs.size());
+    var findPath = getPathFinder(nodes, useRoute);
+
+    for (var i=0, n=flags.length; i<n; i++) {
+      tryPath(i);
+      // TODO: consider skipping detection of island ccw paths here (if possible)
+      tryPath(~i);
+    }
+    return {
+      cw: cw,
+      ccw: ccw,
+      empty: empty,
+      lostArcs: lostArcs
+    };
+
+    function tryPath(arcId) {
+      var ring, area;
+      if (!routeIsOpen(arcId)) return;
+      ring = findPath(arcId);
+      if (!ring) {
+        // arc is unused, but can not be extended to a complete ring
+        lostArcs.push(arcId);
+        debug("Dead-end arc:", arcId);
+        return;
+      }
+      area = geom.getPlanarPathArea(ring, arcs);
+      if (area > 0) {
+        cw.push(ring);
+      } else if (area < 0) {
+        ccw.push(ring);
+      } else {
+        empty.push(ring);
+      }
+    }
+
+    function useRoute(arcId) {
+      return routeIsOpen(arcId, true);
+    }
+
+    function routeIsOpen(arcId, closeRoute) {
+      var absId = absArcId(arcId);
+      var bit = absId == arcId ? 1 : 2;
+      var isOpen = (flags[absId] & bit) === 0;
+      if (closeRoute && isOpen) flags[absId] |= bit;
+      return isOpen;
+    }
+  }
+
+  var PolygonMosaic = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    mosaic: mosaic,
+    buildPolygonMosaic: buildPolygonMosaic
+  });
+
+  // Map positive or negative integer ids to non-negative integer ids
+
+  function IdLookupIndex(n, clearable) {
+    var fwdIndex = new Int32Array(n);
+    var revIndex = new Int32Array(n);
+    var index = this;
+    var setList = [];
+    utils.initializeArray(fwdIndex, -1);
+    utils.initializeArray(revIndex, -1);
+
+    this.setId = function(id, val) {
+      if (clearable && !index.hasId(id)) {
+        setList.push(id);
+      }
+      if (id < 0) {
+        revIndex[~id] = val;
+      } else {
+        fwdIndex[id] = val;
+      }
+    };
+
+    this.clear = function() {
+      if (!clearable) {
+        error('Index is not clearable');
+      }
+      setList.forEach(function(id) {
+        index.setId(id, -1);
+      });
+      setList = [];
+    };
+
+    this.clearId = function(id) {
+      if (!index.hasId(id)) {
+        error('Tried to clear an unset id');
+      }
+      index.setId(id, -1);
+    };
+
+    this.hasId = function(id) {
+      var val = index.getId(id);
+      return val > -1;
+    };
+
+    this.getId = function(id) {
+      var idx = id < 0 ? ~id : id;
+      if (idx >= n) {
+        return -1; // TODO: consider throwing an error?
+      }
+      return id < 0 ? revIndex[idx] : fwdIndex[idx];
+    };
+  }
+
+  // Associate mosaic tiles with shapes (i.e. identify the groups of tiles that
+  //   belong to each shape)
+  //
+  function PolygonTiler(mosaic, arcTileIndex, nodes, opts) {
+    var arcs = nodes.arcs;
+    var visitedTileIndex = new IdTestIndex(mosaic.length, true);
+    var divide = getHoleDivider(nodes);
+    // temp vars
+    var currHoles; // arc ids of all holes in shape
+    var currShapeId;
+    var currRingBbox;
+    var tilesInShape; // accumulator for tile ids of tiles in current shape
+    var ringIndex = new IdTestIndex(arcs.size(), true);
+    var holeIndex = new IdTestIndex(arcs.size(), true);
+
+    // return ids of tiles in shape
+    this.getTilesInShape = function(shp, shapeId) {
+      var cw = [], ccw = [], retn;
+      tilesInShape = [];
+      currHoles = [];
+      currShapeId = shapeId;
+      if (opts.no_holes) {
+        divide(shp, cw, ccw);
+        // ccw.forEach(internal.reversePath);
+        // cw = cw.concat(ccw);
+      } else {
+        // divide shape into rings and holes (splits self-intersecting rings)
+        // TODO: rewrite divide() -- it is a performance bottleneck and can convert
+        //   space-filling areas into ccw holes
+        divide(shp, cw, ccw);
+        ccw.forEach(procShapeHole);
+        holeIndex.setIds(currHoles);
+      }
+      cw.forEach(procShapeRing);
+      retn = tilesInShape;
+      // reset tmp vars, etc
+      tilesInShape = null;
+      holeIndex.clear();
+      currHoles = null;
+      return retn;
+    };
+
+    function procShapeHole(path) {
+      currHoles = currHoles ? currHoles.concat(path) : path;
+    }
+
+    function procShapeRing(path) {
+      currRingBbox = arcs.getSimpleShapeBounds2(path);
+      ringIndex.setIds(path);
+      procArcIds(path);
+      ringIndex.clear();
+      // allow overlapping rings to visit the same tiles
+      visitedTileIndex.clear();
+    }
+
+    // optimized version: traversal without recursion (to avoid call stack oflo, excessive gc, etc)
+    function procArcIds(ids) {
+      var stack = ids.concat();
+      var arcId, tileId;
+      while (stack.length > 0) {
+        arcId = stack.pop();
+        tileId = procRingArc(arcId);
+        if (tileId >= 0) {
+          accumulateTraversibleArcIds(stack, mosaic[tileId]);
+        }
+      }
+    }
+
+    function accumulateTraversibleArcIds(ids, tile) {
+      var arcId, ring;
+      for (var j=0, n=tile.length; j<n; j++) {
+        ring = tile[j];
+        for (var i=0, m=ring.length; i<m; i++) {
+          arcId = ring[i];
+          if (arcIsTraversible(arcId)) {
+            ids.push(~arcId);
+          }
+        }
+      }
+    }
+
+    function arcIsTraversible(tileArc) {
+      var neighborArc = ~tileArc;
+      var traversible = !(ringIndex.hasId(tileArc) || ringIndex.hasId(neighborArc) || holeIndex.hasId(tileArc) || holeIndex.hasId(neighborArc));
+      return traversible;
+    }
+
+    function procRingArc(arcId) {
+      var tileId = arcTileIndex.getShapeIdByArcId(arcId);
+      if (tileId == -1 || visitedTileIndex.hasId(tileId)) return -1;
+      if (arcs.arcIsContained(absArcId(arcId), currRingBbox) === false) {
+        // don't cross boundary of the current ring or of any hole in the current shape
+        // TODO: this indicates a geometry bug that should be fixed
+        debug('Out-of-bounds ring arc', arcId);
+        return -1;
+      }
+      visitedTileIndex.setId(tileId);
+      tilesInShape.push(tileId);
+      return tileId;
+    }
+  }
+
+  var PolygonTiler$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    PolygonTiler: PolygonTiler
+  });
+
+  function MosaicIndex(lyr, nodes, optsArg) {
+    var opts = optsArg || {};
+    var shapes = lyr.shapes;
+    var divide = getHoleDivider(nodes);
+    var mosaic = buildPolygonMosaic(nodes).mosaic;
+    // map arc ids to tile ids
+    var arcTileIndex = new ShapeArcIndex(mosaic, nodes.arcs);
+    // keep track of which tiles have been assigned to shapes
+    var fetchedTileIndex = new IdTestIndex(mosaic.length, true);
+    // bidirection index of tile ids <=> shape ids
+    var tileShapeIndex = new TileShapeIndex(mosaic, opts);
+    // assign tiles to shapes
+    var shapeTiler = new PolygonTiler(mosaic, arcTileIndex, nodes, opts);
+    var weightFunction = null;
+    if (!opts.simple && opts.flat) {
+      // opts.simple is an optimization when dissolving everything into one polygon
+      // using -dissolve2. In this situation, we don't need a weight function.
+      // Otherwise, if polygons are being dissolved into multiple groups,
+      // we use a function to assign tiles in overlapping areas to a single shape.
+      weightFunction = getOverlapPriorityFunction(lyr.shapes, nodes.arcs, opts.overlap_rule);
+    }
+    this.mosaic = mosaic;
+    this.nodes = nodes; // kludge
+    this.getSourceIdsByTileId = tileShapeIndex.getShapeIdsByTileId; // expose for -mosaic command
+    this.getTileIdsByShapeId = tileShapeIndex.getTileIdsByShapeId;
+
+    // Assign shape ids to mosaic tile shapes.
+    shapes.forEach(function(shp, shapeId) {
+      var tileIds = shapeTiler.getTilesInShape(shp, shapeId);
+      tileShapeIndex.indexTileIdsByShapeId(shapeId, tileIds, weightFunction);
+    });
+
+    // ensure each tile is assigned to only one shape
+    if (opts.flat) {
+      tileShapeIndex.flatten();
+    }
+
+    // fill gaps
+    // (assumes that tiles have been allocated to shapes and mosaic has been flattened)
+    this.removeGaps = function(filter) {
+      if (!opts.flat) {
+        error('MosaicIndex#removeGaps() should only be called with a flat mosaic');
+      }
+      var remainingIds = tileShapeIndex.getUnusedTileIds();
+      var filledIds = remainingIds.filter(function(tileId) {
+        var tile = mosaic[tileId];
+        return filter(tile[0]); // test tile ring, ignoring any holes (does this matter?)
+      });
+      filledIds.forEach(assignTileToAdjacentShape);
+      return {
+        removed: filledIds.length,
+        remaining: remainingIds.length - filledIds.length
+      };
+    };
+
+    this.getUnusedTiles = function() {
+      return tileShapeIndex.getUnusedTileIds().map(tileIdToTile);
+    };
+
+    this.getTilesByShapeIds = function(shapeIds) {
+      return getTileIdsByShapeIds(shapeIds).map(tileIdToTile);
+    };
+
+    function getOverlapPriorityFunction(shapes, arcs, rule) {
+      var f;
+      if (!rule || rule == 'max-area') {
+        f = getAreaWeightFunction(shapes, arcs, false);
+      } else if (rule == 'min-area') {
+        f = getAreaWeightFunction(shapes, arcs, true);
+      } else if (rule == 'max-id') {
+        f = function(shapeId) {
+          return shapeId; };
+      } else if (rule == 'min-id') {
+        f = function(shapeId) { return -shapeId; };
+      } else {
+        stop('Unknown overlap rule:', rule);
+      }
+      return f;
+    }
+
+    function getAreaWeightFunction(shapes, arcs, invert) {
+      var index = [];
+      var sign = invert ? -1 : 1;
+      return function(shpId) {
+        var weight;
+        if (shpId in index) {
+          weight = index[shpId];
+        } else {
+          weight = sign * Math.abs(geom.getShapeArea(shapes[shpId], arcs));
+          index[shpId] = weight;
+        }
+        return weight;
+      };
+    }
+
+    function tileIdToTile(id, i) {
+      return mosaic[id];
+    }
+
+    function assignTileToAdjacentShape(tileId) {
+      var ring = mosaic[tileId][0];
+      var arcs = nodes.arcs;
+      var arcId, neighborShapeId, neighborTileId, arcLen;
+      var shapeId = -1, maxArcLen = 0;
+      for (var i=0; i<ring.length; i++) {
+        arcId = ring[i];
+        neighborTileId = arcTileIndex.getShapeIdByArcId(~arcId);
+        if (neighborTileId < 0) continue;
+        neighborShapeId = tileShapeIndex.getShapeIdByTileId(neighborTileId);
+        if (neighborShapeId < 0) continue;
+        arcLen = geom.getPathPerimeter([arcId], arcs);
+        if (arcLen > maxArcLen) {
+          shapeId = neighborShapeId;
+          maxArcLen = arcLen;
+        }
+      }
+      if (shapeId > -1) {
+        tileShapeIndex.addTileToShape(shapeId, tileId);
+      }
+    }
+
+    function getTileIdsByShapeIds(shapeIds) {
+      var uniqIds = [];
+      var tileId, tileIds, i, j;
+      for (i=0; i<shapeIds.length; i++) {
+        tileIds = tileShapeIndex.getTileIdsByShapeId(shapeIds[i]);
+        for (j=0; j<tileIds.length; j++) {
+          tileId = tileIds[j];
+          // uniqify tile ids (in case the shape contains overlapping rings)
+          if (fetchedTileIndex.hasId(tileId)) continue;
+          fetchedTileIndex.setId(tileId);
+          uniqIds.push(tileId);
+        }
+      }
+      // clearing this index allows duplicate tile ids between calls to this function
+      // (should not happen in a typical dissolve)
+      fetchedTileIndex.clear();
+      return uniqIds;
+    }
+  }
+
+  // Map arc ids to shape ids, assuming perfect topology
+  // (an arcId maps to at most one shape)
+  // Supports looking up a shape id using an arc id.
+  function ShapeArcIndex(shapes, arcs) {
+    var n = arcs.size();
+    var index = new IdLookupIndex(n);
+    var shapeId;
+    shapes.forEach(onShape);
+
+    function onShape(shp, i) {
+      shapeId = i;
+      shp.forEach(onPart);
+    }
+    function onPart(path) {
+      var arcId;
+      for (var i=0, n=path.length; i<n; i++) {
+        arcId = path[i];
+        index.setId(arcId, shapeId);
+      }
+    }
+
+    // returns -1 if shape has not been indexed
+    this.getShapeIdByArcId = function(arcId) {
+      return index.getId(arcId);
+    };
+  }
+
+  var MosaicIndex$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    MosaicIndex: MosaicIndex,
+    ShapeArcIndex: ShapeArcIndex
+  });
+
+  // Assumes that arcs do not intersect except at endpoints
+  function dissolvePolygonLayer2(lyr, dataset, opts) {
+    opts = utils.extend({}, opts);
+    if (opts.field) {
+      opts.fields = [opts.field]; // support old "field" parameter
+    }
+    var getGroupId = getCategoryClassifier(opts.fields, lyr.data);
+    var groups = groupPolygons2(lyr, getGroupId);
+    var shapes2 = dissolvePolygonGroups2(groups, lyr, dataset, opts);
+    return composeDissolveLayer(lyr, shapes2, getGroupId, opts);
+  }
+
+  function getArcLayer(arcs, name) {
+    var records = [];
+    var lyr = {
+      geometry_type: 'polyline',
+      shapes: [],
+      name: name
+    };
+    for (var i=0, n=arcs.size(); i<n; i++) {
+      lyr.shapes.push([[i]]);
+      records.push({arc_id: i});
+    }
+    lyr.data = new DataTable(records);
+    return lyr;
+  }
+
+  function composeMosaicLayer(lyr, shapes2) {
+    var records = shapes2.map(function(shp, i) {
+      return {tile_id: i};
+    });
+    return utils.defaults({
+      shapes: shapes2,
+      data: new DataTable(records)
+    }, lyr);
+  }
+
+  function groupPolygons2(lyr, getGroupId) {
+    return lyr.shapes.reduce(function(groups, shape, shapeId) {
+      var groupId = getGroupId(shapeId);
+      if (groupId in groups === false) {
+        groups[groupId] = [];
+      }
+      groups[groupId].push(shapeId);
+      return groups;
+    }, []);
+  }
+
+  function getGapRemovalMessage(removed, retained, areaLabel) {
+    var msg;
+    if (removed > 0 === false) return '';
+    return utils.format('Removed %,d / %,d sliver%s using %s',
+        removed, removed + retained, utils.pluralSuffix(removed), areaLabel);
+  }
+
+  function dissolvePolygonGroups2(groups, lyr, dataset, opts) {
+    var arcFilter = getArcPresenceTest(lyr.shapes, dataset.arcs);
+    var nodes = new NodeCollection(dataset.arcs, arcFilter);
+    var mosaicOpts = {
+      flat: !opts.allow_overlaps,
+      simple: groups.length == 1,
+      overlap_rule: opts.overlap_rule
+    };
+    var mosaicIndex = new MosaicIndex(lyr, nodes, mosaicOpts);
+    var fillGaps = !opts.allow_overlaps; // gap fill doesn't work yet with overlapping shapes
+    var cleanupData, filterData;
+    if (fillGaps) {
+      var sliverOpts = utils.extend({sliver_control: 1}, opts);
+      filterData = getSliverFilter(lyr, dataset, sliverOpts);
+      cleanupData = mosaicIndex.removeGaps(filterData.filter);
+    }
+    var pathfind = getRingIntersector(mosaicIndex.nodes);
+    var dissolvedShapes = groups.map(function(shapeIds) {
+      var tiles = mosaicIndex.getTilesByShapeIds(shapeIds);
+      if (opts.tiles) {
+        return tiles.reduce(function(memo, tile) {
+          return memo.concat(tile);
+        }, []);
+      }
+      return dissolveTileGroup2(tiles, pathfind);
+    });
+    // convert self-intersecting rings to outer/inner rings, for OGC
+    // Simple Features compliance
+    dissolvedShapes = fixTangentHoles(dissolvedShapes, pathfind);
+
+    if (fillGaps && !opts.quiet) {
+      var msg = getGapRemovalMessage(cleanupData.removed, cleanupData.remaining, filterData.label);
+      if (msg) message(msg);
+    }
+    return dissolvedShapes;
+  }
+
+  function dissolveTileGroup2(tiles, pathfind) {
+    var rings = [],
+        holes = [],
+        dissolved, tile;
+    for (var i=0, n=tiles.length; i<n; i++) {
+      tile = tiles[i];
+      rings.push(tile[0]);
+      if (tile.length > 1) {
+        holes = holes.concat(tile.slice(1));
+      }
+    }
+    dissolved = pathfind(rings.concat(holes), 'dissolve');
+    if (dissolved.length > 1) {
+      // Commenting-out nesting order repair -- new method should prevent nesting errors
+      // dissolved = internal.fixNestingErrors(dissolved, arcs);
+    }
+    return dissolved.length > 0 ? dissolved : null;
+  }
+
+  function fixTangentHoles(shapes, pathfind) {
+    var onRing = function(memo, ring) {
+      reversePath(ring);
+      var fixed = pathfind([ring], 'flatten');
+      if (fixed.length > 1) {
+        fixed.forEach(reversePath);
+        memo = memo.concat(fixed);
+      } else {
+        memo.push(reversePath(ring));
+      }
+      return memo;
+    };
+    return shapes.map(function(rings) {
+      if (!rings) return null;
+      return rings.reduce(onRing, []);
+    });
+  }
+
+  var PolygonDissolve2 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    dissolvePolygonLayer2: dissolvePolygonLayer2,
+    composeMosaicLayer: composeMosaicLayer,
+    dissolvePolygonGroups2: dissolvePolygonGroups2
+  });
+
+  // Assumes intersection cuts have been added and duplicated points removed
+  // TODO: consider closing undershoots (see mapshaper-undershoots.js)
+  function cleanPolylineLayerGeometry(lyr, dataset, opts) {
+    var arcs = dataset.arcs;
+    var filter = getArcPresenceTest(lyr.shapes, arcs);
+    var nodes = new NodeCollection(arcs, filter);
+    var arcIndex = new IdLookupIndex(arcs.size(), true);
+    lyr.shapes = lyr.shapes.map(function(shp, i) {
+      if (!shp) return null;
+      // split parts at nodes (where multiple arcs intersect)
+      shp = divideShapeAtNodes(shp, nodes);
+
+      // remove multiple references to the same arc within the same part
+      // (this could happen if the path doubles back to form a spike)
+      // TODO: remove spikes within a single arc
+      arcIndex.clear();
+      shp = uniqifyArcs(shp, arcIndex);
+
+      // try to combine parts that form a contiguous line
+      // (some datasets may use a separate part for each segment)
+      arcIndex.clear();
+      shp = combineContiguousParts(shp, nodes, arcIndex);
+      return shp;
+    });
+  }
+
+  function uniqifyArcs(shp, index) {
+    var shp2 = shp.reduce(function(memo, ids) {
+      addUnusedArcs(memo, ids, index);
+      return memo;
+    }, []);
+    return shp2.length > 0 ? shp2 : null;
+  }
+
+  function addUnusedArcs(shp, ids, index) {
+    var part = [], arcId;
+    for (var i=0; i<ids.length; i++) {
+      arcId = ids[i];
+      if (!index.hasId(arcId)) {
+        part.push(arcId);
+      } else if (part.length > 0) {
+        shp.push(part);
+        part = [];
+      }
+      index.setId(arcId, i);
+      index.setId(~arcId, i);
+    }
+    if (part.length > 0) shp.push(part);
+  }
+
+
+  function divideShapeAtNodes(shp, nodes) {
+    var shp2 = [];
+    forEachShapePart(shp, onPart);
+    return shp2;
+
+    function onPart(ids) {
+      var n = ids.length;
+      var id, connected;
+      var ids2 = [];
+      for (var i=0; i<n; i++) {
+        // check each segment of the current part (equivalent to a LineString)
+        id = ids[i];
+        ids2.push(id);
+        if (i < n-1 && nodes.getConnectedArcs(id).length > 1) {
+          // divide the current part if the front endpoint of the current segment
+          // touches any other segment than the next segment in this part
+          // TODO: consider not dividing if the intersection does not involve
+          // the current feature (ie. it is not a self-intersection).
+          shp2.push(ids2);
+          ids2 = [];
+        }
+      }
+      if (ids2.length > 0) shp2.push(ids2);
+    }
+  }
+
+  function combineContiguousParts(parts, nodes, endpointIndex) {
+    if (!parts || parts.length < 2) return parts;
+
+    // Index the terminal arcs of this group of polyline parts
+    parts.forEach(function(ids, i) {
+      var tailId = ~ids[0]; // index the reversed arc (so it points outwards)
+      var headId = ids[ids.length - 1];
+      // edge case: an endpoint arc is shared by multiple parts
+      // only processing the first of such parts, skipping subsequent parts
+      // (this should be an exceptional case... should probably investigate
+      // why this happens and handle this better)
+      if (endpointIndex.hasId(tailId) || endpointIndex.hasId(headId)) {
+        error('Indexing error');
+      }
+      endpointIndex.setId(tailId, i);
+      endpointIndex.setId(headId, i);
+      procEndpoint(tailId, i);
+      procEndpoint(headId, i);
+    });
+
+    return parts.filter(function(ids) { return !!ids; });
+
+    function procEndpoint(endpointId, sourcePartId) {
+      var joins = 0;
+      var partId2 = -1;
+      var endpointId2;
+      var indexedPartId = endpointIndex.getId(endpointId);
+      nodes.forEachConnectedArc(endpointId, function(arcId) {
+        if (endpointIndex.hasId(arcId)) {
+          partId2 = endpointIndex.getId(arcId);
+          endpointId2 = arcId;
+        }
+        joins++;
+      });
+      if (joins == 1 && partId2 > -1 && partId2 < sourcePartId) {
+        extendPolylinePart(parts, partId2, endpointId2, indexedPartId, endpointId);
+        // update indexed part id of joining endpoint
+        endpointIndex.setId(endpointId, partId2);
+        // update indexed part id of other endpoint
+        var ids = parts[indexedPartId];
+        var otherEndpointId = getOtherEndpointId(ids, endpointId);
+        endpointIndex.setId(otherEndpointId, partId2);
+        if (indexedPartId != partId2) {
+          parts[indexedPartId] = null;
+        }
+      }
+    }
+  }
+
+  function getOtherEndpointId(ids, endpointId) {
+    var headId = ~ids[0];
+    var tailId = ids[ids.length-1];
+    if (endpointId == headId) return tailId;
+    else if (endpointId == tailId) return headId;
+    error('Indexing error');
+  }
+
+  function extendPolylinePart(parts, partId1, endpoint1, partId2, endpoint2) {
+    var ids1 = parts[partId1];
+    var ids2 = parts[partId2];
+    var joinToTail, joinFromTail;
+    if (~endpoint1 == ids1[0]) {
+      joinToTail = true;
+    } else if (endpoint1 == ids1[ids1.length-1]) {
+      joinToTail = false;
+    } else {
+      error('Index error');
+    }
+    if (~endpoint2 == ids2[0]) {
+      joinFromTail = true;
+    } else if (endpoint2 == ids2[ids2.length-1]) {
+      joinFromTail = false;
+    } else {
+      error('Index error 2');
+    }
+    if (!joinFromTail) {
+      ids2 = reversePath(ids2.concat());
+    }
+    if (joinToTail) {
+      prependPath(ids1, ids2);
+    } else {
+      appendPath(ids1, ids2);
+    }
+  }
+
+  function prependPath(target, source) {
+    source = reversePath(source.concat());
+    var args = [0, 0].concat(source);
+    target.splice.apply(target, args);
+  }
+
+  function appendPath(target, source) {
+    target.push.apply(target, source);
+  }
+
+  cmd.cleanLayers = cleanLayers;
+
+  function cleanLayers(layers, dataset, optsArg) {
+    var opts = optsArg || {};
+    var deepClean = !opts.only_arcs;
+    var pathClean = utils.some(layers, layerHasPaths);
+    var nodes;
+    if (opts.debug) {
+      addIntersectionCuts(dataset, opts);
+      return;
+    }
+    layers.forEach(function(lyr) {
+      if (!layerHasGeometry(lyr)) return;
+      if (lyr.geometry_type == 'polygon' && opts.rewind) {
+        rewindPolygons(lyr, dataset.arcs);
+      }
+      if (deepClean) {
+        if (!nodes) {
+          nodes = addIntersectionCuts(dataset, opts);
+        }
+        if (lyr.geometry_type == 'polygon') {
+          cleanPolygonLayerGeometry(lyr, dataset, opts);
+        } else if (lyr.geometry_type == 'polyline') {
+          cleanPolylineLayerGeometry(lyr, dataset, opts);
+        } else if (lyr.geometry_type == 'point') {
+          cleanPointLayerGeometry(lyr, dataset, opts);
+        }
+      }
+      if (!opts.allow_empty) {
+        cmd.filterFeatures(lyr, dataset.arcs, {remove_empty: true, verbose: opts.verbose});
+      }
+    });
+
+    if (!opts.no_arc_dissolve && pathClean && dataset.arcs) {
+      // remove leftover endpoints within contiguous lines
+      dissolveArcs(dataset);
+    }
+  }
+
+  function cleanPolygonLayerGeometry(lyr, dataset, opts) {
+    // clean polygons by apply the 'dissolve2' function to each feature
+    var groups = lyr.shapes.map(function(shp, i) {
+      return [i];
+    });
+    lyr.shapes = dissolvePolygonGroups2(groups, lyr, dataset, opts);
+  }
+
+  // Remove duplicate points from multipoint geometries
+  // TODO: consider checking for invalid coordinates
+  function cleanPointLayerGeometry(lyr, dataset, opts) {
+    var index, parts;
+    lyr.shapes = lyr.shapes.map(function(shp, i) {
+      if (!shp || shp.length > 0 === false) {
+        return null;
+      }
+      if (shp.length == 1) {
+        return shp; // single part
+      }
+      // remove duplicate points from multipoint geometry
+      index = {};
+      parts = [];
+      shp.forEach(onPoint);
+      if (parts.length === 0) {
+        return null;
+      }
+      return parts;
+    });
+
+    function onPoint(p) {
+      var key = p.join('~');
+      if (key in index) return;
+      index[key] = true;
+      parts.push(p);
+    }
+  }
+
+  // Support the opts.flatten option (for removing polygon overlaps)
+  cmd.mergeAndFlattenLayers = function(layers, dataset, opts) {
+    if (!opts.flatten) return cmd.mergeLayers(layers, opts);
+    layers.forEach(function(lyr) {
+      requirePolygonLayer(lyr, 'the flatten option requires polygon layers');
+    });
+    var output = cmd.mergeLayers(layers, opts);
+    replaceLayers(dataset, layers, output);
+    cleanLayers(output, dataset, {
+      overlap_rule: 'max-id' // later shapes get inlaid in earlier shapes
+    });
+    replaceLayers(dataset, output, layers);
+    return output;
+  };
+
+  // Merge layers, checking for incompatible geometries and data fields.
+  // Assumes that input layers are members of the same dataset (and therefore
+  // share the same ArcCollection, if layers have paths).
+  cmd.mergeLayers = function(layersArg, opts) {
+    var layers = layersArg.filter(getFeatureCount); // ignore empty layers
+    var merged = {};
+    opts = opts || {};
+    if (!layers.length) return null;
+    if (layers.length == 1) {
+      message('Use the target= option to specify multiple layers for merging');
+      return layers.concat();
+    }
+    merged.data = mergeDataFromLayers(layers, opts);
+    merged.name = mergeLayerNames(layers);
+    merged.geometry_type = getMergedLayersGeometryType(layers);
+    if (merged.geometry_type) {
+      merged.shapes = mergeShapesFromLayers(layers);
+    }
+    if (merged.shapes && merged.data && merged.shapes.length != merged.data.size()) {
+      error("Mismatch between geometry and attribute data");
+    }
+    return [merged];
+  };
+
+  function getMergedLayersGeometryType(layers) {
+    var geoTypes = utils.uniq(utils.pluck(layers, 'geometry_type'))
+      .filter(function(type) {return !!type;}); // ignore null-type layers
+    if (geoTypes.length > 1) {
+      stop("Incompatible geometry types:", geoTypes.join(', '));
+    }
+    return geoTypes[0] || null;
+  }
+
+  function mergeShapesFromLayers(layers) {
+    return layers.reduce(function(memo, lyr) {
+      var shapes = lyr.shapes || [];
+      var n = getFeatureCount(lyr);
+      var i = -1;
+      while (++i < n) memo.push(shapes[i] || null); // add null shapes if layer has no shapes
+      return memo;
+    }, []);
+  }
+
+  function mergeDataFromLayers(layers, opts) {
+    var allFields = utils.uniq(layers.reduce(function(memo, lyr) {
+      return memo.concat(lyr.data ? lyr.data.getFields() : []);
+    }, []));
+    if (allFields.length === 0) return null; // no data in any fields
+    var mergedRecords = layers.reduce(function(memo, lyr) {
+      var records = lyr.data ? lyr.data.getRecords() : new DataTable(getFeatureCount(lyr)).getRecords();
+      return memo.concat(records);
+    }, []);
+    var missingFields = findInconsistentFields(allFields, layers);
+    handleMissingFields(missingFields, opts);
+    checkInconsistentFieldTypes(allFields, layers);
+    if (missingFields.length > 0) {
+      fixInconsistentFields(mergedRecords);
+    }
+    return new DataTable(mergedRecords);
+  }
+
+  // handle fields that are missing from one or more layers
+  // (warn if force-merging, else error)
+  function handleMissingFields(missingFields, opts) {
+    var msg;
+    if (missingFields.length > 0) {
+      msg = '[' + missingFields.join(', ') + ']';
+      msg = (missingFields.length == 1 ? 'Field ' + msg + ' is missing' : 'Fields ' + msg + ' are missing') + ' from one or more layers';
+      if (!opts.force) {
+        stop(msg);
+      } else if (opts.verbose !== false) {
+        message('Warning: ' + msg);
+      }
+    }
+  }
+
+  function findInconsistentFields(allFields, layers) {
+    var missingFields = utils.uniq(layers.reduce(function(memo, lyr) {
+      return memo.concat(utils.difference(allFields, lyr.data ? lyr.data.getFields() : []));
+    }, []));
+    return missingFields;
+  }
+
+  // check for fields with incompatible data types (e.g. number, string)
+  function checkInconsistentFieldTypes(fields, layers) {
+    fields.forEach(function(key) {
+      var types = findFieldTypes(key, layers);
+      if (types.length > 1) {
+        stop("Inconsistent data types in \"" + key + "\" field:", types.join(', '));
+      }
+    });
+  }
+
+  function findFieldTypes(key, layers) {
+    // ignores empty-type fields
+    return layers.reduce(function(memo, lyr) {
+      var type = lyr.data ? getColumnType(key, lyr.data.getRecords()) : null;
+      if (type && memo.indexOf(type) == -1) {
+        memo.push(type);
+      }
+      return memo;
+    }, []);
+  }
+
+  function mergeLayerNames(layers) {
+    return layers.reduce(function(memo, lyr) {
+      if (memo === null) {
+        memo = lyr.name || null;
+      } else if (memo && lyr.name) {
+        memo = utils.mergeNames(memo, lyr.name);
+      }
+      return memo;
+    }, null) || '';
+  }
+
+  var GeoJSON = {};
+
+  GeoJSON.ID_FIELD = "FID"; // default field name of imported *JSON feature ids
+
+  GeoJSON.typeLookup = {
+    LineString: 'polyline',
+    MultiLineString: 'polyline',
+    Polygon: 'polygon',
+    MultiPolygon: 'polygon',
+    Point: 'point',
+    MultiPoint: 'point'
+  };
+
+  GeoJSON.translateGeoJSONType = function(type) {
+    return GeoJSON.typeLookup[type] || null;
+  };
+
+  GeoJSON.pathIsRing = function(coords) {
+    var first = coords[0],
+        last = coords[coords.length - 1];
+    // TODO: consider detecting collapsed rings
+    return coords.length >= 4 && first[0] == last[0] && first[1] == last[1];
+  };
+
+  // switch to RFC 7946-compatible output (while retaining the original export function,
+  // so numerous tests will continue to work)
+  function exportGeoJSON2(dataset, opts) {
+    opts = utils.extend({}, opts);
+    opts.v2 = !opts.gj2008; // use RFC 7946 as the default
+    return exportGeoJSON(dataset, opts);
+  }
+
+  function exportGeoJSON(dataset, opts) {
+    opts = opts || {};
+    var extension = opts.extension || "json";
+    var layerGroups, warn;
+
+    // Apply coordinate precision
+    // rfc7946 flag is deprecated (default output is now RFC 7946 compatible)
+    // the flag is used here to preserve backwards compatibility
+    // (the rfc7946 flag applies a default precision threshold, even though rounding
+    // coordinates is only a recommendation, not a requirement of RFC 7946)
+    if (opts.precision || opts.rfc7946) {
+      dataset = copyDatasetForExport(dataset);
+      setCoordinatePrecision(dataset, opts.precision || 0.000001);
+    }
+
+    if (opts.v2 || opts.rfc7946) {
+      warn = getRFC7946Warnings(dataset);
+      if (warn) message(warn);
+    }
+
+    if (opts.file) {
+      // Override default output extension if output filename is given
+      extension = getFileExtension(opts.file);
+    }
+    if (opts.combine_layers) {
+      layerGroups = [dataset.layers];
+    } else {
+      layerGroups = dataset.layers.map(function(lyr) {
+        return [lyr];
+      });
+    }
+    return layerGroups.map(function(layers) {
+      // Use common part of layer names if multiple layers are being merged
+      var name = mergeLayerNames(layers) || 'output';
+      var d = utils.defaults({layers: layers}, dataset);
+      return {
+        content: exportDatasetAsGeoJSON(d, opts, 'buffer'),
+        filename: name + '.' + extension
+      };
+    });
+  }
+
+  // Return an array of Features or Geometries as objects or strings
+  //
+  function exportLayerAsGeoJSON(lyr, dataset, opts, asFeatures, ofmt) {
+    var properties = exportProperties(lyr.data, opts),
+        shapes = lyr.shapes,
+        ids = exportIds(lyr.data, opts),
+        items, stringify;
+
+    if (opts.ndjson) {
+      stringify = stringifyAsNDJSON;
+    } else if (opts.prettify) {
+      stringify = getFormattedStringify(['bbox', 'coordinates']);
+    } else {
+      stringify = JSON.stringify;
+    }
+
+    if (properties && shapes && properties.length !== shapes.length) {
+      error("Mismatch between number of properties and number of shapes");
+    }
+
+    return (shapes || properties || []).reduce(function(memo, o, i) {
+      var shape = shapes ? shapes[i] : null,
+          exporter = GeoJSON.exporters[lyr.geometry_type],
+          obj = shape ? exporter(shape, dataset.arcs, opts) : null;
+      if (asFeatures) {
+        obj = {
+          type: 'Feature',
+          geometry: obj,
+          properties: properties ? properties[i] : null
+        };
+        if (ids) {
+          obj.id = ids[i];
+        }
+      } else if (!obj) {
+        return memo; // don't add null objects to GeometryCollection
+      }
+      if (ofmt) {
+        // stringify features as soon as they are generated, to reduce the
+        // number of JS objects in memory (so larger files can be exported)
+        obj = stringify(obj);
+        if (ofmt == 'buffer') {
+          obj = encodeString(obj, 'utf8');
+          // obj = stringToBuffer(obj);
+          // obj = new Buffer(obj, 'utf8');
+        }
+      }
+      memo.push(obj);
+      return memo;
+    }, []);
+  }
+
+
+  function getRFC7946Warnings(dataset) {
+    var P = getDatasetCRS(dataset);
+    var str;
+    if (!P || !isLatLngCRS(P)) {
+      str = 'RFC 7946 warning: non-WGS84 GeoJSON output.';
+      if (P) str += ' Tip: use "-proj wgs84" to convert.';
+    }
+    return str;
+  }
+
+  function getDatasetBbox(dataset, rfc7946) {
+    var P = getDatasetCRS(dataset),
+        wrapped = rfc7946 && P && isLatLngCRS(P),
+        westBounds = new Bounds(),
+        eastBounds = new Bounds(),
+        mergedBounds, gutter, margins, bbox;
+
+    dataset.layers.forEach(function(lyr) {
+      if (layerHasPaths(lyr)) {
+        traversePaths(lyr.shapes, null, function(o) {
+          var bounds = dataset.arcs.getSimpleShapeBounds(o.arcs);
+          (bounds.centerX() < 0 ? westBounds : eastBounds).mergeBounds(bounds);
+        });
+      } else if (layerHasPoints(lyr)) {
+        forEachPoint(lyr.shapes, function(p) {
+          (p[0] < 0 ? westBounds : eastBounds).mergePoint(p[0], p[1]);
+        });
+      }
+    });
+    mergedBounds = (new Bounds()).mergeBounds(eastBounds).mergeBounds(westBounds);
+    if (mergedBounds.hasBounds()) {
+      bbox = mergedBounds.toArray();
+    }
+    if (wrapped && eastBounds.hasBounds() && westBounds.hasBounds()) {
+      gutter = eastBounds.xmin - westBounds.xmax;
+      margins = 360 + westBounds.xmin - eastBounds.xmax;
+      if (gutter > 0 && gutter > margins) {
+        bbox[0] = eastBounds.xmin;
+        bbox[2] = westBounds.xmax;
+      }
+    }
+    return bbox || null;
+  }
+
+  function exportDatasetAsGeoJSON(dataset, opts, ofmt) {
+    var geojson = {};
+    var layers = dataset.layers;
+    var useFeatures = useFeatureCollection(layers, opts);
+    var collection, bbox;
+
+    if (useFeatures) {
+      geojson.type = 'FeatureCollection';
+    } else {
+      geojson.type = 'GeometryCollection';
+    }
+
+    if (opts.gj2008) {
+      preserveOriginalCRS(dataset, geojson);
+    }
+
+    if (opts.bbox) {
+      bbox = getDatasetBbox(dataset, opts.rfc7946 || opts.v2);
+      if (bbox) {
+        geojson.bbox = bbox;
+      }
+    }
+
+    collection = layers.reduce(function(memo, lyr, i) {
+      var items = exportLayerAsGeoJSON(lyr, dataset, opts, useFeatures, ofmt);
+      return memo.length > 0 ? memo.concat(items) : items;
+    }, []);
+
+    if (opts.geojson_type == 'Feature' && collection.length == 1) {
+      return collection[0];
+    } else if (opts.ndjson) {
+      return GeoJSON.formatCollectionAsNDJSON(collection);
+    } else if (ofmt) {
+      return GeoJSON.formatCollection(geojson, collection);
+    } else {
+      geojson[collectionName(geojson.type)] = collection;
+      return geojson;
+    }
+  }
+
+  function collectionName(type) {
+    if (type == 'FeatureCollection') return 'features';
+    if (type == 'GeometryCollection') return 'geometries';
+    error('Invalid collection type:', type);
+  }
+
+  // collection: an array of Buffers, one per feature
+  GeoJSON.formatCollectionAsNDJSON = function(collection) {
+    var delim = utils.createBuffer('\n', 'utf8');
+    var parts = collection.reduce(function(memo, buf, i) {
+      if (i > 0) memo.push(delim);
+      memo.push(buf);
+      return memo;
+    }, []);
+    return Buffer.concat(parts);
+  };
+
+  // collection: an array of individual GeoJSON Features or geometries as strings or buffers
+  GeoJSON.formatCollection = function(container, collection) {
+    var head = JSON.stringify(container).replace(/\}$/, ', "' + collectionName(container.type) + '": [\n');
+    var tail = '\n]}';
+    if (utils.isString(collection[0])) {
+      return head + collection.join(',\n') + tail;
+    }
+    // assume buffers
+    return GeoJSON.joinOutputBuffers(head, tail, collection);
+  };
+
+  GeoJSON.joinOutputBuffers = function(head, tail, collection) {
+    var comma = utils.createBuffer(',\n', 'utf8');
+    var parts = collection.reduce(function(memo, buf, i) {
+      if (i > 0) memo.push(comma);
+      memo.push(buf);
+      return memo;
+    }, [utils.createBuffer(head, 'utf8')]);
+    parts.push(utils.createBuffer(tail, 'utf8'));
+    return Buffer.concat(parts);
+  };
+
+  // export GeoJSON or TopoJSON point geometry
+  GeoJSON.exportPointGeom = function(points, arcs) {
+    var geom = null;
+    if (points.length == 1) {
+      geom = {
+        type: "Point",
+        coordinates: points[0]
+      };
+    } else if (points.length > 1) {
+      geom = {
+        type: "MultiPoint",
+        coordinates: points
+      };
+    }
+    return geom;
+  };
+
+  GeoJSON.exportLineGeom = function(ids, arcs) {
+    var obj = exportPathData(ids, arcs, "polyline");
+    if (obj.pointCount === 0) return null;
+    var coords = obj.pathData.map(function(path) {
+      return path.points;
+    });
+    return coords.length == 1 ? {
+      type: "LineString",
+      coordinates: coords[0]
+    } : {
+      type: "MultiLineString",
+      coordinates: coords
+    };
+  };
+
+  GeoJSON.exportPolygonGeom = function(ids, arcs, opts) {
+    var obj = exportPathData(ids, arcs, "polygon");
+    if (obj.pointCount === 0) return null;
+    var groups = groupPolygonRings(obj.pathData, arcs, opts.invert_y);
+    // invert_y is used internally for SVG generation
+    // mapshaper's internal winding order is the opposite of RFC 7946
+    var reverse = (opts.rfc7946 || opts.v2) && !opts.invert_y;
+    var coords = groups.map(function(paths) {
+      return paths.map(function(path) {
+        if (reverse) path.points.reverse();
+        return path.points;
+      });
+    });
+    return coords.length == 1 ? {
+      type: "Polygon",
+      coordinates: coords[0]
+    } : {
+      type: "MultiPolygon",
+      coordinates: coords
+    };
+  };
+
+  GeoJSON.exporters = {
+    polygon: GeoJSON.exportPolygonGeom,
+    polyline: GeoJSON.exportLineGeom,
+    point: GeoJSON.exportPointGeom
+  };
+
+  // To preserve some backwards compatibility with old-style GeoJSON files,
+  // pass through any original CRS object if the crs has not been set by mapshaper
+  // jsonObj: a top-level GeoJSON or TopoJSON object
+  //
+  function preserveOriginalCRS(dataset, jsonObj) {
+    var info = dataset.info || {};
+    if (!info.crs && 'input_geojson_crs' in info) {
+      // use input geojson crs if available and coords have not changed
+      jsonObj.crs = info.input_geojson_crs;
+
+    }
+
+    // Removing the following (seems ineffectual at best)
+    // else if (info.crs && !isLatLngCRS(info.crs)) {
+    //   // Setting output crs to null if coords have been projected
+    //   // "If the value of CRS is null, no CRS can be assumed"
+    //   // source: http://geojson.org/geojson-spec.html#coordinate-reference-system-objects
+    //   jsonObj.crs = null;
+    // }
+  }
+
+  function useFeatureCollection(layers, opts) {
+    var type = opts.geojson_type || '';
+    if (type == 'Feature' || type == 'FeatureCollection') {
+      return true;
+    } else if (type == 'GeometryCollection') {
+      return false;
+    } else if (type) {
+      stop("Unsupported GeoJSON type:", opts.geojson_type);
+    }
+    // default is true iff layers contain attributes
+    return utils.some(layers, function(lyr) {
+      var fields = lyr.data ? lyr.data.getFields() : [];
+      var haveData = useFeatureProperties(fields, opts);
+      var haveId = !!getIdField(fields, opts);
+      return haveData || haveId;
+    });
+  }
+
+  function useFeatureProperties(fields, opts) {
+    return !(opts.drop_table || opts.cut_table || fields.length === 0 ||
+        fields.length == 1 && fields[0] == GeoJSON.ID_FIELD);
+  }
+
+  function exportProperties(table, opts) {
+    var fields = table ? table.getFields() : [],
+        idField = getIdField(fields, opts),
+        properties, records;
+    if (!useFeatureProperties(fields, opts)) {
+      return null;
+    }
+    records = table.getRecords();
+    if (idField == GeoJSON.ID_FIELD) {// delete default id field, not user-set fields
+      properties = records.map(function(rec) {
+        rec = utils.extend({}, rec); // copy rec;
+        delete rec[idField];
+        return rec;
+      });
+    } else {
+      properties = records;
+    }
+    return properties;
+  }
+
+  // @opt value of id-field option (empty, string or array of strings)
+  // @fields array
+  function getIdField(fields, opts) {
+    var ids = [];
+    var opt = opts.id_field;
+    if (utils.isString(opt)) {
+      ids.push(opt);
+    } else if (utils.isArray(opt)) {
+      ids = opt;
+    }
+    ids.push(GeoJSON.ID_FIELD); // default id field
+    return utils.find(ids, function(name) {
+      return utils.contains(fields, name);
+    });
+  }
+
+  function exportIds(table, opts) {
+    var fields = table ? table.getFields() : [],
+        idField = getIdField(fields, opts);
+    if (!idField) return null;
+    return table.getRecords().map(function(rec) {
+      return idField in rec ? rec[idField] : null;
+    });
+  }
+
+  var GeojsonExport = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    'default': GeoJSON,
+    exportGeoJSON2: exportGeoJSON2,
+    exportGeoJSON: exportGeoJSON,
+    exportLayerAsGeoJSON: exportLayerAsGeoJSON,
+    getRFC7946Warnings: getRFC7946Warnings,
+    getDatasetBbox: getDatasetBbox,
+    exportDatasetAsGeoJSON: exportDatasetAsGeoJSON,
+    preserveOriginalCRS: preserveOriginalCRS,
+    useFeatureCollection: useFeatureCollection,
+    exportProperties: exportProperties,
+    getIdField: getIdField,
+    exportIds: exportIds
+  });
+
+  var furnitureRenderers = {};
+
+  // @lyr a layer in a dataset
+  function layerHasFurniture(lyr) {
+    var type = getFurnitureLayerType(lyr);
+    return !!type && (type in furnitureRenderers);
+  }
+
+  // @mapLayer a map layer object
+  function isFurnitureLayer(mapLayer) {
+    return !!mapLayer.furniture;
+  }
+
+  // @lyr dataset layer
+  function getFurnitureLayerType(lyr) {
+    var rec = lyr.data && lyr.data.getReadOnlyRecordAt(0);
+    return rec && rec.type || null;
+  }
+
+  function getFurnitureLayerData(lyr) {
+    return lyr.data && lyr.data.getReadOnlyRecordAt(0);
+  }
+
+  function importFurniture(d, frame) {
+    var renderer = furnitureRenderers[d.type];
+    if (!renderer) {
+      stop('Missing renderer for', d.type, 'element');
+    }
+    return renderer(d, frame) || [];
+  }
+
+  var Furniture = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    furnitureRenderers: furnitureRenderers,
+    layerHasFurniture: layerHasFurniture,
+    isFurnitureLayer: isFurnitureLayer,
+    getFurnitureLayerType: getFurnitureLayerType,
+    getFurnitureLayerData: getFurnitureLayerData,
+    importFurniture: importFurniture
+  });
+
+  function mergeDatasetsIntoDataset(dataset, datasets) {
+    var merged = mergeDatasets([dataset].concat(datasets));
+    var mergedLayers = datasets.reduce(function(memo, dataset) {
+      return memo.concat(dataset.layers);
+    }, []);
+    dataset.arcs = merged.arcs;
+    return mergedLayers;
+  }
+
+  // Don't modify input layers (mergeDatasets() updates arc ids in-place)
+  function mergeDatasetsForExport(arr) {
+    // copy layers but not arcs, which get copied in mergeDatasets()
+    var copy = arr.map(function(dataset) {
+      return utils.defaults({
+        layers: dataset.layers.map(copyLayerShapes)
+      }, dataset);
+    });
+    return mergeDatasets(copy);
+  }
+
+  function mergeCommandTargets(targets, catalog) {
+    var targetLayers = [];
+    var targetDatasets = [];
+    var datasetsWithArcs = 0;
+    var merged;
+
+    targets.forEach(function(target) {
+      targetLayers = targetLayers.concat(target.layers);
+      targetDatasets = targetDatasets.concat(target.dataset);
+      if (target.dataset.arcs && target.dataset.arcs.size() > 0) datasetsWithArcs++;
+    });
+
+    merged = mergeDatasets(targetDatasets);
+
+    // Rebuild topology, if multiple datasets contain arcs
+    if (datasetsWithArcs > 1) {
+      buildTopology(merged);
+    }
+
+    // remove old datasets after merging, so catalog is not affected if merge throws an error
+    targetDatasets.forEach(catalog.removeDataset);
+    catalog.addDataset(merged); // sets default target to all layers in merged dataset
+    catalog.setDefaultTarget(targetLayers, merged); // reset default target
+    return [{
+      layers: targetLayers,
+      dataset: merged
+    }];
+  }
+
+  // Combine multiple datasets into one using concatenation
+  // (any shared topology is ignored)
+  function mergeDatasets(arr) {
+    var arcSources = [],
+        arcCount = 0,
+        mergedLayers = [],
+        mergedInfo = {},
+        mergedArcs;
+
+    // Error if incompatible CRS
+    requireDatasetsHaveCompatibleCRS(arr);
+
+    arr.forEach(function(dataset) {
+      var n = dataset.arcs ? dataset.arcs.size() : 0;
+      if (n > 0) {
+        arcSources.push(dataset.arcs);
+      }
+
+      mergeDatasetInfo(mergedInfo, dataset);
+      dataset.layers.forEach(function(lyr) {
+        if (lyr.geometry_type == 'polygon' || lyr.geometry_type == 'polyline') {
+          forEachArcId(lyr.shapes, function(id) {
+            return id < 0 ? id - arcCount : id + arcCount;
+          });
+        }
+        mergedLayers.push(lyr);
+      });
+      arcCount += n;
+    });
+
+    mergedArcs = mergeArcs(arcSources);
+    if (mergedArcs.size() != arcCount) {
+      error("[mergeDatasets()] Arc indexing error");
+    }
+
+    return {
+      info: mergedInfo,
+      arcs: mergedArcs,
+      layers: mergedLayers
+    };
+  }
+
+  function mergeDatasetInfo(merged, dataset) {
+    var info = dataset.info || {};
+    merged.input_files = utils.uniq((merged.input_files || []).concat(info.input_files || []));
+    merged.input_formats = utils.uniq((merged.input_formats || []).concat(info.input_formats || []));
+    // merge other info properties (e.g. input_geojson_crs, input_delimiter, prj, crs)
+    utils.defaults(merged, info);
+  }
+
+  function mergeArcs(arr) {
+    var dataArr = arr.map(function(arcs) {
+      if (arcs.getRetainedInterval() > 0) {
+        verbose("Baking-in simplification setting.");
+        arcs.flatten();
+      }
+      return arcs.getVertexData();
+    });
+    var xx = mergeArrays(utils.pluck(dataArr, 'xx'), Float64Array),
+        yy = mergeArrays(utils.pluck(dataArr, 'yy'), Float64Array),
+        nn = mergeArrays(utils.pluck(dataArr, 'nn'), Int32Array);
+
+    return new ArcCollection(nn, xx, yy);
+  }
+
+  function countElements(arrays) {
+    return arrays.reduce(function(memo, arr) {
+      return memo + (arr.length || 0);
+    }, 0);
+  }
+
+  function mergeArrays(arrays, TypedArr) {
+    var size = countElements(arrays),
+        Arr = TypedArr || Array,
+        merged = new Arr(size),
+        offs = 0;
+    arrays.forEach(function(src) {
+      var n = src.length;
+      for (var i = 0; i<n; i++) {
+        merged[i + offs] = src[i];
+      }
+      offs += n;
+    });
+    return merged;
+  }
+
+  var Merging = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    mergeDatasetsIntoDataset: mergeDatasetsIntoDataset,
+    mergeDatasetsForExport: mergeDatasetsForExport,
+    mergeCommandTargets: mergeCommandTargets,
+    mergeDatasets: mergeDatasets,
+    mergeArcs: mergeArcs
   });
 
   // Apply rotation, scale and/or shift to some or all of the features in a dataset
@@ -9764,14 +13203,14 @@
     return mergeArcs([arcs, new ArcCollection(nn, xx, yy)]);
   }
 
-  var roundCoord = getRoundingFunction(0.01);
+  var roundCoord$1 = getRoundingFunction(0.01);
 
   function stringifyVertex(p) {
-    return ' ' + roundCoord(p[0]) + ' ' + roundCoord(p[1]);
+    return ' ' + roundCoord$1(p[0]) + ' ' + roundCoord$1(p[1]);
   }
 
   function stringifyCP(p) {
-    return ' ' + roundCoord(p[2]) + ' ' + roundCoord(p[3]);
+    return ' ' + roundCoord$1(p[2]) + ' ' + roundCoord$1(p[3]);
   }
 
   function isCubicCtrl(p) {
@@ -10056,7 +13495,7 @@
     var colorCount = o.colors.length;
     var dotDist = dotSize + o.spacing;
     var dotsPerTile = colorCount * colorCount;
-    var makeSymbol = o.type == 'squares' ? makeSquare : makeCircle;
+    var makeSymbol = o.type == 'squares' ? makeSquare : makeCircle$1;
     var svg = '';
     for (var i=0, x=0, y=0; i<dotsPerTile; i++) {
       svg += makeSymbol(x, y, dotSize, o.colors[(i + Math.floor(i / colorCount)) % colorCount]);
@@ -10066,7 +13505,7 @@
     return svg;
   }
 
-  function makeCircle(x, y, size, fill) {
+  function makeCircle$1(x, y, size, fill) {
     const r = size / 2;
     return `<circle cx="${x + r}" cy="${y + r}" r="${r}" fill="${ fill }"></circle>`;
   }
@@ -10211,7 +13650,8 @@
   function parseStyleExpression(strVal, lyr) {
     var func;
     try {
-      func = compileValueExpression(strVal, lyr, null, {context: getStateVar('defs'), no_warn: true});
+      // func = compileValueExpression(strVal, lyr, null, {context: getStateVar('defs'), no_warn: true});
+      func = compileValueExpression(strVal, lyr, null, {no_warn: true});
       func(0); // check for runtime errors (e.g. undefined variables)
     } catch(e) {
       func = null;
@@ -12035,26 +15475,25 @@ ${svg}
     var encoding = opts.encoding || 'utf8';
     var records = lyr.data.getRecords();
     var fields = findFieldNames(records, opts.field_order);
+    var formatRow = getDelimRowFormatter(fields, delim, opts);
     // exporting utf8 and ascii text as string by default (for now)
     var exportAsString = encodingIsUtf8(encoding) && !opts.to_buffer &&
         (records.length < 10000 || opts.to_string);
     if (exportAsString) {
-      return exportRecordsAsString(fields, records, delim);
+      return exportRecordsAsString(fields, records, formatRow);
     } else {
-      return exportRecordsAsBuffer(fields, records, delim, encoding);
+      return exportRecordsAsBuffer(fields, records, formatRow, encoding);
     }
   }
 
-  function exportRecordsAsString(fields, records, delim) {
-    var formatRow = getDelimRowFormatter(fields, delim);
-    var header = formatDelimHeader(fields, delim);
+  function exportRecordsAsString(fields, records, formatRow) {
+    var header = formatHeader(fields, formatRow);
     if (!records.length) return header;
     return header + '\n' + records.map(formatRow).join('\n');
   }
 
-  function exportRecordsAsBuffer(fields, records, delim, encoding) {
-    var formatRow = getDelimRowFormatter(fields, delim);
-    var str = formatDelimHeader(fields, delim);
+  function exportRecordsAsBuffer(fields, records, formatRow, encoding) {
+    var str = formatHeader(fields, formatRow);
     var buffers = [encodeString(str, encoding)];
     var tmp = [];
     var n = records.length;
@@ -12071,13 +15510,21 @@ ${svg}
     return Buffer.concat(buffers);
   }
 
+  function formatHeader(fields, formatRow) {
+    var rec = fields.reduce(function(memo, f) {
+      memo[f] = f;
+      return memo;
+    }, {});
+    return formatRow(rec);
+  }
+
   function formatDelimHeader(fields, delim) {
     var formatValue = getDelimValueFormatter(delim);
     return fields.map(formatValue).join(delim);
   }
 
-  function getDelimRowFormatter(fields, delim) {
-    var formatValue = getDelimValueFormatter(delim);
+  function getDelimRowFormatter(fields, delim, opts) {
+    var formatValue = getDelimValueFormatter(delim, opts);
     return function(rec) {
       return fields.map(function(f) {
         return formatValue(rec[f]);
@@ -12085,8 +15532,18 @@ ${svg}
     };
   }
 
-  function getDelimValueFormatter(delim) {
-    var dquoteRxp =  new RegExp('["\n\r' + delim + ']');
+  function formatNumber$1(val) {
+    return val + '';
+  }
+
+  function formatIntlNumber(val) {
+    var str = formatNumber$1(val);
+    return '"' + str.replace('.', ',') + '"'; // need to quote if comma-delimited
+  }
+
+  function getDelimValueFormatter(delim, opts) {
+    var dquoteRxp = new RegExp('["\n\r' + delim + ']');
+    var decimalComma = opts && opts.decimal_comma || false;
     function formatString(s) {
       if (dquoteRxp.test(s)) {
         s = '"' + s.replace(/"/g, '""') + '"';
@@ -12100,7 +15557,7 @@ ${svg}
       } else if (utils.isString(val)) {
         s = formatString(val);
       } else if (utils.isNumber(val)) {
-        s = val + '';
+        s = decimalComma ? formatIntlNumber(val) : formatNumber$1(val);
       } else if (utils.isObject(val)) {
         s = formatString(JSON.stringify(val));
       } else {
@@ -12143,6 +15600,8 @@ ${svg}
     __proto__: null,
     exportDelim: exportDelim,
     exportLayerAsDSV: exportLayerAsDSV,
+    formatNumber: formatNumber$1,
+    formatIntlNumber: formatIntlNumber,
     getDelimValueFormatter: getDelimValueFormatter
   });
 
@@ -13309,6 +16768,7 @@ ${svg}
     __proto__: null,
     expandCommandTargets: expandCommandTargets,
     findCommandTargets: findCommandTargets,
+    groupLayersByDataset: groupLayersByDataset,
     findMatchingLayers: findMatchingLayers,
     getLayerMatch: getLayerMatch,
     countTargetLayers: countTargetLayers,
@@ -13680,7 +17140,7 @@ ${svg}
       c = buf[i];
       if (c == DQUOTE) {
         inQuotedText = !inQuotedText;
-      } else if (c == CR || c == LF) {
+      } else if ((c == CR || c == LF) && !inQuotedText) {
         if (c == CR && i + 1 < bufLen && buf[i + 1] == LF) {
           // first half of CRLF pair: advance one byte
           i++;
@@ -13774,6 +17234,7 @@ ${svg}
     getRowConverter: getRowConverter,
     parseDelimHeaderSection: parseDelimHeaderSection,
     getDelimFieldFilter: getDelimFieldFilter,
+    readLinesAsString: readLinesAsString,
     parseDelimText: parseDelimText
   });
 
@@ -13874,7 +17335,6 @@ ${svg}
 
   // Convert a string, buffer or file containing delimited text into a dataset obj.
   function importDelim2(data, opts) {
-
     // TODO: remove duplication with importJSON()
     var readFromFile = !data.content && data.content !== '',
         content = data.content,
@@ -13986,24 +17446,26 @@ ${svg}
   // Detect and convert data types of data from csv files.
   // TODO: decide how to handle records with inconstent properties. Mapshaper
   //    currently assumes tabular data
-  function adjustRecordTypes(records, opts) {
-    var typeIndex = getFieldTypeHints(opts),
+  function adjustRecordTypes(records, optsArg) {
+    var opts = optsArg || {},
+        typeIndex = getFieldTypeHints(opts),
         singleType = typeIndex['*'], // support for setting all fields to a single type
         fields = Object.keys(records[0] || []),
         detectedNumFields = [],
+        parseNumber = opts.decimal_comma ? utils.parseIntlNumber : utils.parseNumber,
         replacements = {};
     fields.forEach(function(key) {
       var typeHint = typeIndex[key];
       var values = null;
       if (typeHint == 'number' || singleType == 'number') {
-        values = convertDataField(key, records, utils.parseNumber);
+        values = convertDataField(key, records, parseNumber);
       } else if (typeHint == 'string' || singleType == 'string') {
         // We should be able to assume that imported CSV fields are strings,
         //   so parsing + replacement is not required
         // values = internal.convertDataField(key, records, utils.parseString);
         values = null;
       } else {
-        values = tryNumericField(key, records);
+        values = tryNumericField(key, records, parseNumber);
         if (values) detectedNumFields.push(key);
       }
       if (values) replacements[key] = values;
@@ -14031,13 +17493,13 @@ ${svg}
     });
   }
 
-  function tryNumericField(key, records) {
+  function tryNumericField(key, records, parseNumber) {
     var arr = [],
         count = 0,
         raw, str, num;
     for (var i=0, n=records.length; i<n; i++) {
       raw = records[i][key];
-      num = utils.parseNumber(raw);
+      num = parseNumber(raw);
       if (num === null) {
         str = raw ? raw.trim() : '';
         if (str.length > 0 && str != 'NA' && str != 'NaN') { // ignore NA values ("NA" seen in R output)
@@ -14249,6 +17711,8 @@ ${svg}
     }
   }
 
+  var assignmentRxp = /^([a-z0-9_+-]+)=(?!\=)(.*)$/i; // exclude ==
+
   function splitShellTokens(str) {
     var BAREWORD = '([^\'"\\s])+';
     var DOUBLE_QUOTE = '"((\\\\"|[^"])*?)"';
@@ -14261,7 +17725,6 @@ ${svg}
     }).map(utils.trimQuotes);
     return chunks;
   }
-
 
   // Split comma-delimited list, trim quotes from entire list and
   // individual members
@@ -14277,7 +17740,8 @@ ${svg}
   // Accept spaces and/or commas as delimiters
   function parseColorList(token) {
     var delim = ', ';
-    var token2 = token.replace(/, *(?=[^(]*\))/g, '~~~'); // kludge: protect rgba() functions from being split apart
+    // accept rgb(0 0 0) rgb(0,0,0) rgb(0, 0, 0)
+    var token2 = token.replace(/[ ,] *(?=[^(]*\))/g, '~~~'); // kludge: protect rgba() functions from being split apart
     var list = splitOptionList(token2, delim);
     if (list.length == 1) {
       list = splitOptionList(list[0], delim);
@@ -14325,19 +17789,31 @@ ${svg}
     return val;
   }
 
+  function isAssignment(token) {
+    return assignmentRxp.test(token);
+  }
+
+  function splitAssignment(token) {
+    var match = assignmentRxp.exec(token),
+        name = match[1],
+        val = utils.trimQuotes(match[2]);
+    return [name, val];
+  }
+
   var OptionParsingUtils = /*#__PURE__*/Object.freeze({
     __proto__: null,
     splitShellTokens: splitShellTokens,
     parseStringList: parseStringList,
     parseColorList: parseColorList,
     cleanArgv: cleanArgv,
-    formatOptionValue: formatOptionValue
+    formatOptionValue: formatOptionValue,
+    isAssignment: isAssignment,
+    splitAssignment: splitAssignment
   });
 
   function CommandParser() {
     var commandRxp = /^--?([a-z][\w-]*)$/i,
         invalidCommandRxp = /^--?[a-z][\w-]*[=]/i, // e.g. -target=A // could be more general
-        assignmentRxp = /^([a-z0-9_+-]+)=(?!\=)(.*)$/i, // exclude ==
         _usage = "",
         _examples = [],
         _commands = [],
@@ -14368,6 +17844,9 @@ ${svg}
 
     this.command = function(name) {
       var opts = new CommandOptions(name);
+      // support 'verbose' and 'debug' flags for each command, without help entries
+      opts.option('verbose', {type: 'flag'});
+      opts.option('debug', {type: 'flag'});
       _commands.push(opts);
       return opts;
     };
@@ -14375,6 +17854,8 @@ ${svg}
     this.section = function(name) {
       return this.command("").title(name);
     };
+
+    this.isCommandName = tokenIsCommandName;
 
     this.parseArgv = function(raw) {
       var commandDefs = getCommands(),
@@ -14445,7 +17926,7 @@ ${svg}
         var token = argv.shift(),
             optName, optDef, parts;
 
-        if (assignmentRxp.test(token)) {
+        if (isAssignment(token)) {
           // token looks like name=value style option
           parts = splitAssignment(token);
           optDef = findOptionDefn(parts[0], cmdDef);
@@ -14486,13 +17967,6 @@ ${svg}
         } else {
           cmd.options[optName] = readOptionValue(argv, optDef);
         }
-      }
-
-      function splitAssignment(token) {
-        var match = assignmentRxp.exec(token),
-            name = match[1],
-            val = utils.trimQuotes(match[2]);
-        return [name, val];
       }
 
       // Read an option value for @optDef from @argv
@@ -14942,6 +18416,13 @@ ${svg}
         type: 'strings',
         describe: '[CSV] comma-sep. list of fields to import'
       })
+      // .option('csv-comment', {
+      //   describe: '[CSV] comment line character(s)'
+      // })
+      .option('decimal-comma', {
+        type: 'flag',
+        describe: '[CSV] import numbers formatted like 1.000,01 or 1 000,01'
+      })
       .option('json-path', {
         old_alias: 'json-subtree',
         describe: '[JSON] path to JSON input data; separator is /'
@@ -14987,44 +18468,44 @@ ${svg}
         type: 'flag'
       })
       .option('encoding', {
-        describe: '(Shapefile/CSV) text encoding (default is utf8)'
+        describe: '[Shapefile/CSV] text encoding (default is utf8)'
       })
       .option('field-order', {
-        describe: '(Shapefile/CSV) field-order=ascending sorts columns A-Z'
+        describe: '[Shapefile/CSV] field-order=ascending sorts columns A-Z'
       })
       .option('id-field', {
-        describe: '(Topo/GeoJSON/SVG) field to use for id property',
+        describe: '[Topo/GeoJSON/SVG] field to use for id property',
         type: 'strings'
       })
       .option('bbox', {
         type: 'flag',
-        describe: '(Topo/GeoJSON) add bbox property'
+        describe: '[Topo/GeoJSON] add bbox property'
       })
       .option('extension', {
-        describe: '(Topo/GeoJSON) set file extension (default is ".json")'
+        describe: '[Topo/GeoJSON] set file extension (default is ".json")'
       })
       .option('prettify', {
         type: 'flag',
-        describe: '(Topo/GeoJSON/JSON) format output for readability'
+        describe: '[Topo/GeoJSON/JSON] format output for readability'
       })
       .option('singles', {
-        describe: '(TopoJSON) save each target layer as a separate file',
+        describe: '[TopoJSON] save each target layer as a separate file',
         type: 'flag'
       })
       .option('quantization', {
-        describe: '(TopoJSON) specify quantization (auto-set by default)',
+        describe: '[TopoJSON] specify quantization (auto-set by default)',
         type: 'integer'
       })
       .option('no-quantization', {
-        describe: '(TopoJSON) export coordinates without quantization',
+        describe: '[TopoJSON] export coordinates without quantization',
         type: 'flag'
       })
       .option('no-point-quantization', {
-        // describe: '(TopoJSON) export point coordinates without quantization',
+        // describe: '[TopoJSON] export point coordinates without quantization',
         type: 'flag'
       })
       .option('presimplify', {
-        describe: '(TopoJSON) add per-vertex data for dynamic simplification',
+        describe: '[TopoJSON] add per-vertex data for dynamic simplification',
         type: 'flag'
       })
       .option('topojson-precision', {
@@ -15035,72 +18516,76 @@ ${svg}
         // obsolete -- rfc 7946 compatible outptu is now the default.
         // This option also rounds coordinates to 7 decimals. I'm retaining the
         // option for backwards compatibility.
-        // describe: '(GeoJSON) follow RFC 7946 (CCW outer ring order, etc.)',
+        // describe: '[GeoJSON] follow RFC 7946 (CCW outer ring order, etc.)',
         type: 'flag'
       })
       // .option('winding', {
-      //   describe: '(GeoJSON) set polygon winding order (use CW with d3-geo)'
+      //   describe: '[GeoJSON] set polygon winding order (use CW with d3-geo)'
       // })
       .option('gj2008', {
-        describe: '(GeoJSON) use original GeoJSON spec (not RFC 7946)',
+        describe: '[GeoJSON] use original GeoJSON spec (not RFC 7946)',
         type: 'flag'
       })
       .option('combine-layers', {
-        describe: '(GeoJSON) output layers as a single file',
+        describe: '[GeoJSON] output layers as a single file',
         type: 'flag'
       })
       .option('geojson-type', {
-        describe: '(GeoJSON) FeatureCollection, GeometryCollection or Feature'
+        describe: '[GeoJSON] FeatureCollection, GeometryCollection or Feature'
       })
       .option('ndjson', {
-        describe: '(GeoJSON/JSON) output newline-delimited features or records',
+        describe: '[GeoJSON/JSON] output newline-delimited features or records',
         type: 'flag'
       })
       .option('width', {
-        describe: '(SVG/TopoJSON) pixel width of output (SVG default is 800)',
+        describe: '[SVG/TopoJSON] pixel width of output (SVG default is 800)',
         type: 'number'
       })
       .option('height', {
-        describe: '(SVG/TopoJSON) pixel height of output (optional)',
+        describe: '[SVG/TopoJSON] pixel height of output (optional)',
         type: 'number'
       })
       .option('max-height', {
-        describe: '(SVG/TopoJSON) max pixel height of output (optional)',
+        describe: '[SVG/TopoJSON] max pixel height of output (optional)',
         type: 'number'
       })
       .option('margin', {
-        describe: '(SVG/TopoJSON) space betw. data and viewport (default is 1)'
+        describe: '[SVG/TopoJSON] space betw. data and viewport (default is 1)'
       })
       .option('pixels', {
-        describe: '(SVG/TopoJSON) output area in pix. (alternative to width=)',
+        describe: '[SVG/TopoJSON] output area in pix. (alternative to width=)',
         type: 'number'
       })
       .option('fit-bbox', {
         type: 'bbox',
-        describe: '(TopoJSON) scale and shift coordinates to fit a bbox'
+        describe: '[TopoJSON] scale and shift coordinates to fit a bbox'
       })
       .option('svg-scale', {
-        describe: '(SVG) source units per pixel (alternative to width= option)',
+        describe: '[SVG] source units per pixel (alternative to width= option)',
         type: 'number'
       })
       .option('point-symbol', {
-        describe: '(SVG) circle or square (default is circle)'
+        describe: '[SVG] circle or square (default is circle)'
       })
       .option('svg-data', {
         type: 'strings',
-        describe: '(SVG) fields to export as data-* attributes'
+        describe: '[SVG] fields to export as data-* attributes'
       })
       .option('id-prefix', {
-        describe: '(SVG) prefix for namespacing layer and feature ids'
+        describe: '[SVG] prefix for namespacing layer and feature ids'
       })
       .option('delimiter', {
-        describe: '(CSV) field delimiter'
+        describe: '[CSV] field delimiter'
+      })
+      .option('decimal-comma', {
+        type: 'flag',
+        describe: '[CSV] export numbers with decimal commas not points'
       })
       .option('final', {
         type: 'flag' // for testing
       })
       .option('metadata', {
-        // describe: '(TopoJSON) add a metadata object',
+        // describe: '[TopoJSON] add a metadata object',
         type: 'flag'
       });
 
@@ -15136,6 +18621,10 @@ ${svg}
       })
       .option('tolerance', {
         // describe: 'acceptable deviation for approximating curves'
+      })
+      .option('vertices', {
+        // describe: 'number of vertices to use when buffering points',
+        type: 'integer'
       })
       .option('backtrack', {
         type: 'integer'
@@ -15176,7 +18665,7 @@ ${svg}
       })
       .option('colors', {
         describe: 'list of CSS colors or color scheme name (see -colors)',
-        type: 'strings'
+        type: 'colors'
       })
       .option('values', {
         describe: 'values to assign to classes (alternative to colors=)',
@@ -15275,11 +18764,17 @@ ${svg}
 
     parser.command('clean')
       .describe('fixes geometry issues, such as polygon overlaps and gaps')
-
       .option('gap-fill-area', minGapAreaOpt)
       .option('sliver-control', sliverControlOpt)
       .option('snap-interval', snapIntervalOpt)
       .option('no-snap', noSnapOpt)
+      .option('allow-overlaps', {
+        describe: 'allow polygons to overlap (disables gap fill)',
+        type: 'flag'
+      })
+      .option('overlap-rule', {
+        describe: 'how to resolve overlaps: min-id|max-id|min-area|[max-area]'
+      })
       .option('allow-empty', {
         describe: 'keep null geometries (removed by default)',
         type: 'flag'
@@ -15299,9 +18794,6 @@ ${svg}
       })
       .option('only-arcs', {
         describe: 'delete unused arcs but don\'t remove gaps and overlaps',
-        type: 'flag'
-      })
-      .option('debug', {
         type: 'flag'
       })
       .option('no-arc-dissolve', {
@@ -15366,6 +18858,13 @@ ${svg}
           '$ mapshaper data.json -colorizer name=getColor nodata=#eee breaks=20,40 \\\n' +
           '  colors=#e0f3db,#a8ddb5,#43a2ca -each \'fill = getColor(RATING)\' -o output.json');
 
+    parser.command('define')
+      // .describe('define expression variables')
+      .option('expression', {
+        DEFAULT: true,
+        describe: 'one or more assignment expressions (comma-sep.)'
+      });
+
     parser.command('dissolve')
       .describe('merge features within a layer')
       .example('Dissolve all polygons in a feature layer into a single polygon\n' +
@@ -15412,6 +18911,10 @@ ${svg}
       .option('copy-fields', copyFieldsOpt)
       .option('gap-fill-area', minGapAreaOpt)
       .option('sliver-control', sliverControlOpt)
+      .option('allow-overlaps', {
+        describe: 'allow dissolved polygons to overlap (disables gap fill)',
+        type: 'flag'
+      })
       .option('name', nameOpt)
       .option('no-snap', noSnapOpt)
       .option('target', targetOpt)
@@ -15438,11 +18941,50 @@ ${svg}
       // .option('no-replace', noReplaceOpt);
 
     parser.command('dots')
-      .describe('')
-      .option('field', {
-        describe: 'field containing number of dots'
+      .describe('fill polygons with dots of one or more colors')
+      .option('fields', {
+        DEFAULT: true,
+        describe: 'one or more fields containing numbers of dots',
+        type: 'strings'
       })
-      .option('target', targetOpt);
+      .option('colors', {
+        describe: 'one or more colors',
+        type: 'strings'
+      })
+      .option('values', {
+        describe: 'values to assign to dot classes (alternative to colors=)',
+        type: 'strings'
+      })
+      .option('save-as', {
+        describe: 'name of color/value output field (default is fill)'
+      })
+      .option('progressive', {
+        // describe: 'fill in points progressively',
+        type: 'flag'
+      })
+      .option('r', {
+        describe: 'radius of each dot in pixels',
+        type: 'number'
+      })
+      .option('evenness', {
+        describe: '(0-1) dot spacing, from random to even (default is 1)',
+        type: 'number'
+      })
+      .option('per-dot', {
+        describe: 'number for scaling data values (e.g. 10 per dot)',
+        type: 'number'
+      })
+      .option('copy-fields', {
+        describe: 'list of fields to copy from polygons to dots',
+        type: 'strings'
+      })
+      .option('multipart', {
+        describe: 'combine groups of same-color dots into multi-part features',
+        type: 'flag'
+      })
+      .option('target', targetOpt)
+      .option('name', nameOpt)
+      .option('no-replace', noReplaceOpt);
 
     parser.command('drop')
       .describe('delete layer(s) or elements within the target layer(s)')
@@ -15593,7 +19135,15 @@ ${svg}
       .option('target', targetOpt);
 
     parser.command('graticule')
-      .describe('create a graticule layer');
+      .describe('create a graticule layer')
+      .option('interval', {
+        describe: 'size of grid cells in degrees (options: 5 10 15 30 45, default is 10)',
+        type: 'number'
+      })
+      .option('polygon', {
+        describe: 'create a polygon to match the outline of the graticule',
+        type: 'flag'
+      });
 
     parser.command('grid')
       .describe('create a grid of square or hexagonal polygons')
@@ -15614,9 +19164,6 @@ ${svg}
       //   type: 'bbox',
       //   describe: 'xmin,ymin,xmax,ymax (default is bbox of data)'
       // })
-      .option('debug', {
-        type: 'flag'
-      })
       .option('name', nameOpt)
       .option('target', targetOpt)
       .option('no-replace', noReplaceOpt);
@@ -15675,6 +19222,18 @@ ${svg}
       .option('point-method', {
         describe: '(polygon-polygon join) join polygons via inner points',
         type: 'flag'
+      })
+      .option('largest-overlap', {
+        describe: '(polygon-polygon join) use max overlap to join one polygon',
+        type: 'flag'
+      })
+      // .option('nearest-point', {
+      //   describe: '(point-point join)',
+      //   type: 'flag'
+      // })
+      .option('max-distance', {
+        describe: '(point-point join) join source points within this radius',
+        type: 'distance'
       })
       .option('planar', {
         // describe: 'use planar geometry when interpolating by area' // useful for testing
@@ -15736,13 +19295,16 @@ ${svg}
         type: 'flag',
         describe: 'merge layers with inconsistent data fields'
       })
+      .option('flatten', {
+        describe: 'remove polygon overlaps; higher-id polygons take priority',
+        type: 'flag'
+      })
       .option('name', nameOpt)
       .option('target', targetOpt);
 
     parser.command('mosaic')
       .describe('convert a polygon layer with overlaps into a flat mosaic')
       .option('calc', calcOpt)
-      .option('debug', {type: 'flag'})
       .option('name', nameOpt)
       .option('target', targetOpt)
       .option('no-replace', noReplaceOpt);
@@ -15768,7 +19330,9 @@ ${svg}
         type: 'bbox',
         describe: 'xmin,ymin,xmax,ymax (default is bbox of data)'
       })
-      .option('name', nameOpt);
+      .option('name', nameOpt)
+      .option('target', targetOpt)
+      .option('no-replace', noReplaceOpt);
 
     parser.command('points')
       .describe('create a point layer from a different layer type')
@@ -15859,6 +19423,14 @@ ${svg}
       .option('densify', {
         type: 'flag',
         describe: 'add points along straight segments to approximate curves'
+      })
+      .option('clip-angle', {
+        describe: 'use a custom clipping radius (for azimuthal projections)',
+        type: 'number'
+      })
+      .option('clip-bbox', {
+        describe: 'clip to a lat-long bounding box before projecting',
+        type: 'bbox'
       })
       .option('target', targetOpt)
       .validate(validateProjOpts);
@@ -16207,9 +19779,22 @@ ${svg}
       })
       .option('target', targetOpt);
 
-
     // Experimental commands
     parser.section('Experimental commands (may give unexpected results)');
+
+    parser.command('alpha-shapes')
+      // .describe('convert points to alpha shapes (aka concave hulls)')
+      .option('interval', {
+        describe: 'alpha parameter',
+        type: 'number'
+      })
+      .option('keep-points', {
+        // describe: 'replace single points with tiny triangles',
+        type: 'flag'
+      })
+      .option('name', nameOpt)
+      .option('target', targetOpt)
+      .option('no-replace', noReplaceOpt);
 
     parser.command('cluster')
       .describe('group polygons into compact clusters')
@@ -16259,6 +19844,17 @@ ${svg}
       .option('module', {
         DEFAULT: true,
         describe: 'name of Node module containing the command'
+      });
+
+    parser.command('filter-points')
+      // .describe('remove points that are not part of a group')
+      // .option('min-group-size', {
+      //   // describe: 'drop points with fewer points in the vicinity',
+      //   type: 'number'
+      // })
+      .option('group-interval', {
+        // describe: max interval separating a point from other points
+        type: 'number'
       });
 
     parser.command('frame')
@@ -16314,6 +19910,28 @@ ${svg}
       })
       .option('target', targetOpt);
 
+    parser.command('point-to-grid')
+      .option('interval', {
+        // describe: size of grid in projected units
+        type: 'number'
+      })
+      .option('radius', {
+        // describe: radius to assign each point
+        type: 'number'
+      })
+      .option('circles', {
+        // describe: create a grid of circles instead of squares
+        type: 'flag'
+      })
+      .option('cell-margin', {
+        // describe: (0-1) inset grid shapes by a percentage
+        type: 'number'
+      })
+      .option('calc', calcOpt)
+      .option('name', nameOpt)
+      .option('target', targetOpt)
+      .option('no-replace', noReplaceOpt);
+
     parser.command('require')
       .describe('require a Node module for use in -each expressions')
       .option('module', {
@@ -16325,6 +19943,17 @@ ${svg}
       })
       .option('init', {
         describe: 'JS expression to run after the module loads'
+      });
+
+    parser.command('rotate')
+      // .describe('apply d3-style 3-axis rotation to a lat-long dataset')
+      .option('rotation', {
+        // describe: 'two or three angles of rotation',
+        DEFAULT: true,
+        type: 'numbers'
+      })
+      .option('invert', {
+        type: 'flag'
       });
 
     parser.command('run')
@@ -16362,6 +19991,33 @@ ${svg}
       .option('closed', {
         describe: 'close an open path to create a polygon',
         type: 'flag'
+      })
+      .option('type', {
+        // describe: 'circle or ???'
+        DEFAULT: true,
+      })
+      .option('center', {
+        //describe: 'center of the circle (default is 0,0)',
+        type: 'numbers'
+      })
+      .option('radius', {
+        //describe: 'radius of the circle in meters',
+        type: 'number'
+      })
+      .option('radius-angle', {
+        //describe: 'radius of the circle in degrees',
+        type: 'number'
+      })
+      .option('bbox', {
+        // describe: 'rectangle bounding box',
+        type: 'numbers'
+      })
+      .option('geometry', {
+        //describe: 'polygon or polyline'
+      })
+      .option('rotation', {
+        // describe: 'two or three angles of rotation',
+        type: 'numbers'
       })
       .option('name', nameOpt);
 
@@ -16778,7 +20434,7 @@ ${svg}
     function findStringEncoding() {
       var ldid = header.ldid,
           codepage = lookupCodePage(ldid),
-          samples = getNonAsciiSamples(50),
+          samples = getNonAsciiSamples(),
           only7bit = samples.length === 0,
           encoding, msg;
 
@@ -16823,21 +20479,25 @@ ${svg}
       return arr;
     }
 
-    // Return up to @size buffers containing text samples
+    // Return an array of buffers containing text samples
     // with at least one byte outside the 7-bit ascii range.
-    function getNonAsciiSamples(size) {
+    function getNonAsciiSamples() {
       var samples = [];
       var stringFields = header.fields.filter(function(f) {
         return f.type == 'C';
       });
+      var cols = stringFields.length;
+      // don't scan all the rows in large files (slow)
+      var rows = Math.min(header.recordCount, 10000);
+      var maxSamples = 50;
       var buf = utils.createBuffer(256);
       var index = {};
       var f, chars, sample, hash;
       // include non-ascii field names, if any
       samples = getNonAsciiHeaders();
-      for (var r=0, rows=header.recordCount; r<rows; r++) {
-        for (var c=0, cols=stringFields.length; c<cols; c++) {
-          if (samples.length >= size) break;
+      for (var r=0; r<rows; r++) {
+        for (var c=0; c<cols; c++) {
+          if (samples.length >= maxSamples) break;
           f = stringFields[c];
           bin.position(getRowOffset(r) + f.columnOffset);
           chars = readStringBytes(bin, f.size, buf);
@@ -16948,14 +20608,15 @@ ${svg}
     isSupportedShapefileType: isSupportedShapefileType
   });
 
-  var NullRecord = function() {
+  function getNullRecord(id) {
     return {
+      id: id,
       isNull: true,
       pointCount: 0,
       partCount: 0,
       byteLength: 12
     };
-  };
+  }
 
   // Returns a constructor function for a shape record class with
   //   properties and methods for reading coordinate data.
@@ -16977,19 +20638,15 @@ ${svg}
         hasM = ShpType.isMType(type),
         singlePoint = !hasBounds,
         mzRangeBytes = singlePoint ? 0 : 16,
-        constructor;
-
-    if (type === 0) {
-      return NullRecord;
-    }
+        constructor, proto;
 
     // @bin is a BinArray set to the first data byte of a shape record
     constructor = function ShapeRecord(bin, bytes) {
       var pos = bin.position();
       this.id = bin.bigEndian().readUint32();
       this.type = bin.littleEndian().skipBytes(4).readUint32();
-      if (this.type === 0) {
-        return new NullRecord();
+      if (this.type === 0 || type === 0) {
+        return getNullRecord(this.id);
       }
       if (bytes > 0 !== true || (this.type != type && this.type !== 0)) {
         error("Unable to read a shape -- .shp file may be corrupted");
@@ -17010,7 +20667,7 @@ ${svg}
 
     // base prototype has methods shared by all Shapefile types except NULL type
     // (Type-specific methods are mixed in below)
-    var proto = {
+    var baseProto = {
       // return offset of [x, y] point data in the record
       _xypos: function() {
         var offs = 12; // skip header & record type
@@ -17188,10 +20845,12 @@ ${svg}
       }
     };
 
-    if (singlePoint) {
-      Object.assign(proto, singlePointProto);
+    if (type === 0) {
+      proto = {};
+    } else if (singlePoint) {
+      proto = Object.assign(baseProto, singlePointProto);
     } else {
-      Object.assign(proto, multiCoordProto);
+      proto = Object.assign(baseProto, multiCoordProto);
     }
     if (hasZ) Object.assign(proto, zProto);
     if (hasM) Object.assign(proto, mProto);
@@ -17405,222 +21064,6 @@ ${svg}
     });
     return counts;
   };
-
-  // Keep track of whether positive or negative integer ids are 'used' or not.
-
-  function IdTestIndex(n) {
-    var index = new Uint8Array(n);
-
-    this.setId = function(id) {
-      if (id < 0) {
-        index[~id] |= 2;
-      } else {
-        index[id] |= 1;
-      }
-    };
-
-    this.hasId = function(id) {
-      return id < 0 ? (index[~id] & 2) == 2 : (index[id] & 1) == 1;
-    };
-
-    // clear a signed id
-    this.clearId = function(id) {
-      if (id < 0) {
-        index[~id] &= 1; // clear reverse arc, preserve fwd arc
-      } else {
-        index[id] &= 2; // clear fwd arc, preserve rev arc
-      }
-    };
-
-    // clear pos. and neg. ids in ids array
-    this.clearIds = function(ids) {
-      for (var i=0; i<ids.length; i++) {
-        this.clearId(ids[i]);
-      }
-    };
-
-    this.setIds = function(ids) {
-      for (var i=0; i<ids.length; i++) {
-        this.setId(ids[i]);
-      }
-    };
-  }
-
-  // Clean polygon or polyline shapes (in-place)
-  //
-  function cleanShapes(shapes, arcs, type) {
-    for (var i=0, n=shapes.length; i<n; i++) {
-      shapes[i] = cleanShape(shapes[i], arcs, type);
-    }
-  }
-
-  // Remove defective arcs and zero-area polygon rings
-  // Remove simple polygon spikes of form: [..., id, ~id, ...]
-  // Don't remove duplicate points
-  // Don't check winding order of polygon rings
-  function cleanShape(shape, arcs, type) {
-    return editShapeParts(shape, function(path) {
-      var cleaned = cleanPath(path, arcs);
-      if (type == 'polygon' && cleaned) {
-        removeSpikesInPath(cleaned); // assumed by addIntersectionCuts()
-        if (geom.getPlanarPathArea(cleaned, arcs) === 0) {
-          cleaned = null;
-        }
-      }
-      return cleaned;
-    });
-  }
-
-  function cleanPath(path, arcs) {
-    var nulls = 0;
-    for (var i=0, n=path.length; i<n; i++) {
-      if (arcs.arcIsDegenerate(path[i])) {
-        nulls++;
-        path[i] = null;
-      }
-    }
-    return nulls > 0 ? path.filter(function(id) {return id !== null;}) : path;
-  }
-
-
-  // Remove pairs of ids where id[n] == ~id[n+1] or id[0] == ~id[n-1];
-  // (in place)
-  function removeSpikesInPath(ids) {
-    var n = ids.length;
-    if (n >= 2) {
-      if (ids[0] == ~ids[n-1]) {
-        ids.pop();
-        ids.shift();
-      } else {
-        for (var i=1; i<n; i++) {
-          if (ids[i-1] == ~ids[i]) {
-            ids.splice(i-1, 2);
-            break;
-          }
-        }
-      }
-      if (ids.length < n) {
-        removeSpikesInPath(ids);
-      }
-    }
-  }
-
-
-  // Returns a function for splitting self-intersecting polygon rings
-  // The splitter function receives a single polygon ring represented as an array
-  // of arc ids, and returns an array of split-apart rings.
-  //
-  // Self-intersections in the input ring are assumed to occur at vertices, not along segments.
-  // This requires that internal.addIntersectionCuts() has already been run.
-  //
-  // The rings output by this function may overlap each other, but each ring will
-  // be non-self-intersecting. For example, a figure-eight shaped ring will be
-  // split into two rings that touch each other where the original ring crossed itself.
-  //
-  function getSelfIntersectionSplitter(nodes) {
-    var pathIndex = new IdTestIndex(nodes.arcs.size());
-    var filter = function(arcId) {
-      return pathIndex.hasId(~arcId);
-    };
-    return function(path) {
-      pathIndex.setIds(path);
-      var paths = dividePath(path);
-      pathIndex.clearIds(path);
-      return paths;
-    };
-
-    // Returns array of 0 or more divided paths
-    function dividePath(path) {
-      var subPaths = null;
-      for (var i=0, n=path.length; i < n - 1; i++) { // don't need to check last arc
-        subPaths = dividePathAtNode(path, path[i]);
-        if (subPaths !== null) {
-          return subPaths;
-        }
-      }
-      // indivisible path -- clean it by removing any spikes
-      removeSpikesInPath(path);
-      return path.length > 0 ? [path] : [];
-    }
-
-    // If arc @enterId enters a node with more than one open routes leading out:
-    //   return array of sub-paths
-    // else return null
-    function dividePathAtNode(path, enterId) {
-      var nodeIds = nodes.getConnectedArcs(enterId, filter),
-          exitArcIndexes, exitArcId, idx;
-      if (nodeIds.length < 2) return null;
-      exitArcIndexes = [];
-      for (var i=0; i<nodeIds.length; i++) {
-        exitArcId = ~nodeIds[i];
-        idx = indexOf(path, exitArcId);
-        if (idx > -1) { // repeated scanning may be bottleneck
-          // important optimization (TODO: explain this)
-          // TODO: test edge case: exitArcId occurs twice in the path
-          pathIndex.clearId(exitArcId);
-          exitArcIndexes.push(idx);
-        } else {
-          // TODO: investigate why this happens
-        }
-      }
-      if (exitArcIndexes.length < 2) {
-        return null;
-      }
-      // path forks -- recursively subdivide
-      var subPaths = splitPathByIds(path, exitArcIndexes);
-      return subPaths.reduce(accumulatePaths, null);
-    }
-
-    function accumulatePaths(memo, path) {
-      var subPaths = dividePath(path);
-      if (memo === null) {
-        return subPaths;
-      }
-      memo.push.apply(memo, subPaths);
-      return memo;
-    }
-
-    // Added as an optimization -- faster than using Array#indexOf()
-    function indexOf(arr, el) {
-      for (var i=0, n=arr.length; i<n; i++) {
-        if (arr[i] === el) return i;
-      }
-      return -1;
-    }
-
-  }
-
-  // Function returns an array of split-apart rings
-  // @path An array of arc ids describing a self-intersecting polygon ring
-  // @ids An array of two or more indexes of arcs that originate from a single vertex
-  //      where @path intersects itself -- assumes indexes are in ascending sequence
-  function splitPathByIds(path, indexes) {
-    var subPaths = [];
-    utils.genericSort(indexes, true); // sort ascending
-    if (indexes[0] > 0) {
-      subPaths.push(path.slice(0, indexes[0]));
-    }
-    for (var i=0, n=indexes.length; i<n; i++) {
-      if (i < n-1) {
-        subPaths.push(path.slice(indexes[i], indexes[i+1]));
-      } else {
-        subPaths.push(path.slice(indexes[i]));
-      }
-    }
-    // handle case where first subring is split across endpoint of @path
-    if (subPaths.length > indexes.length) {
-      utils.merge(subPaths[0], subPaths.pop());
-    }
-    return subPaths;
-  }
-
-  var PathRepair = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    cleanShapes: cleanShapes,
-    removeSpikesInPath: removeSpikesInPath,
-    getSelfIntersectionSplitter: getSelfIntersectionSplitter,
-    splitPathByIds: splitPathByIds
-  });
 
   // Apply snapping, remove duplicate coords and clean up defective paths in a dataset
   // Assumes that any CRS info has been added to the dataset
@@ -18771,23 +22214,6 @@ ${svg}
     }
   }
 
-  // Support for timing using T.start() and T.stop("message")
-  var T = {
-    stack: [],
-    start: function() {
-      T.stack.push(+new Date());
-    },
-    stop: function(note) {
-      var elapsed = (+new Date() - T.stack.pop());
-      var msg = elapsed + 'ms';
-      if (note) {
-        msg = note + " " + msg;
-      }
-      verbose(msg);
-      return elapsed;
-    }
-  };
-
   // Read GeoJSON Features or geometry objects from a file
   // @reader: a FileReader
   function GeoJSONReader(reader) {
@@ -18803,10 +22229,10 @@ ${svg}
       // Assume single Feature or geometry if collection not found
       // (this works for ndjson files too)
       var offset = start ? start.offset : 0;
-      T.start();
+      T$1.start();
       parseObjects(reader, offset, onObject);
       // parseObjects_native(reader, offset, onObject);
-      T.stop('Parse GeoJSON');
+      debug('Parse GeoJSON', T$1.stop());
     };
   }
 
@@ -19021,7 +22447,9 @@ ${svg}
     // Use file basename for layer name, except TopoJSON, which uses object names
     if (fileFmt != 'topojson') {
       dataset.layers.forEach(function(lyr) {
-        setLayerName(lyr, filenameToLayerName(data.filename || ''));
+        if (!lyr.name) {
+          lyr.name = filenameToLayerName(data.filename || '');
+        }
       });
     }
 
@@ -19083,13 +22511,6 @@ ${svg}
       name = obj.basename;
     }
     return name;
-  }
-
-  // initialize layer name using filename
-  function setLayerName(lyr, path) {
-    if (!lyr.name) {
-      lyr.name = getFileBase(path);
-    }
   }
 
   var Import = /*#__PURE__*/Object.freeze({
@@ -19473,2774 +22894,2897 @@ ${svg}
     getFormattedLayerList: getFormattedLayerList
   });
 
-  // TODO: also delete positive-space rings nested inside holes
-  function deleteHoles(lyr, arcs) {
-    editShapes(lyr.shapes, function(path) {
-      if (geom.getPathArea(path, arcs) <= 0) {
-        return null; // null deletes the path
-      }
-    });
-  }
+  const epsilon = 1.1102230246251565e-16;
+  const splitter = 134217729;
+  const resulterrbound = (3 + 8 * epsilon) * epsilon;
 
-  // Returns a function that separates rings in a polygon into space-enclosing rings
-  // and holes. Also fixes self-intersections.
-  //
-  function getHoleDivider(nodes, spherical) {
-    var split = getSelfIntersectionSplitter(nodes);
-    // var split = internal.getSelfIntersectionSplitter_v1(nodes); console.log('split')
-
-    return function(rings, cw, ccw) {
-      var pathArea = spherical ? geom.getSphericalPathArea : geom.getPlanarPathArea;
-      forEachShapePart(rings, function(ringIds) {
-        var splitRings = split(ringIds);
-        if (splitRings.length === 0) {
-          debug("[getRingDivider()] Defective path:", ringIds);
-        }
-        splitRings.forEach(function(ringIds, i) {
-          var ringArea = pathArea(ringIds, nodes.arcs);
-          if (ringArea > 0) {
-            cw.push(ringIds);
-          } else if (ringArea < 0) {
-            ccw.push(ringIds);
-          }
-        });
-      });
-    };
-  }
-
-  var PolygonHoles = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    deleteHoles: deleteHoles,
-    getHoleDivider: getHoleDivider
-  });
-
-  // Return id of rightmost connected arc in relation to @arcId
-  // Return @arcId if no arcs can be found
-  function getRightmostArc(arcId, nodes, filter) {
-    var ids = nodes.getConnectedArcs(arcId);
-    if (filter) {
-      ids = ids.filter(filter);
-    }
-    if (ids.length === 0) {
-      return arcId; // error condition, handled by caller
-    }
-    return getRighmostArc2(arcId, ids, nodes.arcs);
-  }
-
-  function getRighmostArc2 (fromId, ids, arcs) {
-    var coords = arcs.getVertexData(),
-        xx = coords.xx,
-        yy = coords.yy,
-        inode = arcs.indexOfVertex(fromId, -1),
-        nodeX = xx[inode],
-        nodeY = yy[inode],
-        ifrom = arcs.indexOfVertex(fromId, -2),
-        fromX = xx[ifrom],
-        fromY = yy[ifrom],
-        toId = fromId, // initialize to from-arc -- an error
-        ito, candId, icand, code, j;
-
-    /*if (x == ax && y == ay) {
-      error("Duplicate point error");
-    }*/
-    if (ids.length > 0) {
-      toId = ids[0];
-      ito = arcs.indexOfVertex(toId, -2);
-    }
-
-    for (j=1; j<ids.length; j++) {
-      candId = ids[j];
-      icand = arcs.indexOfVertex(candId, -2);
-      code = chooseRighthandPath(fromX, fromY, nodeX, nodeY, xx[ito], yy[ito], xx[icand], yy[icand]);
-      // code = internal.chooseRighthandPath(0, 0, nodeX - fromX, nodeY - fromY, xx[ito] - fromX, yy[ito] - fromY, xx[icand] - fromX, yy[icand] - fromY);
-      if (code == 2) {
-        toId = candId;
-        ito = icand;
-      }
-    }
-    if (toId == fromId) {
-      // This shouldn't occur, assuming that other arcs are present
-      error("Pathfinder error");
-    }
-    return toId;
-  }
-
-  function chooseRighthandPath2(fromX, fromY, nodeX, nodeY, ax, ay, bx, by) {
-    return chooseRighthandVector(ax - nodeX, ay - nodeY, bx - nodeX, by - nodeY);
-  }
-
-  // TODO: consider using simpler internal.chooseRighthandPath2()
-  // Returns 1 if node->a, return 2 if node->b, else return 0
-  // TODO: better handling of identical angles (better -- avoid creating them)
-  function chooseRighthandPath(fromX, fromY, nodeX, nodeY, ax, ay, bx, by) {
-    var angleA = geom.signedAngle(fromX, fromY, nodeX, nodeY, ax, ay);
-    var angleB = geom.signedAngle(fromX, fromY, nodeX, nodeY, bx, by);
-    var code;
-    if (angleA <= 0 || angleB <= 0) {
-      debug("[chooseRighthandPath()] 0 angle(s):", angleA, angleB);
-      if (angleA <= 0) {
-        debug('  A orient2D:', geom.orient2D(fromX, fromY, nodeX, nodeY, ax, ay));
-      }
-      if (angleB <= 0) {
-        debug('  B orient2D:', geom.orient2D(fromX, fromY, nodeX, nodeY, bx, by));
-      }
-      // TODO: test against "from" segment
-      if (angleA > 0) {
-        code = 1;
-      } else if (angleB > 0) {
-        code = 2;
+  // fast_expansion_sum_zeroelim routine from oritinal code
+  function sum(elen, e, flen, f, h) {
+      let Q, Qnew, hh, bvirt;
+      let enow = e[0];
+      let fnow = f[0];
+      let eindex = 0;
+      let findex = 0;
+      if ((fnow > enow) === (fnow > -enow)) {
+          Q = enow;
+          enow = e[++eindex];
       } else {
-        code = 0;
+          Q = fnow;
+          fnow = f[++findex];
       }
-    } else if (angleA < angleB) {
-      code = 1;
-    } else if (angleB < angleA) {
-      code = 2;
-    } else if (isNaN(angleA) || isNaN(angleB)) {
-      // probably a duplicate point, which should not occur
-      error('Invalid node geometry');
-    } else {
-      // Equal angles: use fallback test that is less sensitive to rounding error
-      code = chooseRighthandVector(ax - nodeX, ay - nodeY, bx - nodeX, by - nodeY);
-      debug('[chooseRighthandPath()] equal angles:', angleA, 'fallback test:', code);
-    }
-    return code;
-  }
-
-  function chooseRighthandVector(ax, ay, bx, by) {
-    var orient = geom.orient2D(ax, ay, 0, 0, bx, by);
-    var code;
-    if (orient > 0) {
-      code = 2;
-    } else if (orient < 0) {
-      code = 1;
-    } else {
-      code = 0;
-    }
-    return code;
-  }
-
-  var PathfinderUtils = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getRightmostArc: getRightmostArc,
-    chooseRighthandVector: chooseRighthandVector
-  });
-
-  // Functions for redrawing polygons for clipping / erasing / flattening / division
-  // These functions use 8 bit codes to control forward and reverse traversal of each arc.
-  //
-  // Function of path bits 0-7:
-  // 0: is fwd path hidden or visible? (0=hidden, 1=visible)
-  // 1: is fwd path open or closed for traversal? (0=closed, 1=open)
-  // 2: unused
-  // 3: unused
-  // 4: is rev path hidden or visible?
-  // 5: is rev path open or closed for traversal?
-  // 6: unused
-  // 7: unused
-  //
-  // Example codes:
-  // 0x3 (3): forward path is visible and open, reverse path is hidden and closed
-  // 0x10 (16): forward path is hidden and closed, reverse path is visible and closed
-  //
-
-  var FWD_VISIBLE = 0x1;
-  var FWD_OPEN = 0x2;
-  var REV_VISIBLE = 0x10;
-  var REV_OPEN = 0x20;
-
-  function setBits(bits, arcBits, mask) {
-    return (bits & ~mask) | (arcBits & mask);
-  }
-
-  function andBits(bits, arcBits, mask) {
-    return bits & (~mask | arcBits);
-  }
-
-  function setRouteBits(arcBits, arcId, routesArr) {
-    var idx = absArcId(arcId), // get index of path in
-        mask;
-    if (idx == arcId) { // arcBits controls fwd path
-      mask = ~3; // target fwd bits
-    } else { // arcBits controls rev. path
-      mask = ~0x30; // target rev bits
-      arcBits = arcBits << 4; // shift code to target rev path
-    }
-    routesArr[idx] &= (arcBits | mask);
-  }
-
-  function getRouteBits(arcId, routesArr) {
-    var idx = absArcId(arcId),
-        bits = routesArr[idx];
-    if (idx != arcId) bits = bits >> 4;
-    return bits & 7;
-  }
-
-  // Open arc pathways in a single shape or array of shapes
-  //
-  function openArcRoutes(paths, arcColl, routesArr, fwd, rev, dissolve, orBits) {
-    forEachArcId(paths, function(arcId) {
-      var isInv = arcId < 0,
-          idx = isInv ? ~arcId : arcId,
-          currBits = routesArr[idx],
-          openFwd = isInv ? rev : fwd,
-          openRev = isInv ? fwd : rev,
-          newBits = currBits;
-
-      // error condition: lollipop arcs can cause problems; ignore these
-      if (arcColl.arcIsLollipop(arcId)) {
-        debug('lollipop');
-        newBits = 0; // unset (i.e. make invisible)
-      } else {
-        if (openFwd) {
-          newBits |= 3; // set fwd path to visible and open
-        }
-        if (openRev) {
-          newBits |= 0x30; // set rev. path to visible and open
-        }
-
-        // placing this in front of dissolve - dissolve has to be able to hide
-        // pathways that are made visible by orBits
-        if (orBits > 0) {
-          newBits |= orBits;
-        }
-
-        // dissolve hides arcs that have both fw and rev pathways open
-        // (these arcs represent shared borders and will not be part of the dissolved path)
-        //
-        if (dissolve && (newBits & 0x22) === 0x22) {
-          newBits &= ~0x11; // make invisible
-        }
-      }
-
-      routesArr[idx] = newBits;
-    });
-  }
-
-  function closeArcRoutes(arcIds, arcs, routesArr, fwd, rev, hide) {
-    forEachArcId(arcIds, function(arcId) {
-      var isInv = arcId < 0,
-          idx = isInv ? ~arcId : arcId,
-          currBits = routesArr[idx],
-          mask = 0xff,
-          closeFwd = isInv ? rev : fwd,
-          closeRev = isInv ? fwd : rev;
-
-      if (closeFwd) {
-        if (hide) mask &= ~1;
-        mask ^= 0x2;
-      }
-      if (closeRev) {
-        if (hide) mask &= ~0x10;
-        mask ^= 0x20;
-      }
-      routesArr[idx] = currBits & mask;
-    });
-  }
-
-  // Return a function for generating a path across a graph of connected arcs
-  // useRoute: function(arcId) {}
-  //           Tries to extend path to the given arc
-  //           Returns true and extends path by one arc on success
-  //           Returns false and rejects the entire path on failure
-  // routeIsUsable (optional): function(arcId) {}
-  //           An optional filter function; pathfinder ignores the given arc if
-  //           this function returns false;
-  // TODO: add option to use spherical geometry for lat-lng coords
-  //
-  function getPathFinder(nodes, useRoute, routeIsUsable) {
-    var testArc = null;
-    if (routeIsUsable) {
-      testArc = function(arcId) {
-        return routeIsUsable(~arcId); // outward path must be traversable
-      };
-    }
-
-    function getNextArc(prevId) {
-      // reverse arc to point onwards
-      return ~getRightmostArc(prevId, nodes, testArc);
-    }
-
-    return function(startId) {
-      var path = [],
-          nextId, msg,
-          candId = startId;
-
-      do {
-        if (useRoute(candId)) {
-          path.push(candId);
-          nextId = candId;
-          candId = getNextArc(nextId);
-        } else {
-          return null;
-        }
-
-        if (candId == ~nextId) {
-          // TODO: handle or prevent this error condition
-          debug("Pathfinder warning: dead-end path");
-          return null;
-        }
-      } while (candId != startId);
-      return path.length === 0 ? null : path;
-    };
-  }
-
-  // Returns a function for flattening or dissolving a collection of rings
-  // Assumes rings are oriented in CW direction
-  //
-  function getRingIntersector(nodes, flags) {
-    var arcs = nodes.arcs;
-    var findPath = getPathFinder(nodes, useRoute, routeIsActive);
-    flags = flags || new Uint8Array(arcs.size());
-
-    // types: "dissolve" "flatten"
-    return function(rings, type) {
-      var dissolve = type == 'dissolve',
-          openFwd = true,
-          openRev = type == 'flatten',
-          output;
-      // even single rings get transformed (e.g. to remove spikes)
-      if (rings.length > 0) {
-        output = [];
-        openArcRoutes(rings, arcs, flags, openFwd, openRev, dissolve);
-        forEachShapePart(rings, function(ids) {
-          var path;
-          for (var i=0, n=ids.length; i<n; i++) {
-            path = findPath(ids[i]);
-            if (path) {
-              output.push(path);
-            }
-          }
-        });
-        closeArcRoutes(rings, arcs, flags, openFwd, openRev, true);
-      } else {
-        output = rings;
-      }
-      return output;
-    };
-
-    function routeIsActive(arcId) {
-      var bits = getRouteBits(arcId, flags);
-      return (bits & 1) == 1;
-    }
-
-    function useRoute(arcId) {
-      var route = getRouteBits(arcId, flags),
-          isOpen = false;
-      if (route == 3) {
-        isOpen = true;
-        setRouteBits(1, arcId, flags); // close the path, leave visible
-      }
-      return isOpen;
-    }
-  }
-
-  // function debugFlags(flags) {
-  //   var arr = [];
-  //   utils.forEach(flags, function(flag) {
-  //     arr.push(bitsToString(flag));
-  //   });
-  //   message(arr);
-
-  //   function bitsToString(bits) {
-  //     var str = "";
-  //     for (var i=0; i<8; i++) {
-  //       str += (bits & (1 << i)) > 0 ? "1" : "0";
-  //       if (i < 7) str += ' ';
-  //       if (i == 3) str += ' ';
-  //     }
-  //     return str;
-  //   }
-  // }
-
-  var Pathfinder = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    setBits: setBits,
-    andBits: andBits,
-    setRouteBits: setRouteBits,
-    getRouteBits: getRouteBits,
-    openArcRoutes: openArcRoutes,
-    closeArcRoutes: closeArcRoutes,
-    getPathFinder: getPathFinder,
-    getRingIntersector: getRingIntersector
-  });
-
-  // Used by -clean -dissolve2 -filter-slivers -filter-islands to generate area filters
-  // for removing small polygon rings.
-  // Assumes lyr is a polygon layer.
-  function getSliverFilter(lyr, dataset, opts) {
-    var areaArg = opts.min_gap_area || opts.min_area || opts.gap_fill_area;
-    if (+areaArg == 0) {
-      return {
-        filter: function() {return false;}, // don't fill any gaps
-        threshold: 0
-      };
-    }
-    var sliverControl = opts.sliver_control >= 0 ? opts.sliver_control : 0; // 0 is default
-    var crs = getDatasetCRS(dataset);
-    var threshold = areaArg ?
-        convertAreaParam(areaArg, crs) :
-        getDefaultSliverThreshold(lyr, dataset.arcs);
-    var filter = sliverControl > 0 ?
-        getSliverTest(dataset.arcs, threshold, sliverControl) :
-        getMinAreaTest(threshold, dataset);
-    var label = getSliverLabel(getAreaLabel(threshold, crs), sliverControl > 0);
-    return {
-      threshold: threshold,
-      filter: filter,
-      label: label
-    };
-  }
-
-  function getSliverLabel(areaStr, variable) {
-    if (variable) {
-      areaStr = areaStr.replace(' ', '+ ') + ' variable';
-    }
-    return areaStr + ' threshold';
-  }
-
-  function getMinAreaTest(minArea, dataset) {
-    var pathArea = dataset.arcs.isPlanar() ? geom.getPlanarPathArea : geom.getSphericalPathArea;
-    return function(path) {
-      var area = pathArea(path, dataset.arcs);
-      return Math.abs(area) < minArea;
-    };
-  }
-
-  function getSliverTest(arcs, threshold, strength) {
-    if (strength >= 0 === false) {
-      strength = 1; // default is 1 (full-strength)
-    }
-    if (strength > 1 || threshold > 0 === false) {
-      error('Invalid parameter');
-    }
-    var calcEffectiveArea = getSliverAreaFunction(arcs, strength);
-    return function(ring) {
-      return Math.abs(calcEffectiveArea(ring)) < threshold;
-    };
-  }
-
-  // Strength: 0-1
-  function getSliverAreaFunction(arcs, strength) {
-    var k = Math.sqrt(strength); // more sensible than linear weighted avg.
-    return function(ring) {
-      var area = geom.getPathArea(ring, arcs);
-      var perim = geom.getPathPerimeter(ring, arcs);
-      var compactness = geom.calcPolsbyPopperCompactness(area, perim);
-      var effectiveArea = area * (k * compactness + 1 - k);
-      return effectiveArea;
-    };
-  }
-
-  // Calculate a default area threshold using average segment length,
-  // but increase the threshold for high-detail datasets and decrease it for
-  // low-detail datasets (using segments per ring as a measure of detail).
-  //
-  function getDefaultSliverThreshold(lyr, arcs) {
-    var ringCount = 0;
-    var calcLen = arcs.isPlanar() ? geom.distance2D : geom.greatCircleDistance;
-    var avgSegLen = 0;
-    var segCount = 0;
-    var onSeg = function(i, j, xx, yy) {
-      var len = calcLen(xx[i], yy[i], xx[j], yy[j]);
-      segCount++;
-      avgSegLen += (len - avgSegLen) / segCount;
-    };
-    editShapes(lyr.shapes, function(path) {
-      ringCount++;
-      forEachSegmentInPath(path, arcs, onSeg);
-    });
-    var segPerRing = segCount / ringCount;
-    var complexityFactor = Math.pow(segPerRing, 0.75); // use seg/ring as a proxy for complexity
-    var threshold = avgSegLen * avgSegLen / 50 * complexityFactor;
-    threshold = roundToSignificantDigits(threshold, 2); // round for display
-    return threshold;
-  }
-
-
-  // Original function for calculating default area threshold
-  function calcMaxSliverArea(arcs) {
-    var k = 2,
-        dxMax = arcs.getBounds().width() / k,
-        dyMax = arcs.getBounds().height() / k,
-        count = 0,
-        mean = 0;
-    arcs.forEachSegment(function(i, j, xx, yy) {
-      var dx = Math.abs(xx[i] - xx[j]),
-          dy = Math.abs(yy[i] - yy[j]);
-      if (dx < dxMax && dy < dyMax) {
-        // TODO: write utility function for calculating mean this way
-        mean += (Math.sqrt(dx * dx + dy * dy) - mean) / ++count;
-      }
-    });
-    return mean * mean;
-  }
-
-  var Slivers = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getSliverFilter: getSliverFilter,
-    getSliverTest: getSliverTest,
-    getSliverAreaFunction: getSliverAreaFunction,
-    getDefaultSliverThreshold: getDefaultSliverThreshold,
-    calcMaxSliverArea: calcMaxSliverArea
-  });
-
-  function getMode(values) {
-    var data = getModeData(values);
-    return data.modes[0];
-  }
-
-  function getValueCountData(values) {
-    var uniqValues = [],
-        uniqIndex = {},
-        counts = [];
-    var i, val;
-    for (i=0; i<values.length; i++) {
-      val = values[i];
-      if (val in uniqIndex === false) {
-        uniqIndex[val] = uniqValues.length;
-        uniqValues.push(val);
-        counts.push(1);
-      } else {
-        counts[uniqIndex[val]]++;
-      }
-    }
-    return {
-      values: uniqValues,
-      counts: counts
-    };
-  }
-
-  function getMaxValue(values) {
-    var max = -Infinity;
-    var i;
-    for (i=0; i<values.length; i++) {
-      if (values[i] > max) max = values[i];
-    }
-    return max;
-  }
-
-  function getCountDataSummary(o) {
-    var counts = o.counts;
-    var values = o.values;
-    var maxCount = counts.length > 0 ? getMaxValue(counts) : 0;
-    var nextCount = 0;
-    var modes = [];
-    var i, count;
-    for (i=0; i<counts.length; i++) {
-      count = counts[i];
-      if (count === maxCount) {
-        modes.push(values[i]);
-      } else if (count > nextCount) {
-        nextCount = count;
-      }
-    }
-    return {
-      modes: modes,
-      margin: modes.length > 1 ? 0 : maxCount - nextCount,
-      count: maxCount
-    };
-  }
-
-  function getModeData(values, verbose) {
-    var counts = getValueCountData(values);
-    var modes = getCountDataSummary(counts);
-    if (verbose) {
-      modes.counts = counts.counts;
-      modes.values = counts.values;
-    }
-    return modes;
-  }
-
-  var CalcUtils = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getMode: getMode,
-    getModeData: getModeData
-  });
-
-  // Get a copy of a layer containing a subset of the layer's features,
-  // given a "where" expression in the options object
-  function getLayerSelection(lyr, arcs, opts) {
-    var lyr2 = utils.extend({}, lyr);
-    var filterOpts = {
-          expression: opts.where,
-          invert: !!opts.invert,
-          verbose: false,   // don't print status message
-          no_replace: opts.no_replace // copy features if original features will be retained
-        };
-    return cmd.filterFeatures(lyr2, arcs, filterOpts);
-  }
-
-  // Used to run -dissolve with the where= option; could be generalized to support
-  // other commands
-  function applyCommandToLayerSelection(commandFunc, lyr, arcs, opts) {
-    if (!opts || !opts.where) {
-      error('Missing required "where" parameter');
-    }
-    var subsetLyr = getLayerSelection(lyr, arcs, opts);
-    var cmdOpts = utils.defaults({where: null}, opts); // prevent infinite recursion
-    var outputLyr = commandFunc(subsetLyr, arcs, cmdOpts);
-    var filterOpts = utils.defaults({invert: true}, opts);
-    var filteredLyr = getLayerSelection(lyr, arcs, filterOpts);
-    var merged = cmd.mergeLayers([filteredLyr, outputLyr], {verbose: false, force: true});
-    return merged[0];
-  }
-
-  // Calculate an expression across a group of features, print and return the result
-  // Supported functions include sum(), average(), max(), min(), median(), count()
-  // Functions receive an expression to be applied to each feature (like the -each command)
-  // Examples: 'sum($.area)' 'min(income)'
-  // opts.expression  Expression to evaluate
-  // opts.where  Optional filter expression (see -filter command)
-  //
-  cmd.calc = function(lyr, arcs, opts) {
-    var msg = opts.expression,
-        result, compiled, defs;
-    if (opts.where) {
-      // TODO: implement no_replace option for filter() instead of this
-      lyr = getLayerSelection(lyr, arcs, opts);
-      msg += ' where ' + opts.where;
-    }
-    // Save any assigned variables to the defs object, so they will be available
-    // for later -each expressions to use.
-    defs = getStateVar('defs');
-    compiled = compileCalcExpression(lyr, arcs, opts.expression);
-    result = compiled(null, defs);
-    message(msg + ":  " + result);
-    return result;
-  };
-
-  function evalCalcExpression(lyr, arcs, exp) {
-    return compileCalcExpression(lyr, arcs, exp)();
-  }
-
-  function compileCalcExpression(lyr, arcs, exp) {
-    var rowNo = 0, colNo = 0, cols = [];
-    var ctx1 = { // context for first phase (capturing values for each feature)
-          count: assign,
-          sum: captureNum,
-          sums: capture,
-          average: captureNum,
-          median: captureNum,
-          min: captureNum,
-          max: captureNum,
-          mode: capture,
-          collect: capture,
-          first: assignOnce,
-          every: every,
-          some: some,
-          last: assign
-        },
-        ctx2 = { // context for second phase (calculating results)
-          count: wrap(function() {return rowNo;}, 0),
-          sum: wrap(utils.sum, 0),
-          sums: wrap(sums),
-          median: wrap(utils.findMedian),
-          min: wrap(min),
-          max: wrap(max),
-          average: wrap(utils.mean),
-          mode: wrap(getMode),
-          collect: wrap(pass),
-          first: wrap(pass),
-          every: wrap(pass, false),
-          some: wrap(pass, false),
-          last: wrap(pass)
-        },
-        len = getFeatureCount(lyr),
-        calc1, calc2, result;
-
-    if (lyr.geometry_type) {
-      // add functions related to layer geometry (e.g. for subdivide())
-      ctx1.width = ctx1.height = noop;
-      ctx2.width = function() {return getLayerBounds(lyr, arcs).width();};
-      ctx2.height = function() {return getLayerBounds(lyr, arcs).height();};
-    }
-
-    calc1 = compileFeatureExpression(exp, lyr, arcs, {context: ctx1,
-        no_assign: true, no_warn: true});
-    // changed data-only layer to full layer to expose layer geometry, etc
-    // (why not do this originally?)
-    // calc2 = compileFeatureExpression(exp, {data: lyr.data}, null,
-    //     {returns: true, context: ctx2, no_warn: true});
-    calc2 = compileFeatureExpression(exp, lyr, arcs,
-        {returns: true, context: ctx2, no_warn: true});
-
-    // @destRec: optional destination record for assignments
-    return function(ids, destRec) {
-      var result;
-      // phase 1: capture data
-      if (ids) procRecords(ids);
-      else procAll();
-      // phase 2: calculate
-      result = calc2(undefined, destRec);
-      reset();
-      return result;
-    };
-
-    function pass(o) {return o;}
-
-    function max(arr) {
-      return utils.getArrayBounds(arr).max;
-    }
-
-    function sums(arr) {
-      var n = arr && arr.length ? arr[0].length : 0;
-      var output = utils.initializeArray(Array(n), 0);
-      arr.forEach(function(arr) {
-        if (!arr || !arr.length) return;
-        for (var i=0; i<n; i++) {
-          output[i] += +arr[i] || 0;
-        }
-      });
-      return output;
-    }
-
-    function min(arr) {
-      return utils.getArrayBounds(arr).min;
-    }
-
-    // process captured data, or return nodata value if no records have been captured
-    function wrap(proc, nullVal) {
-      var nodata = arguments.length > 1 ? nullVal : null;
-      return function() {
-        var c = colNo++;
-        return rowNo > 0 ? proc(cols[c]) : nodata;
-      };
-    }
-
-    function procAll() {
-      for (var i=0; i<len; i++) {
-        procRecord(i);
-      }
-    }
-
-    function procRecords(ids) {
-      ids.forEach(procRecord);
-    }
-
-    function procRecord(i) {
-      if (i < 0 || i >= len) error("Invalid record index");
-      calc1(i);
-      rowNo++;
-      colNo = 0;
-    }
-
-    function noop() {}
-
-    function reset() {
-      rowNo = 0;
-      colNo = 0;
-      cols = [];
-    }
-
-    function captureNum(val) {
-      if (isNaN(val) && val) { // accepting falsy values (be more strict?)
-        stop("Expected a number, received:", val);
-      }
-      return capture(val);
-    }
-
-    function assignOnce(val) {
-      if (rowNo === 0) cols[colNo] = val;
-      colNo++;
-      return val;
-    }
-
-    function every(val) {
-      val = !!val;
-      cols[colNo] = rowNo === 0 ? val : cols[colNo] && val;
-      colNo++;
-    }
-
-    function some(val) {
-      val = !!val;
-      cols[colNo] = cols[colNo] || val;
-      colNo++;
-    }
-
-    function assign(val) {
-      cols[colNo++] = val;
-      return val;
-    }
-    /*
-    function captureArr(val) {
-      capture(val);
-      return [];
-    }
-    */
-
-    function capture(val) {
-      var col;
-      if (rowNo === 0) {
-        cols[colNo] = [];
-      }
-      col = cols[colNo];
-      if (col.length != rowNo) {
-        // make sure all functions are called each time
-        // (if expression contains a condition, it will throw off the calculation)
-        // TODO: allow conditions
-        stop("Evaluation failed");
-      }
-      col.push(val);
-      colNo++;
-      return val;
-    }
-  }
-
-  var Calc = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    evalCalcExpression: evalCalcExpression,
-    compileCalcExpression: compileCalcExpression
-  });
-
-  // get function that returns an object containing calculated values
-  function getJoinCalc(src, exp) {
-    var calc = compileCalcExpression({data: src}, null, exp);
-    return function(ids, destRec) {
-      if (!ids) ids = [];
-      calc(ids, destRec);
-    };
-  }
-
-  var JoinCalc = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getJoinCalc: getJoinCalc
-  });
-
-  // Return a function to convert indexes of original features into indexes of grouped features
-  // Uses categorical classification (a different id for each unique combination of values)
-  function getCategoryClassifier(fields, data) {
-    if (!fields || fields.length === 0) return function() {return 0;};
-    fields.forEach(function(f) {
-      requireDataField(data, f);
-    });
-    var index = {},
-        count = 0,
-        records = data.getRecords(),
-        getKey = getMultiFieldKeyFunction(fields);
-    return function(i) {
-      var key = getKey(records[i]);
-      if (key in index === false) {
-        index[key] = count++;
-      }
-      return index[key];
-    };
-  }
-
-  function getMultiFieldKeyFunction(fields) {
-    return fields.reduce(function(partial, field) {
-      // TODO: consider using JSON.stringify for fields that contain objects
-      var strval = function(rec) {return String(rec[field]);};
-      return partial ? function(rec) {return partial(rec) + '~~' + strval(rec);} : strval;
-    }, null);
-  }
-
-  // Performs many-to-one data record aggregation on an array of data records
-  // Returns an array of data records for a set of aggregated features
-  //
-  // @records input records
-  // @getGroupId()  converts input record id to id of aggregated record
-  //
-  function aggregateDataRecords(records, getGroupId, opts) {
-    var groups = groupIds(getGroupId, records.length);
-    return aggregateDataRecords2(records, groups, opts);
-  }
-
-  // Performs many-to-many data record aggregation on an array of data records
-  // (used by the -mosaic command)
-  // getSourceIds()  receives the id of an output record and returns
-  //    an array of input record ids
-  //
-  function recombineDataRecords(records, getSourceIds, n, opts) {
-    var groups = [];
-    for (var i=0; i<n; i++) {
-      groups.push(getSourceIds(i));
-    }
-    return aggregateDataRecords2(records, groups, opts);
-  }
-
-  function aggregateDataRecords2(records, groups, opts) {
-    var sumFields = opts.sum_fields || [],
-        copyFields = opts.copy_fields || [],
-        calc;
-
-    if (opts.fields) {
-      copyFields = copyFields.concat(opts.fields);
-    }
-
-    if (opts.calc) {
-      calc = getJoinCalc(new DataTable(records), opts.calc);
-    }
-
-    function sum(field, group) {
-      var tot = 0, rec;
-      for (var i=0; i<group.length; i++) {
-        rec = records[group[i]];
-        tot += rec && rec[field] || 0;
-      }
-      return tot;
-    }
-
-    return groups.map(function(group) {
-      var rec = {},
-          j, first;
-      group = group || [];
-      first = records[group[0]];
-      for (j=0; j<sumFields.length; j++) {
-        rec[sumFields[j]] = sum(sumFields[j], group);
-      }
-      for (j=0; j<copyFields.length; j++) {
-        rec[copyFields[j]] = first ? first[copyFields[j]] : null;
-      }
-      if (calc) {
-        calc(group, rec);
-      }
-      return rec;
-    });
-  }
-
-  // Returns array containing groups of feature indexes
-  // @getId() (function) converts feature index into group index
-  // @n number of features
-  //
-  function groupIds(getId, n) {
-    var groups = [], id;
-    for (var i=0; i<n; i++) {
-      id = getId(i);
-      if (id in groups) {
-        groups[id].push(i);
-      } else {
-        groups[id] = [i];
-      }
-    }
-    return groups;
-  }
-
-  var DataAggregation = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getCategoryClassifier: getCategoryClassifier,
-    getMultiFieldKeyFunction: getMultiFieldKeyFunction,
-    aggregateDataRecords: aggregateDataRecords,
-    recombineDataRecords: recombineDataRecords
-  });
-
-  function dissolvePointGeometry(lyr, getGroupId, opts) {
-    var useSph = !opts.planar && probablyDecimalDegreeBounds(getLayerBounds(lyr));
-    var getWeight = opts.weight ? compileValueExpression(opts.weight, lyr) : null;
-    var groups = [];
-
-    // TODO: support multipoints
-    if (countMultiPartFeatures(lyr.shapes) !== 0) {
-      stop("Dissolving multi-part points is not supported");
-    }
-
-    lyr.shapes.forEach(function(shp, i) {
-      var groupId = getGroupId(i);
-      var weight = getWeight ? getWeight(i) : 1;
-      var p = shp && shp[0]; // Using first point (TODO: handle multi-point features)
-      var tmp;
-      if (!p) return;
-      if (useSph) {
-        tmp = [];
-        geom.lngLatToXYZ(p[0], p[1], tmp);
-        p = tmp;
-      }
-      groups[groupId] = reducePointCentroid(groups[groupId], p, weight);
-    });
-
-    return groups.map(function(memo) {
-      var p1, p2;
-      if (!memo) return null;
-      if (useSph) {
-        p1 = memo.centroid;
-        p2 = [];
-        geom.xyzToLngLat(p1[0], p1[1], p1[2], p2);
-      } else {
-        p2 = memo.centroid;
-      }
-      return memo ? [p2] : null;
-    });
-  }
-
-  function reducePointCentroid(memo, p, weight) {
-    var x = p[0],
-        y = p[1],
-        sum, k;
-
-    if (x == x && y == y && weight > 0) {
-      if (!memo) {
-        memo = {sum: weight, centroid: p.concat()};
-      } else {
-        sum = memo.sum + weight;
-        k = memo.sum / sum;
-        memo.centroid[0] = k * memo.centroid[0] + weight * x / sum;
-        memo.centroid[1] = k * memo.centroid[1] + weight * y / sum;
-        if (p.length == 3) {
-          memo.centroid[2] = k * memo.centroid[2] + weight * p[2] / sum;
-        }
-        memo.sum = sum;
-      }
-    }
-    return memo;
-  }
-
-  // Dissolve polyline features
-  function dissolvePolylineGeometry(lyr, getGroupId, arcs, opts) {
-    var groups = getPolylineDissolveGroups(lyr.shapes, getGroupId);
-    var dissolve = getPolylineDissolver(arcs);
-    return groups.map(dissolve);
-  }
-
-  // Create one array of arc ids for each group
-  function getPolylineDissolveGroups(shapes, getGroupId) {
-    var groups = [];
-    traversePaths(shapes, function(o) {
-      var groupId = getGroupId(o.shapeId);
-      if (groupId in groups === false) {
-        groups[groupId] = [];
-      }
-      groups[groupId].push(o.arcId);
-    });
-    return groups;
-  }
-
-  function getPolylineDissolver(arcs) {
-    var flags = new Uint8Array(arcs.size());
-    var testArc = function(id) {return flags[absArcId(id)] > 0;};
-    var useArc = function(id) {flags[absArcId(id)] = 0;};
-    var nodes = new NodeCollection(arcs);
-    return function(ids) {
-      ids.forEach(function(id) {flags[absArcId(id)] = 1;});
-      var ends = findPolylineEnds(ids, nodes, testArc);
-      var straightParts = collectPolylineArcs(ends, nodes, testArc, useArc);
-      var ringParts = collectPolylineArcs(ids, nodes, testArc, useArc);
-      var allParts = straightParts.concat(ringParts);
-      ids.forEach(function(id) {flags[absArcId(id)] = 0;}); // may not be necessary
-      return allParts;
-    };
-  }
-
-  // TODO: use polygon pathfinder shared code
-  function collectPolylineArcs(ids, nodes, testArc, useArc) {
-    var parts = [];
-    ids.forEach(function(startId) {
-      var part = [];
-      var nextId = startId;
-      var nextIds;
-      while (testArc(nextId)) {
-        part.push(nextId);
-        nextIds = testArc(nextId) ? nodes.getConnectedArcs(nextId, testArc) : [];
-        useArc(nextId); // use (unset) arc after connections have been found
-        if (nextIds.length > 0) {
-          nextId = ~nextIds[0]; // switch arc direction to lead away from node
-        } else {
-          break;
-        }
-      }
-      if (part.length > 0) parts.push(part);
-    });
-    return parts;
-  }
-
-  // Return array of dead-end arcs for a dissolved group.
-  function findPolylineEnds(ids, nodes, filter) {
-    var ends = [];
-    ids.forEach(function(arcId) {
-      if (nodes.getConnectedArcs(arcId, filter).length === 0) {
-        ends.push(~arcId); // arc points away from terminus
-      }
-      if (nodes.getConnectedArcs(~arcId, filter).length === 0) {
-        ends.push(arcId);
-      }
-    });
-    return ends;
-  }
-
-  function dissolvePolygonGeometry(shapes, getGroupId) {
-    var segments = dissolveFirstPass(shapes, getGroupId);
-    return dissolveSecondPass(segments, shapes, getGroupId);
-  }
-
-  // First pass -- identify pairs of segments that can be dissolved
-  function dissolveFirstPass(shapes, getGroupId) {
-    var groups = [],
-        largeGroups = [],
-        segments = [],
-        ids = shapes.map(function(shp, i) {
-          return getGroupId(i);
-        });
-
-    traversePaths(shapes, procArc);
-    largeGroups.forEach(splitGroup);
-    return segments;
-
-    function procArc(obj) {
-      var arcId = obj.arcId,
-          idx = arcId < 0 ? ~arcId : arcId,
-          segId = segments.length,
-          group = groups[idx];
-      if (!group) {
-        group = [];
-        groups[idx] = group;
-      }
-      group.push(segId);
-      obj.group = group;
-      segments.push(obj);
-
-      // Three or more segments sharing the same arc is abnormal topology...
-      // Need to try to identify pairs of matching segments in each of these
-      // groups.
-      //
-      if (group.length == 3) {
-        largeGroups.push(group);
-      }
-    }
-
-    function findMatchingPair(group, cb) {
-      var arc1, arc2;
-      for (var i=0; i<group.length - 1; i++) {
-        arc1 = segments[group[i]];
-        for (var j=i+1; j<group.length; j++) {
-          arc2 = segments[group[j]];
-          if (cb(arc1, arc2)) {
-            return [arc1.segId, arc2.segId];
-          }
-        }
-      }
-      return null;
-    }
-
-    function checkFwExtension(arc1, arc2) {
-      return getNextSegment(arc1, segments, shapes).arcId ===
-          ~getNextSegment(arc2, segments, shapes).arcId;
-    }
-
-    function checkBwExtension(arc1, arc2) {
-      return getPrevSegment(arc1, segments, shapes).arcId ===
-          ~getPrevSegment(arc2, segments, shapes).arcId;
-    }
-
-    function checkDoubleExtension(arc1, arc2) {
-      return checkPairwiseMatch(arc1, arc2) &&
-          checkFwExtension(arc1, arc2) &&
-          checkBwExtension(arc1, arc2);
-    }
-
-    function checkSingleExtension(arc1, arc2) {
-      return checkPairwiseMatch(arc1, arc2) &&
-          (checkFwExtension(arc1, arc2) ||
-          checkBwExtension(arc1, arc2));
-    }
-
-    function checkPairwiseMatch(arc1, arc2) {
-      return arc1.arcId === ~arc2.arcId && ids[arc1.shapeId] ===
-          ids[arc2.shapeId];
-    }
-
-    function updateGroupIds(ids) {
-      ids.forEach(function(id) {
-        segments[id].group = ids;
-      });
-    }
-
-    // split a group of segments into pairs of matching segments + a residual group
-    // @group Array of segment ids
-    //
-    function splitGroup(group) {
-      // find best-match segment pair
-      var group2 = findMatchingPair(group, checkDoubleExtension) ||
-          findMatchingPair(group, checkSingleExtension) ||
-          findMatchingPair(group, checkPairwiseMatch);
-      if (group2) {
-        group = group.filter(function(i) {
-          return !utils.contains(group2, i);
-        });
-        updateGroupIds(group);
-        updateGroupIds(group2);
-        // Split again if reduced group is still large
-        if (group.length > 2) splitGroup(group);
-      }
-    }
-  }
-
-  // Second pass -- generate dissolved shapes
-  //
-  function dissolveSecondPass(segments, shapes, getGroupId) {
-    var dissolveShapes = [];
-    segments.forEach(procSegment);
-    return dissolveShapes;
-
-    // @obj is an arc instance
-    function procSegment(obj) {
-      if (obj.used) return;
-      var match = findDissolveArc(obj);
-      if (!match) buildRing(obj);
-    }
-
-    function addRing(arcs, i) {
-      if (i in dissolveShapes === false) {
-        dissolveShapes[i] = [];
-      }
-      dissolveShapes[i].push(arcs);
-    }
-
-    // Generate a dissolved ring
-    // @firstArc the first arc instance in the ring
-    //
-    function buildRing(firstArc) {
-      var newArcs = [firstArc.arcId],
-          nextArc = getNextArc(firstArc);
-          firstArc.used = true;
-
-      while (nextArc && nextArc != firstArc) {
-        newArcs.push(nextArc.arcId);
-        nextArc.used = true;
-        nextArc = getNextArc(nextArc);
-        if (nextArc && nextArc != firstArc && nextArc.used) error("buildRing() topology error");
-      }
-
-      if (!nextArc) error("buildRing() traversal error");
-      firstArc.used = true;
-      addRing(newArcs, getGroupId(firstArc.shapeId));
-    }
-
-    // Get the next arc in a dissolved polygon ring
-    // @obj an undissolvable arc instance
-    //
-    function getNextArc(obj, depth) {
-      var next = getNextSegment(obj, segments, shapes),
-          match;
-      depth = depth || 0;
-      if (next != obj) {
-        match = findDissolveArc(next);
-        if (match) {
-          if (depth > 100) {
-            error ('deep recursion -- unhandled topology problem');
-          }
-          // if (match.part.arcs.length == 1) {
-          if (shapes[match.shapeId][match.partId].length == 1) {
-            // case: @obj has an island inclusion -- keep traversing @obj
-            // TODO: test case if @next is first arc in the ring
-            next = getNextArc(next, depth + 1);
+      let hindex = 0;
+      if (eindex < elen && findex < flen) {
+          if ((fnow > enow) === (fnow > -enow)) {
+              Qnew = enow + Q;
+              hh = Q - (Qnew - enow);
+              enow = e[++eindex];
           } else {
-            next = getNextArc(match, depth + 1);
+              Qnew = fnow + Q;
+              hh = Q - (Qnew - fnow);
+              fnow = f[++findex];
           }
-        }
+          Q = Qnew;
+          if (hh !== 0) {
+              h[hindex++] = hh;
+          }
+          while (eindex < elen && findex < flen) {
+              if ((fnow > enow) === (fnow > -enow)) {
+                  Qnew = Q + enow;
+                  bvirt = Qnew - Q;
+                  hh = Q - (Qnew - bvirt) + (enow - bvirt);
+                  enow = e[++eindex];
+              } else {
+                  Qnew = Q + fnow;
+                  bvirt = Qnew - Q;
+                  hh = Q - (Qnew - bvirt) + (fnow - bvirt);
+                  fnow = f[++findex];
+              }
+              Q = Qnew;
+              if (hh !== 0) {
+                  h[hindex++] = hh;
+              }
+          }
       }
-      return next;
-    }
-
-    // Look for an arc instance that can be dissolved with segment @obj
-    // (must be going the opposite direction and have same dissolve key, etc)
-    // Return matching segment or null if no match
-    //
-    function findDissolveArc(obj) {
-      var dissolveId = getGroupId(obj.shapeId), // obj.shape.dissolveKey,
-          match, matchId;
-      matchId = utils.find(obj.group, function(i) {
-        var a = obj,
-            b = segments[i];
-        if (a == b ||
-            b.used ||
-            getGroupId(b.shapeId) !== dissolveId ||
-            // don't prevent rings from dissolving with themselves (risky?)
-            // a.shapeId == b.shapeId && a.partId == b.partId ||
-            a.arcId != ~b.arcId) return false;
-        return true;
-      });
-      match = matchId === null ? null : segments[matchId];
-      return match;
-    }
+      while (eindex < elen) {
+          Qnew = Q + enow;
+          bvirt = Qnew - Q;
+          hh = Q - (Qnew - bvirt) + (enow - bvirt);
+          enow = e[++eindex];
+          Q = Qnew;
+          if (hh !== 0) {
+              h[hindex++] = hh;
+          }
+      }
+      while (findex < flen) {
+          Qnew = Q + fnow;
+          bvirt = Qnew - Q;
+          hh = Q - (Qnew - bvirt) + (fnow - bvirt);
+          fnow = f[++findex];
+          Q = Qnew;
+          if (hh !== 0) {
+              h[hindex++] = hh;
+          }
+      }
+      if (Q !== 0 || hindex === 0) {
+          h[hindex++] = Q;
+      }
+      return hindex;
   }
 
-  function getNextSegment(seg, segments, shapes) {
-    return getSegmentByOffs(seg, segments, shapes, 1);
+  function sum_three(alen, a, blen, b, clen, c, tmp, out) {
+      return sum(sum(alen, a, blen, b, tmp), tmp, clen, c, out);
   }
 
-  function getPrevSegment(seg, segments, shapes) {
-    return getSegmentByOffs(seg, segments, shapes, -1);
+  // scale_expansion_zeroelim routine from oritinal code
+  function scale(elen, e, b, h) {
+      let Q, sum, hh, product1, product0;
+      let bvirt, c, ahi, alo, bhi, blo;
+
+      c = splitter * b;
+      bhi = c - (c - b);
+      blo = b - bhi;
+      let enow = e[0];
+      Q = enow * b;
+      c = splitter * enow;
+      ahi = c - (c - enow);
+      alo = enow - ahi;
+      hh = alo * blo - (Q - ahi * bhi - alo * bhi - ahi * blo);
+      let hindex = 0;
+      if (hh !== 0) {
+          h[hindex++] = hh;
+      }
+      for (let i = 1; i < elen; i++) {
+          enow = e[i];
+          product1 = enow * b;
+          c = splitter * enow;
+          ahi = c - (c - enow);
+          alo = enow - ahi;
+          product0 = alo * blo - (product1 - ahi * bhi - alo * bhi - ahi * blo);
+          sum = Q + product0;
+          bvirt = sum - Q;
+          hh = Q - (sum - bvirt) + (product0 - bvirt);
+          if (hh !== 0) {
+              h[hindex++] = hh;
+          }
+          Q = product1 + sum;
+          hh = sum - (Q - product1);
+          if (hh !== 0) {
+              h[hindex++] = hh;
+          }
+      }
+      if (Q !== 0 || hindex === 0) {
+          h[hindex++] = Q;
+      }
+      return hindex;
   }
 
-  function getSegmentByOffs(seg, segments, shapes, offs) {
-    var arcs = shapes[seg.shapeId][seg.partId],
-        partLen = arcs.length,
-        nextOffs = (seg.i + offs) % partLen,
-        nextSeg;
-    if (nextOffs < 0) nextOffs += partLen;
-    nextSeg = segments[seg.segId - seg.i + nextOffs];
-    if (!nextSeg || nextSeg.shapeId != seg.shapeId) error("index error");
-    return nextSeg;
+  function negate(elen, e) {
+      for (let i = 0; i < elen; i++) e[i] = -e[i];
+      return elen;
   }
 
-  var PolygonDissolve = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    dissolvePolygonGeometry: dissolvePolygonGeometry
-  });
+  function estimate(elen, e) {
+      let Q = e[0];
+      for (let i = 1; i < elen; i++) Q += e[i];
+      return Q;
+  }
 
-  // Generate a dissolved layer
-  // @opts.fields (optional) names of data fields (dissolves all if falsy)
-  // @opts.sum-fields (Array) (optional)
-  // @opts.copy-fields (Array) (optional)
-  //
-  cmd.dissolve = function(lyr, arcs, opts) {
-    var dissolveShapes, getGroupId;
-    opts = utils.extend({}, opts);
-    if (opts.where) {
-      return applyCommandToLayerSelection(cmd.dissolve, lyr, arcs, opts);
+  function vec(n) {
+      return new Float64Array(n);
+  }
+
+  const ccwerrboundA = (3 + 16 * epsilon) * epsilon;
+  const ccwerrboundB = (2 + 12 * epsilon) * epsilon;
+  const ccwerrboundC = (9 + 64 * epsilon) * epsilon * epsilon;
+
+  const B$1 = vec(4);
+  const C1 = vec(8);
+  const C2 = vec(12);
+  const D = vec(16);
+  const u$2 = vec(4);
+
+  function orient2dadapt(ax, ay, bx, by, cx, cy, detsum) {
+      let acxtail, acytail, bcxtail, bcytail;
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _0, s1, s0, t1, t0, u3;
+
+      const acx = ax - cx;
+      const bcx = bx - cx;
+      const acy = ay - cy;
+      const bcy = by - cy;
+
+      s1 = acx * bcy;
+      c = splitter * acx;
+      ahi = c - (c - acx);
+      alo = acx - ahi;
+      c = splitter * bcy;
+      bhi = c - (c - bcy);
+      blo = bcy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = acy * bcx;
+      c = splitter * acy;
+      ahi = c - (c - acy);
+      alo = acy - ahi;
+      c = splitter * bcx;
+      bhi = c - (c - bcx);
+      blo = bcx - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      B$1[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      B$1[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      B$1[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      B$1[3] = u3;
+
+      let det = estimate(4, B$1);
+      let errbound = ccwerrboundB * detsum;
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      bvirt = ax - acx;
+      acxtail = ax - (acx + bvirt) + (bvirt - cx);
+      bvirt = bx - bcx;
+      bcxtail = bx - (bcx + bvirt) + (bvirt - cx);
+      bvirt = ay - acy;
+      acytail = ay - (acy + bvirt) + (bvirt - cy);
+      bvirt = by - bcy;
+      bcytail = by - (bcy + bvirt) + (bvirt - cy);
+
+      if (acxtail === 0 && acytail === 0 && bcxtail === 0 && bcytail === 0) {
+          return det;
+      }
+
+      errbound = ccwerrboundC * detsum + resulterrbound * Math.abs(det);
+      det += (acx * bcytail + bcy * acxtail) - (acy * bcxtail + bcx * acytail);
+      if (det >= errbound || -det >= errbound) return det;
+
+      s1 = acxtail * bcy;
+      c = splitter * acxtail;
+      ahi = c - (c - acxtail);
+      alo = acxtail - ahi;
+      c = splitter * bcy;
+      bhi = c - (c - bcy);
+      blo = bcy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = acytail * bcx;
+      c = splitter * acytail;
+      ahi = c - (c - acytail);
+      alo = acytail - ahi;
+      c = splitter * bcx;
+      bhi = c - (c - bcx);
+      blo = bcx - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      u$2[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      u$2[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      u$2[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      u$2[3] = u3;
+      const C1len = sum(4, B$1, 4, u$2, C1);
+
+      s1 = acx * bcytail;
+      c = splitter * acx;
+      ahi = c - (c - acx);
+      alo = acx - ahi;
+      c = splitter * bcytail;
+      bhi = c - (c - bcytail);
+      blo = bcytail - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = acy * bcxtail;
+      c = splitter * acy;
+      ahi = c - (c - acy);
+      alo = acy - ahi;
+      c = splitter * bcxtail;
+      bhi = c - (c - bcxtail);
+      blo = bcxtail - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      u$2[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      u$2[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      u$2[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      u$2[3] = u3;
+      const C2len = sum(C1len, C1, 4, u$2, C2);
+
+      s1 = acxtail * bcytail;
+      c = splitter * acxtail;
+      ahi = c - (c - acxtail);
+      alo = acxtail - ahi;
+      c = splitter * bcytail;
+      bhi = c - (c - bcytail);
+      blo = bcytail - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = acytail * bcxtail;
+      c = splitter * acytail;
+      ahi = c - (c - acytail);
+      alo = acytail - ahi;
+      c = splitter * bcxtail;
+      bhi = c - (c - bcxtail);
+      blo = bcxtail - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      u$2[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      u$2[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      u$2[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      u$2[3] = u3;
+      const Dlen = sum(C2len, C2, 4, u$2, D);
+
+      return D[Dlen - 1];
+  }
+
+  function orient2d(ax, ay, bx, by, cx, cy) {
+      const detleft = (ay - cy) * (bx - cx);
+      const detright = (ax - cx) * (by - cy);
+      const det = detleft - detright;
+
+      if (detleft === 0 || detright === 0 || (detleft > 0) !== (detright > 0)) return det;
+
+      const detsum = Math.abs(detleft + detright);
+      if (Math.abs(det) >= ccwerrboundA * detsum) return det;
+
+      return -orient2dadapt(ax, ay, bx, by, cx, cy, detsum);
+  }
+
+  function orient2dfast(ax, ay, bx, by, cx, cy) {
+      return (ay - cy) * (bx - cx) - (ax - cx) * (by - cy);
+  }
+
+  const o3derrboundA = (7 + 56 * epsilon) * epsilon;
+  const o3derrboundB = (3 + 28 * epsilon) * epsilon;
+  const o3derrboundC = (26 + 288 * epsilon) * epsilon * epsilon;
+
+  const bc$2 = vec(4);
+  const ca$1 = vec(4);
+  const ab$2 = vec(4);
+  const at_b = vec(4);
+  const at_c = vec(4);
+  const bt_c = vec(4);
+  const bt_a = vec(4);
+  const ct_a = vec(4);
+  const ct_b = vec(4);
+  const bct$1 = vec(8);
+  const cat$1 = vec(8);
+  const abt$1 = vec(8);
+  const u$1 = vec(4);
+
+  const _8$2 = vec(8);
+  const _8b$1 = vec(8);
+  const _16$2 = vec(8);
+  const _12 = vec(12);
+
+  let fin$2 = vec(192);
+  let fin2$1 = vec(192);
+
+  function finadd$1(finlen, alen, a) {
+      finlen = sum(finlen, fin$2, alen, a, fin2$1);
+      const tmp = fin$2; fin$2 = fin2$1; fin2$1 = tmp;
+      return finlen;
+  }
+
+  function tailinit(xtail, ytail, ax, ay, bx, by, a, b) {
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _k, _0, s1, s0, t1, t0, u3, negate;
+      if (xtail === 0) {
+          if (ytail === 0) {
+              a[0] = 0;
+              b[0] = 0;
+              return 1;
+          } else {
+              negate = -ytail;
+              s1 = negate * ax;
+              c = splitter * negate;
+              ahi = c - (c - negate);
+              alo = negate - ahi;
+              c = splitter * ax;
+              bhi = c - (c - ax);
+              blo = ax - bhi;
+              a[0] = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              a[1] = s1;
+              s1 = ytail * bx;
+              c = splitter * ytail;
+              ahi = c - (c - ytail);
+              alo = ytail - ahi;
+              c = splitter * bx;
+              bhi = c - (c - bx);
+              blo = bx - bhi;
+              b[0] = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              b[1] = s1;
+              return 2;
+          }
+      } else {
+          if (ytail === 0) {
+              s1 = xtail * ay;
+              c = splitter * xtail;
+              ahi = c - (c - xtail);
+              alo = xtail - ahi;
+              c = splitter * ay;
+              bhi = c - (c - ay);
+              blo = ay - bhi;
+              a[0] = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              a[1] = s1;
+              negate = -xtail;
+              s1 = negate * by;
+              c = splitter * negate;
+              ahi = c - (c - negate);
+              alo = negate - ahi;
+              c = splitter * by;
+              bhi = c - (c - by);
+              blo = by - bhi;
+              b[0] = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              b[1] = s1;
+              return 2;
+          } else {
+              s1 = xtail * ay;
+              c = splitter * xtail;
+              ahi = c - (c - xtail);
+              alo = xtail - ahi;
+              c = splitter * ay;
+              bhi = c - (c - ay);
+              blo = ay - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = ytail * ax;
+              c = splitter * ytail;
+              ahi = c - (c - ytail);
+              alo = ytail - ahi;
+              c = splitter * ax;
+              bhi = c - (c - ax);
+              blo = ax - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 - t0;
+              bvirt = s0 - _i;
+              a[0] = s0 - (_i + bvirt) + (bvirt - t0);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 - t1;
+              bvirt = _0 - _i;
+              a[1] = _0 - (_i + bvirt) + (bvirt - t1);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              a[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              a[3] = u3;
+              s1 = ytail * bx;
+              c = splitter * ytail;
+              ahi = c - (c - ytail);
+              alo = ytail - ahi;
+              c = splitter * bx;
+              bhi = c - (c - bx);
+              blo = bx - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = xtail * by;
+              c = splitter * xtail;
+              ahi = c - (c - xtail);
+              alo = xtail - ahi;
+              c = splitter * by;
+              bhi = c - (c - by);
+              blo = by - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 - t0;
+              bvirt = s0 - _i;
+              b[0] = s0 - (_i + bvirt) + (bvirt - t0);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 - t1;
+              bvirt = _0 - _i;
+              b[1] = _0 - (_i + bvirt) + (bvirt - t1);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              b[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              b[3] = u3;
+              return 4;
+          }
+      }
+  }
+
+  function tailadd(finlen, a, b, k, z) {
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _k, _0, s1, s0, u3;
+      s1 = a * b;
+      c = splitter * a;
+      ahi = c - (c - a);
+      alo = a - ahi;
+      c = splitter * b;
+      bhi = c - (c - b);
+      blo = b - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      c = splitter * k;
+      bhi = c - (c - k);
+      blo = k - bhi;
+      _i = s0 * k;
+      c = splitter * s0;
+      ahi = c - (c - s0);
+      alo = s0 - ahi;
+      u$1[0] = alo * blo - (_i - ahi * bhi - alo * bhi - ahi * blo);
+      _j = s1 * k;
+      c = splitter * s1;
+      ahi = c - (c - s1);
+      alo = s1 - ahi;
+      _0 = alo * blo - (_j - ahi * bhi - alo * bhi - ahi * blo);
+      _k = _i + _0;
+      bvirt = _k - _i;
+      u$1[1] = _i - (_k - bvirt) + (_0 - bvirt);
+      u3 = _j + _k;
+      u$1[2] = _k - (u3 - _j);
+      u$1[3] = u3;
+      finlen = finadd$1(finlen, 4, u$1);
+      if (z !== 0) {
+          c = splitter * z;
+          bhi = c - (c - z);
+          blo = z - bhi;
+          _i = s0 * z;
+          c = splitter * s0;
+          ahi = c - (c - s0);
+          alo = s0 - ahi;
+          u$1[0] = alo * blo - (_i - ahi * bhi - alo * bhi - ahi * blo);
+          _j = s1 * z;
+          c = splitter * s1;
+          ahi = c - (c - s1);
+          alo = s1 - ahi;
+          _0 = alo * blo - (_j - ahi * bhi - alo * bhi - ahi * blo);
+          _k = _i + _0;
+          bvirt = _k - _i;
+          u$1[1] = _i - (_k - bvirt) + (_0 - bvirt);
+          u3 = _j + _k;
+          u$1[2] = _k - (u3 - _j);
+          u$1[3] = u3;
+          finlen = finadd$1(finlen, 4, u$1);
+      }
+      return finlen;
+  }
+
+  function orient3dadapt(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, permanent) {
+      let finlen;
+      let adxtail, bdxtail, cdxtail;
+      let adytail, bdytail, cdytail;
+      let adztail, bdztail, cdztail;
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _k, _0, s1, s0, t1, t0, u3;
+
+      const adx = ax - dx;
+      const bdx = bx - dx;
+      const cdx = cx - dx;
+      const ady = ay - dy;
+      const bdy = by - dy;
+      const cdy = cy - dy;
+      const adz = az - dz;
+      const bdz = bz - dz;
+      const cdz = cz - dz;
+
+      s1 = bdx * cdy;
+      c = splitter * bdx;
+      ahi = c - (c - bdx);
+      alo = bdx - ahi;
+      c = splitter * cdy;
+      bhi = c - (c - cdy);
+      blo = cdy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cdx * bdy;
+      c = splitter * cdx;
+      ahi = c - (c - cdx);
+      alo = cdx - ahi;
+      c = splitter * bdy;
+      bhi = c - (c - bdy);
+      blo = bdy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bc$2[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bc$2[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      bc$2[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      bc$2[3] = u3;
+      s1 = cdx * ady;
+      c = splitter * cdx;
+      ahi = c - (c - cdx);
+      alo = cdx - ahi;
+      c = splitter * ady;
+      bhi = c - (c - ady);
+      blo = ady - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = adx * cdy;
+      c = splitter * adx;
+      ahi = c - (c - adx);
+      alo = adx - ahi;
+      c = splitter * cdy;
+      bhi = c - (c - cdy);
+      blo = cdy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ca$1[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ca$1[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ca$1[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ca$1[3] = u3;
+      s1 = adx * bdy;
+      c = splitter * adx;
+      ahi = c - (c - adx);
+      alo = adx - ahi;
+      c = splitter * bdy;
+      bhi = c - (c - bdy);
+      blo = bdy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = bdx * ady;
+      c = splitter * bdx;
+      ahi = c - (c - bdx);
+      alo = bdx - ahi;
+      c = splitter * ady;
+      bhi = c - (c - ady);
+      blo = ady - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ab$2[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ab$2[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ab$2[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ab$2[3] = u3;
+
+      finlen = sum(
+          sum(
+              scale(4, bc$2, adz, _8$2), _8$2,
+              scale(4, ca$1, bdz, _8b$1), _8b$1, _16$2), _16$2,
+          scale(4, ab$2, cdz, _8$2), _8$2, fin$2);
+
+      let det = estimate(finlen, fin$2);
+      let errbound = o3derrboundB * permanent;
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      bvirt = ax - adx;
+      adxtail = ax - (adx + bvirt) + (bvirt - dx);
+      bvirt = bx - bdx;
+      bdxtail = bx - (bdx + bvirt) + (bvirt - dx);
+      bvirt = cx - cdx;
+      cdxtail = cx - (cdx + bvirt) + (bvirt - dx);
+      bvirt = ay - ady;
+      adytail = ay - (ady + bvirt) + (bvirt - dy);
+      bvirt = by - bdy;
+      bdytail = by - (bdy + bvirt) + (bvirt - dy);
+      bvirt = cy - cdy;
+      cdytail = cy - (cdy + bvirt) + (bvirt - dy);
+      bvirt = az - adz;
+      adztail = az - (adz + bvirt) + (bvirt - dz);
+      bvirt = bz - bdz;
+      bdztail = bz - (bdz + bvirt) + (bvirt - dz);
+      bvirt = cz - cdz;
+      cdztail = cz - (cdz + bvirt) + (bvirt - dz);
+
+      if (adxtail === 0 && bdxtail === 0 && cdxtail === 0 &&
+          adytail === 0 && bdytail === 0 && cdytail === 0 &&
+          adztail === 0 && bdztail === 0 && cdztail === 0) {
+          return det;
+      }
+
+      errbound = o3derrboundC * permanent + resulterrbound * Math.abs(det);
+      det +=
+          adz * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail)) + adztail * (bdx * cdy - bdy * cdx) +
+          bdz * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail)) + bdztail * (cdx * ady - cdy * adx) +
+          cdz * (adx * bdytail + bdy * adxtail - (ady * bdxtail + bdx * adytail)) + cdztail * (adx * bdy - ady * bdx);
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      const at_len = tailinit(adxtail, adytail, bdx, bdy, cdx, cdy, at_b, at_c);
+      const bt_len = tailinit(bdxtail, bdytail, cdx, cdy, adx, ady, bt_c, bt_a);
+      const ct_len = tailinit(cdxtail, cdytail, adx, ady, bdx, bdy, ct_a, ct_b);
+
+      const bctlen = sum(bt_len, bt_c, ct_len, ct_b, bct$1);
+      finlen = finadd$1(finlen, scale(bctlen, bct$1, adz, _16$2), _16$2);
+
+      const catlen = sum(ct_len, ct_a, at_len, at_c, cat$1);
+      finlen = finadd$1(finlen, scale(catlen, cat$1, bdz, _16$2), _16$2);
+
+      const abtlen = sum(at_len, at_b, bt_len, bt_a, abt$1);
+      finlen = finadd$1(finlen, scale(abtlen, abt$1, cdz, _16$2), _16$2);
+
+      if (adztail !== 0) {
+          finlen = finadd$1(finlen, scale(4, bc$2, adztail, _12), _12);
+          finlen = finadd$1(finlen, scale(bctlen, bct$1, adztail, _16$2), _16$2);
+      }
+      if (bdztail !== 0) {
+          finlen = finadd$1(finlen, scale(4, ca$1, bdztail, _12), _12);
+          finlen = finadd$1(finlen, scale(catlen, cat$1, bdztail, _16$2), _16$2);
+      }
+      if (cdztail !== 0) {
+          finlen = finadd$1(finlen, scale(4, ab$2, cdztail, _12), _12);
+          finlen = finadd$1(finlen, scale(abtlen, abt$1, cdztail, _16$2), _16$2);
+      }
+
+      if (adxtail !== 0) {
+          if (bdytail !== 0) {
+              finlen = tailadd(finlen, adxtail, bdytail, cdz, cdztail);
+          }
+          if (cdytail !== 0) {
+              finlen = tailadd(finlen, -adxtail, cdytail, bdz, bdztail);
+          }
+      }
+      if (bdxtail !== 0) {
+          if (cdytail !== 0) {
+              finlen = tailadd(finlen, bdxtail, cdytail, adz, adztail);
+          }
+          if (adytail !== 0) {
+              finlen = tailadd(finlen, -bdxtail, adytail, cdz, cdztail);
+          }
+      }
+      if (cdxtail !== 0) {
+          if (adytail !== 0) {
+              finlen = tailadd(finlen, cdxtail, adytail, bdz, bdztail);
+          }
+          if (bdytail !== 0) {
+              finlen = tailadd(finlen, -cdxtail, bdytail, adz, adztail);
+          }
+      }
+
+      return fin$2[finlen - 1];
+  }
+
+  function orient3d(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz) {
+      const adx = ax - dx;
+      const bdx = bx - dx;
+      const cdx = cx - dx;
+      const ady = ay - dy;
+      const bdy = by - dy;
+      const cdy = cy - dy;
+      const adz = az - dz;
+      const bdz = bz - dz;
+      const cdz = cz - dz;
+
+      const bdxcdy = bdx * cdy;
+      const cdxbdy = cdx * bdy;
+
+      const cdxady = cdx * ady;
+      const adxcdy = adx * cdy;
+
+      const adxbdy = adx * bdy;
+      const bdxady = bdx * ady;
+
+      const det =
+          adz * (bdxcdy - cdxbdy) +
+          bdz * (cdxady - adxcdy) +
+          cdz * (adxbdy - bdxady);
+
+      const permanent =
+          (Math.abs(bdxcdy) + Math.abs(cdxbdy)) * Math.abs(adz) +
+          (Math.abs(cdxady) + Math.abs(adxcdy)) * Math.abs(bdz) +
+          (Math.abs(adxbdy) + Math.abs(bdxady)) * Math.abs(cdz);
+
+      const errbound = o3derrboundA * permanent;
+      if (det > errbound || -det > errbound) {
+          return det;
+      }
+
+      return orient3dadapt(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, permanent);
+  }
+
+  function orient3dfast(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz) {
+      const adx = ax - dx;
+      const bdx = bx - dx;
+      const cdx = cx - dx;
+      const ady = ay - dy;
+      const bdy = by - dy;
+      const cdy = cy - dy;
+      const adz = az - dz;
+      const bdz = bz - dz;
+      const cdz = cz - dz;
+
+      return adx * (bdy * cdz - bdz * cdy) +
+          bdx * (cdy * adz - cdz * ady) +
+          cdx * (ady * bdz - adz * bdy);
+  }
+
+  const iccerrboundA = (10 + 96 * epsilon) * epsilon;
+  const iccerrboundB = (4 + 48 * epsilon) * epsilon;
+  const iccerrboundC = (44 + 576 * epsilon) * epsilon * epsilon;
+
+  const bc$1 = vec(4);
+  const ca = vec(4);
+  const ab$1 = vec(4);
+  const aa = vec(4);
+  const bb = vec(4);
+  const cc = vec(4);
+  const u = vec(4);
+  const v = vec(4);
+  const axtbc = vec(8);
+  const aytbc = vec(8);
+  const bxtca = vec(8);
+  const bytca = vec(8);
+  const cxtab = vec(8);
+  const cytab = vec(8);
+  const abt = vec(8);
+  const bct = vec(8);
+  const cat = vec(8);
+  const abtt = vec(4);
+  const bctt = vec(4);
+  const catt = vec(4);
+
+  const _8$1 = vec(8);
+  const _16$1 = vec(16);
+  const _16b = vec(16);
+  const _16c = vec(16);
+  const _32 = vec(32);
+  const _32b = vec(32);
+  const _48$1 = vec(48);
+  const _64 = vec(64);
+
+  let fin$1 = vec(1152);
+  let fin2 = vec(1152);
+
+  function finadd(finlen, a, alen) {
+      finlen = sum(finlen, fin$1, a, alen, fin2);
+      const tmp = fin$1; fin$1 = fin2; fin2 = tmp;
+      return finlen;
+  }
+
+  function incircleadapt(ax, ay, bx, by, cx, cy, dx, dy, permanent) {
+      let finlen;
+      let adxtail, bdxtail, cdxtail, adytail, bdytail, cdytail;
+      let axtbclen, aytbclen, bxtcalen, bytcalen, cxtablen, cytablen;
+      let abtlen, bctlen, catlen;
+      let abttlen, bcttlen, cattlen;
+      let n1, n0;
+
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _0, s1, s0, t1, t0, u3;
+
+      const adx = ax - dx;
+      const bdx = bx - dx;
+      const cdx = cx - dx;
+      const ady = ay - dy;
+      const bdy = by - dy;
+      const cdy = cy - dy;
+
+      s1 = bdx * cdy;
+      c = splitter * bdx;
+      ahi = c - (c - bdx);
+      alo = bdx - ahi;
+      c = splitter * cdy;
+      bhi = c - (c - cdy);
+      blo = cdy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cdx * bdy;
+      c = splitter * cdx;
+      ahi = c - (c - cdx);
+      alo = cdx - ahi;
+      c = splitter * bdy;
+      bhi = c - (c - bdy);
+      blo = bdy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bc$1[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bc$1[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      bc$1[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      bc$1[3] = u3;
+      s1 = cdx * ady;
+      c = splitter * cdx;
+      ahi = c - (c - cdx);
+      alo = cdx - ahi;
+      c = splitter * ady;
+      bhi = c - (c - ady);
+      blo = ady - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = adx * cdy;
+      c = splitter * adx;
+      ahi = c - (c - adx);
+      alo = adx - ahi;
+      c = splitter * cdy;
+      bhi = c - (c - cdy);
+      blo = cdy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ca[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ca[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ca[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ca[3] = u3;
+      s1 = adx * bdy;
+      c = splitter * adx;
+      ahi = c - (c - adx);
+      alo = adx - ahi;
+      c = splitter * bdy;
+      bhi = c - (c - bdy);
+      blo = bdy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = bdx * ady;
+      c = splitter * bdx;
+      ahi = c - (c - bdx);
+      alo = bdx - ahi;
+      c = splitter * ady;
+      bhi = c - (c - ady);
+      blo = ady - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ab$1[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ab$1[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ab$1[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ab$1[3] = u3;
+
+      finlen = sum(
+          sum(
+              sum(
+                  scale(scale(4, bc$1, adx, _8$1), _8$1, adx, _16$1), _16$1,
+                  scale(scale(4, bc$1, ady, _8$1), _8$1, ady, _16b), _16b, _32), _32,
+              sum(
+                  scale(scale(4, ca, bdx, _8$1), _8$1, bdx, _16$1), _16$1,
+                  scale(scale(4, ca, bdy, _8$1), _8$1, bdy, _16b), _16b, _32b), _32b, _64), _64,
+          sum(
+              scale(scale(4, ab$1, cdx, _8$1), _8$1, cdx, _16$1), _16$1,
+              scale(scale(4, ab$1, cdy, _8$1), _8$1, cdy, _16b), _16b, _32), _32, fin$1);
+
+      let det = estimate(finlen, fin$1);
+      let errbound = iccerrboundB * permanent;
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      bvirt = ax - adx;
+      adxtail = ax - (adx + bvirt) + (bvirt - dx);
+      bvirt = ay - ady;
+      adytail = ay - (ady + bvirt) + (bvirt - dy);
+      bvirt = bx - bdx;
+      bdxtail = bx - (bdx + bvirt) + (bvirt - dx);
+      bvirt = by - bdy;
+      bdytail = by - (bdy + bvirt) + (bvirt - dy);
+      bvirt = cx - cdx;
+      cdxtail = cx - (cdx + bvirt) + (bvirt - dx);
+      bvirt = cy - cdy;
+      cdytail = cy - (cdy + bvirt) + (bvirt - dy);
+      if (adxtail === 0 && bdxtail === 0 && cdxtail === 0 && adytail === 0 && bdytail === 0 && cdytail === 0) {
+          return det;
+      }
+
+      errbound = iccerrboundC * permanent + resulterrbound * Math.abs(det);
+      det += ((adx * adx + ady * ady) * ((bdx * cdytail + cdy * bdxtail) - (bdy * cdxtail + cdx * bdytail)) +
+          2 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)) +
+          ((bdx * bdx + bdy * bdy) * ((cdx * adytail + ady * cdxtail) - (cdy * adxtail + adx * cdytail)) +
+          2 * (bdx * bdxtail + bdy * bdytail) * (cdx * ady - cdy * adx)) +
+          ((cdx * cdx + cdy * cdy) * ((adx * bdytail + bdy * adxtail) - (ady * bdxtail + bdx * adytail)) +
+          2 * (cdx * cdxtail + cdy * cdytail) * (adx * bdy - ady * bdx));
+
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      if (bdxtail !== 0 || bdytail !== 0 || cdxtail !== 0 || cdytail !== 0) {
+          s1 = adx * adx;
+          c = splitter * adx;
+          ahi = c - (c - adx);
+          alo = adx - ahi;
+          s0 = alo * alo - (s1 - ahi * ahi - (ahi + ahi) * alo);
+          t1 = ady * ady;
+          c = splitter * ady;
+          ahi = c - (c - ady);
+          alo = ady - ahi;
+          t0 = alo * alo - (t1 - ahi * ahi - (ahi + ahi) * alo);
+          _i = s0 + t0;
+          bvirt = _i - s0;
+          aa[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+          _j = s1 + _i;
+          bvirt = _j - s1;
+          _0 = s1 - (_j - bvirt) + (_i - bvirt);
+          _i = _0 + t1;
+          bvirt = _i - _0;
+          aa[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+          u3 = _j + _i;
+          bvirt = u3 - _j;
+          aa[2] = _j - (u3 - bvirt) + (_i - bvirt);
+          aa[3] = u3;
+      }
+      if (cdxtail !== 0 || cdytail !== 0 || adxtail !== 0 || adytail !== 0) {
+          s1 = bdx * bdx;
+          c = splitter * bdx;
+          ahi = c - (c - bdx);
+          alo = bdx - ahi;
+          s0 = alo * alo - (s1 - ahi * ahi - (ahi + ahi) * alo);
+          t1 = bdy * bdy;
+          c = splitter * bdy;
+          ahi = c - (c - bdy);
+          alo = bdy - ahi;
+          t0 = alo * alo - (t1 - ahi * ahi - (ahi + ahi) * alo);
+          _i = s0 + t0;
+          bvirt = _i - s0;
+          bb[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+          _j = s1 + _i;
+          bvirt = _j - s1;
+          _0 = s1 - (_j - bvirt) + (_i - bvirt);
+          _i = _0 + t1;
+          bvirt = _i - _0;
+          bb[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+          u3 = _j + _i;
+          bvirt = u3 - _j;
+          bb[2] = _j - (u3 - bvirt) + (_i - bvirt);
+          bb[3] = u3;
+      }
+      if (adxtail !== 0 || adytail !== 0 || bdxtail !== 0 || bdytail !== 0) {
+          s1 = cdx * cdx;
+          c = splitter * cdx;
+          ahi = c - (c - cdx);
+          alo = cdx - ahi;
+          s0 = alo * alo - (s1 - ahi * ahi - (ahi + ahi) * alo);
+          t1 = cdy * cdy;
+          c = splitter * cdy;
+          ahi = c - (c - cdy);
+          alo = cdy - ahi;
+          t0 = alo * alo - (t1 - ahi * ahi - (ahi + ahi) * alo);
+          _i = s0 + t0;
+          bvirt = _i - s0;
+          cc[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+          _j = s1 + _i;
+          bvirt = _j - s1;
+          _0 = s1 - (_j - bvirt) + (_i - bvirt);
+          _i = _0 + t1;
+          bvirt = _i - _0;
+          cc[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+          u3 = _j + _i;
+          bvirt = u3 - _j;
+          cc[2] = _j - (u3 - bvirt) + (_i - bvirt);
+          cc[3] = u3;
+      }
+
+      if (adxtail !== 0) {
+          axtbclen = scale(4, bc$1, adxtail, axtbc);
+          finlen = finadd(finlen, sum_three(
+              scale(axtbclen, axtbc, 2 * adx, _16$1), _16$1,
+              scale(scale(4, cc, adxtail, _8$1), _8$1, bdy, _16b), _16b,
+              scale(scale(4, bb, adxtail, _8$1), _8$1, -cdy, _16c), _16c, _32, _48$1), _48$1);
+      }
+      if (adytail !== 0) {
+          aytbclen = scale(4, bc$1, adytail, aytbc);
+          finlen = finadd(finlen, sum_three(
+              scale(aytbclen, aytbc, 2 * ady, _16$1), _16$1,
+              scale(scale(4, bb, adytail, _8$1), _8$1, cdx, _16b), _16b,
+              scale(scale(4, cc, adytail, _8$1), _8$1, -bdx, _16c), _16c, _32, _48$1), _48$1);
+      }
+      if (bdxtail !== 0) {
+          bxtcalen = scale(4, ca, bdxtail, bxtca);
+          finlen = finadd(finlen, sum_three(
+              scale(bxtcalen, bxtca, 2 * bdx, _16$1), _16$1,
+              scale(scale(4, aa, bdxtail, _8$1), _8$1, cdy, _16b), _16b,
+              scale(scale(4, cc, bdxtail, _8$1), _8$1, -ady, _16c), _16c, _32, _48$1), _48$1);
+      }
+      if (bdytail !== 0) {
+          bytcalen = scale(4, ca, bdytail, bytca);
+          finlen = finadd(finlen, sum_three(
+              scale(bytcalen, bytca, 2 * bdy, _16$1), _16$1,
+              scale(scale(4, cc, bdytail, _8$1), _8$1, adx, _16b), _16b,
+              scale(scale(4, aa, bdytail, _8$1), _8$1, -cdx, _16c), _16c, _32, _48$1), _48$1);
+      }
+      if (cdxtail !== 0) {
+          cxtablen = scale(4, ab$1, cdxtail, cxtab);
+          finlen = finadd(finlen, sum_three(
+              scale(cxtablen, cxtab, 2 * cdx, _16$1), _16$1,
+              scale(scale(4, bb, cdxtail, _8$1), _8$1, ady, _16b), _16b,
+              scale(scale(4, aa, cdxtail, _8$1), _8$1, -bdy, _16c), _16c, _32, _48$1), _48$1);
+      }
+      if (cdytail !== 0) {
+          cytablen = scale(4, ab$1, cdytail, cytab);
+          finlen = finadd(finlen, sum_three(
+              scale(cytablen, cytab, 2 * cdy, _16$1), _16$1,
+              scale(scale(4, aa, cdytail, _8$1), _8$1, bdx, _16b), _16b,
+              scale(scale(4, bb, cdytail, _8$1), _8$1, -adx, _16c), _16c, _32, _48$1), _48$1);
+      }
+
+      if (adxtail !== 0 || adytail !== 0) {
+          if (bdxtail !== 0 || bdytail !== 0 || cdxtail !== 0 || cdytail !== 0) {
+              s1 = bdxtail * cdy;
+              c = splitter * bdxtail;
+              ahi = c - (c - bdxtail);
+              alo = bdxtail - ahi;
+              c = splitter * cdy;
+              bhi = c - (c - cdy);
+              blo = cdy - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = bdx * cdytail;
+              c = splitter * bdx;
+              ahi = c - (c - bdx);
+              alo = bdx - ahi;
+              c = splitter * cdytail;
+              bhi = c - (c - cdytail);
+              blo = cdytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              u[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              u[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              u[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              u[3] = u3;
+              s1 = cdxtail * -bdy;
+              c = splitter * cdxtail;
+              ahi = c - (c - cdxtail);
+              alo = cdxtail - ahi;
+              c = splitter * -bdy;
+              bhi = c - (c - -bdy);
+              blo = -bdy - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = cdx * -bdytail;
+              c = splitter * cdx;
+              ahi = c - (c - cdx);
+              alo = cdx - ahi;
+              c = splitter * -bdytail;
+              bhi = c - (c - -bdytail);
+              blo = -bdytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              v[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              v[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              v[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              v[3] = u3;
+              bctlen = sum(4, u, 4, v, bct);
+              s1 = bdxtail * cdytail;
+              c = splitter * bdxtail;
+              ahi = c - (c - bdxtail);
+              alo = bdxtail - ahi;
+              c = splitter * cdytail;
+              bhi = c - (c - cdytail);
+              blo = cdytail - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = cdxtail * bdytail;
+              c = splitter * cdxtail;
+              ahi = c - (c - cdxtail);
+              alo = cdxtail - ahi;
+              c = splitter * bdytail;
+              bhi = c - (c - bdytail);
+              blo = bdytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 - t0;
+              bvirt = s0 - _i;
+              bctt[0] = s0 - (_i + bvirt) + (bvirt - t0);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 - t1;
+              bvirt = _0 - _i;
+              bctt[1] = _0 - (_i + bvirt) + (bvirt - t1);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              bctt[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              bctt[3] = u3;
+              bcttlen = 4;
+          } else {
+              bct[0] = 0;
+              bctlen = 1;
+              bctt[0] = 0;
+              bcttlen = 1;
+          }
+          if (adxtail !== 0) {
+              const len = scale(bctlen, bct, adxtail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(axtbclen, axtbc, adxtail, _16$1), _16$1,
+                  scale(len, _16c, 2 * adx, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(bcttlen, bctt, adxtail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * adx, _16$1), _16$1,
+                  scale(len2, _8$1, adxtail, _16b), _16b,
+                  scale(len, _16c, adxtail, _32), _32, _32b, _64), _64);
+
+              if (bdytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, cc, adxtail, _8$1), _8$1, bdytail, _16$1), _16$1);
+              }
+              if (cdytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, bb, -adxtail, _8$1), _8$1, cdytail, _16$1), _16$1);
+              }
+          }
+          if (adytail !== 0) {
+              const len = scale(bctlen, bct, adytail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(aytbclen, aytbc, adytail, _16$1), _16$1,
+                  scale(len, _16c, 2 * ady, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(bcttlen, bctt, adytail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * ady, _16$1), _16$1,
+                  scale(len2, _8$1, adytail, _16b), _16b,
+                  scale(len, _16c, adytail, _32), _32, _32b, _64), _64);
+          }
+      }
+      if (bdxtail !== 0 || bdytail !== 0) {
+          if (cdxtail !== 0 || cdytail !== 0 || adxtail !== 0 || adytail !== 0) {
+              s1 = cdxtail * ady;
+              c = splitter * cdxtail;
+              ahi = c - (c - cdxtail);
+              alo = cdxtail - ahi;
+              c = splitter * ady;
+              bhi = c - (c - ady);
+              blo = ady - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = cdx * adytail;
+              c = splitter * cdx;
+              ahi = c - (c - cdx);
+              alo = cdx - ahi;
+              c = splitter * adytail;
+              bhi = c - (c - adytail);
+              blo = adytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              u[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              u[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              u[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              u[3] = u3;
+              n1 = -cdy;
+              n0 = -cdytail;
+              s1 = adxtail * n1;
+              c = splitter * adxtail;
+              ahi = c - (c - adxtail);
+              alo = adxtail - ahi;
+              c = splitter * n1;
+              bhi = c - (c - n1);
+              blo = n1 - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = adx * n0;
+              c = splitter * adx;
+              ahi = c - (c - adx);
+              alo = adx - ahi;
+              c = splitter * n0;
+              bhi = c - (c - n0);
+              blo = n0 - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              v[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              v[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              v[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              v[3] = u3;
+              catlen = sum(4, u, 4, v, cat);
+              s1 = cdxtail * adytail;
+              c = splitter * cdxtail;
+              ahi = c - (c - cdxtail);
+              alo = cdxtail - ahi;
+              c = splitter * adytail;
+              bhi = c - (c - adytail);
+              blo = adytail - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = adxtail * cdytail;
+              c = splitter * adxtail;
+              ahi = c - (c - adxtail);
+              alo = adxtail - ahi;
+              c = splitter * cdytail;
+              bhi = c - (c - cdytail);
+              blo = cdytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 - t0;
+              bvirt = s0 - _i;
+              catt[0] = s0 - (_i + bvirt) + (bvirt - t0);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 - t1;
+              bvirt = _0 - _i;
+              catt[1] = _0 - (_i + bvirt) + (bvirt - t1);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              catt[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              catt[3] = u3;
+              cattlen = 4;
+          } else {
+              cat[0] = 0;
+              catlen = 1;
+              catt[0] = 0;
+              cattlen = 1;
+          }
+          if (bdxtail !== 0) {
+              const len = scale(catlen, cat, bdxtail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(bxtcalen, bxtca, bdxtail, _16$1), _16$1,
+                  scale(len, _16c, 2 * bdx, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(cattlen, catt, bdxtail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * bdx, _16$1), _16$1,
+                  scale(len2, _8$1, bdxtail, _16b), _16b,
+                  scale(len, _16c, bdxtail, _32), _32, _32b, _64), _64);
+
+              if (cdytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, aa, bdxtail, _8$1), _8$1, cdytail, _16$1), _16$1);
+              }
+              if (adytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, cc, -bdxtail, _8$1), _8$1, adytail, _16$1), _16$1);
+              }
+          }
+          if (bdytail !== 0) {
+              const len = scale(catlen, cat, bdytail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(bytcalen, bytca, bdytail, _16$1), _16$1,
+                  scale(len, _16c, 2 * bdy, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(cattlen, catt, bdytail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * bdy, _16$1), _16$1,
+                  scale(len2, _8$1, bdytail, _16b), _16b,
+                  scale(len, _16c, bdytail, _32), _32,  _32b, _64), _64);
+          }
+      }
+      if (cdxtail !== 0 || cdytail !== 0) {
+          if (adxtail !== 0 || adytail !== 0 || bdxtail !== 0 || bdytail !== 0) {
+              s1 = adxtail * bdy;
+              c = splitter * adxtail;
+              ahi = c - (c - adxtail);
+              alo = adxtail - ahi;
+              c = splitter * bdy;
+              bhi = c - (c - bdy);
+              blo = bdy - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = adx * bdytail;
+              c = splitter * adx;
+              ahi = c - (c - adx);
+              alo = adx - ahi;
+              c = splitter * bdytail;
+              bhi = c - (c - bdytail);
+              blo = bdytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              u[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              u[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              u[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              u[3] = u3;
+              n1 = -ady;
+              n0 = -adytail;
+              s1 = bdxtail * n1;
+              c = splitter * bdxtail;
+              ahi = c - (c - bdxtail);
+              alo = bdxtail - ahi;
+              c = splitter * n1;
+              bhi = c - (c - n1);
+              blo = n1 - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = bdx * n0;
+              c = splitter * bdx;
+              ahi = c - (c - bdx);
+              alo = bdx - ahi;
+              c = splitter * n0;
+              bhi = c - (c - n0);
+              blo = n0 - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 + t0;
+              bvirt = _i - s0;
+              v[0] = s0 - (_i - bvirt) + (t0 - bvirt);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 + t1;
+              bvirt = _i - _0;
+              v[1] = _0 - (_i - bvirt) + (t1 - bvirt);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              v[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              v[3] = u3;
+              abtlen = sum(4, u, 4, v, abt);
+              s1 = adxtail * bdytail;
+              c = splitter * adxtail;
+              ahi = c - (c - adxtail);
+              alo = adxtail - ahi;
+              c = splitter * bdytail;
+              bhi = c - (c - bdytail);
+              blo = bdytail - bhi;
+              s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+              t1 = bdxtail * adytail;
+              c = splitter * bdxtail;
+              ahi = c - (c - bdxtail);
+              alo = bdxtail - ahi;
+              c = splitter * adytail;
+              bhi = c - (c - adytail);
+              blo = adytail - bhi;
+              t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+              _i = s0 - t0;
+              bvirt = s0 - _i;
+              abtt[0] = s0 - (_i + bvirt) + (bvirt - t0);
+              _j = s1 + _i;
+              bvirt = _j - s1;
+              _0 = s1 - (_j - bvirt) + (_i - bvirt);
+              _i = _0 - t1;
+              bvirt = _0 - _i;
+              abtt[1] = _0 - (_i + bvirt) + (bvirt - t1);
+              u3 = _j + _i;
+              bvirt = u3 - _j;
+              abtt[2] = _j - (u3 - bvirt) + (_i - bvirt);
+              abtt[3] = u3;
+              abttlen = 4;
+          } else {
+              abt[0] = 0;
+              abtlen = 1;
+              abtt[0] = 0;
+              abttlen = 1;
+          }
+          if (cdxtail !== 0) {
+              const len = scale(abtlen, abt, cdxtail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(cxtablen, cxtab, cdxtail, _16$1), _16$1,
+                  scale(len, _16c, 2 * cdx, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(abttlen, abtt, cdxtail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * cdx, _16$1), _16$1,
+                  scale(len2, _8$1, cdxtail, _16b), _16b,
+                  scale(len, _16c, cdxtail, _32), _32, _32b, _64), _64);
+
+              if (adytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, bb, cdxtail, _8$1), _8$1, adytail, _16$1), _16$1);
+              }
+              if (bdytail !== 0) {
+                  finlen = finadd(finlen, scale(scale(4, aa, -cdxtail, _8$1), _8$1, bdytail, _16$1), _16$1);
+              }
+          }
+          if (cdytail !== 0) {
+              const len = scale(abtlen, abt, cdytail, _16c);
+              finlen = finadd(finlen, sum(
+                  scale(cytablen, cytab, cdytail, _16$1), _16$1,
+                  scale(len, _16c, 2 * cdy, _32), _32, _48$1), _48$1);
+
+              const len2 = scale(abttlen, abtt, cdytail, _8$1);
+              finlen = finadd(finlen, sum_three(
+                  scale(len2, _8$1, 2 * cdy, _16$1), _16$1,
+                  scale(len2, _8$1, cdytail, _16b), _16b,
+                  scale(len, _16c, cdytail, _32), _32, _32b, _64), _64);
+          }
+      }
+
+      return fin$1[finlen - 1];
+  }
+
+  function incircle(ax, ay, bx, by, cx, cy, dx, dy) {
+      const adx = ax - dx;
+      const bdx = bx - dx;
+      const cdx = cx - dx;
+      const ady = ay - dy;
+      const bdy = by - dy;
+      const cdy = cy - dy;
+
+      const bdxcdy = bdx * cdy;
+      const cdxbdy = cdx * bdy;
+      const alift = adx * adx + ady * ady;
+
+      const cdxady = cdx * ady;
+      const adxcdy = adx * cdy;
+      const blift = bdx * bdx + bdy * bdy;
+
+      const adxbdy = adx * bdy;
+      const bdxady = bdx * ady;
+      const clift = cdx * cdx + cdy * cdy;
+
+      const det =
+          alift * (bdxcdy - cdxbdy) +
+          blift * (cdxady - adxcdy) +
+          clift * (adxbdy - bdxady);
+
+      const permanent =
+          (Math.abs(bdxcdy) + Math.abs(cdxbdy)) * alift +
+          (Math.abs(cdxady) + Math.abs(adxcdy)) * blift +
+          (Math.abs(adxbdy) + Math.abs(bdxady)) * clift;
+
+      const errbound = iccerrboundA * permanent;
+
+      if (det > errbound || -det > errbound) {
+          return det;
+      }
+      return incircleadapt(ax, ay, bx, by, cx, cy, dx, dy, permanent);
+  }
+
+  function incirclefast(ax, ay, bx, by, cx, cy, dx, dy) {
+      const adx = ax - dx;
+      const ady = ay - dy;
+      const bdx = bx - dx;
+      const bdy = by - dy;
+      const cdx = cx - dx;
+      const cdy = cy - dy;
+
+      const abdet = adx * bdy - bdx * ady;
+      const bcdet = bdx * cdy - cdx * bdy;
+      const cadet = cdx * ady - adx * cdy;
+      const alift = adx * adx + ady * ady;
+      const blift = bdx * bdx + bdy * bdy;
+      const clift = cdx * cdx + cdy * cdy;
+
+      return alift * bcdet + blift * cadet + clift * abdet;
+  }
+
+  const isperrboundA = (16 + 224 * epsilon) * epsilon;
+  const isperrboundB = (5 + 72 * epsilon) * epsilon;
+  const isperrboundC = (71 + 1408 * epsilon) * epsilon * epsilon;
+
+  const ab = vec(4);
+  const bc = vec(4);
+  const cd = vec(4);
+  const de = vec(4);
+  const ea = vec(4);
+  const ac = vec(4);
+  const bd = vec(4);
+  const ce = vec(4);
+  const da = vec(4);
+  const eb = vec(4);
+
+  const abc = vec(24);
+  const bcd = vec(24);
+  const cde = vec(24);
+  const dea = vec(24);
+  const eab = vec(24);
+  const abd = vec(24);
+  const bce = vec(24);
+  const cda = vec(24);
+  const deb = vec(24);
+  const eac = vec(24);
+
+  const adet = vec(1152);
+  const bdet = vec(1152);
+  const cdet = vec(1152);
+  const ddet = vec(1152);
+  const edet = vec(1152);
+  const abdet = vec(2304);
+  const cddet = vec(2304);
+  const cdedet = vec(3456);
+  const deter = vec(5760);
+
+  const _8 = vec(8);
+  const _8b = vec(8);
+  const _8c = vec(8);
+  const _16 = vec(16);
+  const _24 = vec(24);
+  const _48 = vec(48);
+  const _48b = vec(48);
+  const _96 = vec(96);
+  const _192 = vec(192);
+  const _384x = vec(384);
+  const _384y = vec(384);
+  const _384z = vec(384);
+  const _768 = vec(768);
+
+  function sum_three_scale(a, b, c, az, bz, cz, out) {
+      return sum_three(
+          scale(4, a, az, _8), _8,
+          scale(4, b, bz, _8b), _8b,
+          scale(4, c, cz, _8c), _8c, _16, out);
+  }
+
+  function liftexact(alen, a, blen, b, clen, c, dlen, d, x, y, z, out) {
+      const len = sum(
+          sum(alen, a, blen, b, _48), _48,
+          negate(sum(clen, c, dlen, d, _48b), _48b), _48b, _96);
+
+      return sum_three(
+          scale(scale(len, _96, x, _192), _192, x, _384x), _384x,
+          scale(scale(len, _96, y, _192), _192, y, _384y), _384y,
+          scale(scale(len, _96, z, _192), _192, z, _384z), _384z, _768, out);
+  }
+
+  function insphereexact(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez) {
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _0, s1, s0, t1, t0, u3;
+
+      s1 = ax * by;
+      c = splitter * ax;
+      ahi = c - (c - ax);
+      alo = ax - ahi;
+      c = splitter * by;
+      bhi = c - (c - by);
+      blo = by - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = bx * ay;
+      c = splitter * bx;
+      ahi = c - (c - bx);
+      alo = bx - ahi;
+      c = splitter * ay;
+      bhi = c - (c - ay);
+      blo = ay - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ab[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ab[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ab[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ab[3] = u3;
+      s1 = bx * cy;
+      c = splitter * bx;
+      ahi = c - (c - bx);
+      alo = bx - ahi;
+      c = splitter * cy;
+      bhi = c - (c - cy);
+      blo = cy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cx * by;
+      c = splitter * cx;
+      ahi = c - (c - cx);
+      alo = cx - ahi;
+      c = splitter * by;
+      bhi = c - (c - by);
+      blo = by - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bc[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bc[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      bc[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      bc[3] = u3;
+      s1 = cx * dy;
+      c = splitter * cx;
+      ahi = c - (c - cx);
+      alo = cx - ahi;
+      c = splitter * dy;
+      bhi = c - (c - dy);
+      blo = dy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = dx * cy;
+      c = splitter * dx;
+      ahi = c - (c - dx);
+      alo = dx - ahi;
+      c = splitter * cy;
+      bhi = c - (c - cy);
+      blo = cy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      cd[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      cd[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      cd[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      cd[3] = u3;
+      s1 = dx * ey;
+      c = splitter * dx;
+      ahi = c - (c - dx);
+      alo = dx - ahi;
+      c = splitter * ey;
+      bhi = c - (c - ey);
+      blo = ey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = ex * dy;
+      c = splitter * ex;
+      ahi = c - (c - ex);
+      alo = ex - ahi;
+      c = splitter * dy;
+      bhi = c - (c - dy);
+      blo = dy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      de[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      de[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      de[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      de[3] = u3;
+      s1 = ex * ay;
+      c = splitter * ex;
+      ahi = c - (c - ex);
+      alo = ex - ahi;
+      c = splitter * ay;
+      bhi = c - (c - ay);
+      blo = ay - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = ax * ey;
+      c = splitter * ax;
+      ahi = c - (c - ax);
+      alo = ax - ahi;
+      c = splitter * ey;
+      bhi = c - (c - ey);
+      blo = ey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ea[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ea[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ea[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ea[3] = u3;
+      s1 = ax * cy;
+      c = splitter * ax;
+      ahi = c - (c - ax);
+      alo = ax - ahi;
+      c = splitter * cy;
+      bhi = c - (c - cy);
+      blo = cy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cx * ay;
+      c = splitter * cx;
+      ahi = c - (c - cx);
+      alo = cx - ahi;
+      c = splitter * ay;
+      bhi = c - (c - ay);
+      blo = ay - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ac[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ac[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ac[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ac[3] = u3;
+      s1 = bx * dy;
+      c = splitter * bx;
+      ahi = c - (c - bx);
+      alo = bx - ahi;
+      c = splitter * dy;
+      bhi = c - (c - dy);
+      blo = dy - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = dx * by;
+      c = splitter * dx;
+      ahi = c - (c - dx);
+      alo = dx - ahi;
+      c = splitter * by;
+      bhi = c - (c - by);
+      blo = by - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bd[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bd[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      bd[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      bd[3] = u3;
+      s1 = cx * ey;
+      c = splitter * cx;
+      ahi = c - (c - cx);
+      alo = cx - ahi;
+      c = splitter * ey;
+      bhi = c - (c - ey);
+      blo = ey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = ex * cy;
+      c = splitter * ex;
+      ahi = c - (c - ex);
+      alo = ex - ahi;
+      c = splitter * cy;
+      bhi = c - (c - cy);
+      blo = cy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ce[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ce[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      ce[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      ce[3] = u3;
+      s1 = dx * ay;
+      c = splitter * dx;
+      ahi = c - (c - dx);
+      alo = dx - ahi;
+      c = splitter * ay;
+      bhi = c - (c - ay);
+      blo = ay - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = ax * dy;
+      c = splitter * ax;
+      ahi = c - (c - ax);
+      alo = ax - ahi;
+      c = splitter * dy;
+      bhi = c - (c - dy);
+      blo = dy - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      da[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      da[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      da[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      da[3] = u3;
+      s1 = ex * by;
+      c = splitter * ex;
+      ahi = c - (c - ex);
+      alo = ex - ahi;
+      c = splitter * by;
+      bhi = c - (c - by);
+      blo = by - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = bx * ey;
+      c = splitter * bx;
+      ahi = c - (c - bx);
+      alo = bx - ahi;
+      c = splitter * ey;
+      bhi = c - (c - ey);
+      blo = ey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      eb[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      eb[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      u3 = _j + _i;
+      bvirt = u3 - _j;
+      eb[2] = _j - (u3 - bvirt) + (_i - bvirt);
+      eb[3] = u3;
+
+      const abclen = sum_three_scale(ab, bc, ac, cz, az, -bz, abc);
+      const bcdlen = sum_three_scale(bc, cd, bd, dz, bz, -cz, bcd);
+      const cdelen = sum_three_scale(cd, de, ce, ez, cz, -dz, cde);
+      const dealen = sum_three_scale(de, ea, da, az, dz, -ez, dea);
+      const eablen = sum_three_scale(ea, ab, eb, bz, ez, -az, eab);
+      const abdlen = sum_three_scale(ab, bd, da, dz, az, bz, abd);
+      const bcelen = sum_three_scale(bc, ce, eb, ez, bz, cz, bce);
+      const cdalen = sum_three_scale(cd, da, ac, az, cz, dz, cda);
+      const deblen = sum_three_scale(de, eb, bd, bz, dz, ez, deb);
+      const eaclen = sum_three_scale(ea, ac, ce, cz, ez, az, eac);
+
+      const deterlen = sum_three(
+          liftexact(cdelen, cde, bcelen, bce, deblen, deb, bcdlen, bcd, ax, ay, az, adet), adet,
+          liftexact(dealen, dea, cdalen, cda, eaclen, eac, cdelen, cde, bx, by, bz, bdet), bdet,
+          sum_three(
+              liftexact(eablen, eab, deblen, deb, abdlen, abd, dealen, dea, cx, cy, cz, cdet), cdet,
+              liftexact(abclen, abc, eaclen, eac, bcelen, bce, eablen, eab, dx, dy, dz, ddet), ddet,
+              liftexact(bcdlen, bcd, abdlen, abd, cdalen, cda, abclen, abc, ex, ey, ez, edet), edet, cddet, cdedet), cdedet, abdet, deter);
+
+      return deter[deterlen - 1];
+  }
+
+  const xdet = vec(96);
+  const ydet = vec(96);
+  const zdet = vec(96);
+  const fin = vec(1152);
+
+  function liftadapt(a, b, c, az, bz, cz, x, y, z, out) {
+      const len = sum_three_scale(a, b, c, az, bz, cz, _24);
+      return sum_three(
+          scale(scale(len, _24, x, _48), _48, x, xdet), xdet,
+          scale(scale(len, _24, y, _48), _48, y, ydet), ydet,
+          scale(scale(len, _24, z, _48), _48, z, zdet), zdet, _192, out);
+  }
+
+  function insphereadapt(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez, permanent) {
+      let ab3, bc3, cd3, da3, ac3, bd3;
+
+      let aextail, bextail, cextail, dextail;
+      let aeytail, beytail, ceytail, deytail;
+      let aeztail, beztail, ceztail, deztail;
+
+      let bvirt, c, ahi, alo, bhi, blo, _i, _j, _0, s1, s0, t1, t0;
+
+      const aex = ax - ex;
+      const bex = bx - ex;
+      const cex = cx - ex;
+      const dex = dx - ex;
+      const aey = ay - ey;
+      const bey = by - ey;
+      const cey = cy - ey;
+      const dey = dy - ey;
+      const aez = az - ez;
+      const bez = bz - ez;
+      const cez = cz - ez;
+      const dez = dz - ez;
+
+      s1 = aex * bey;
+      c = splitter * aex;
+      ahi = c - (c - aex);
+      alo = aex - ahi;
+      c = splitter * bey;
+      bhi = c - (c - bey);
+      blo = bey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = bex * aey;
+      c = splitter * bex;
+      ahi = c - (c - bex);
+      alo = bex - ahi;
+      c = splitter * aey;
+      bhi = c - (c - aey);
+      blo = aey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ab[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ab[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      ab3 = _j + _i;
+      bvirt = ab3 - _j;
+      ab[2] = _j - (ab3 - bvirt) + (_i - bvirt);
+      ab[3] = ab3;
+      s1 = bex * cey;
+      c = splitter * bex;
+      ahi = c - (c - bex);
+      alo = bex - ahi;
+      c = splitter * cey;
+      bhi = c - (c - cey);
+      blo = cey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cex * bey;
+      c = splitter * cex;
+      ahi = c - (c - cex);
+      alo = cex - ahi;
+      c = splitter * bey;
+      bhi = c - (c - bey);
+      blo = bey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bc[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bc[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      bc3 = _j + _i;
+      bvirt = bc3 - _j;
+      bc[2] = _j - (bc3 - bvirt) + (_i - bvirt);
+      bc[3] = bc3;
+      s1 = cex * dey;
+      c = splitter * cex;
+      ahi = c - (c - cex);
+      alo = cex - ahi;
+      c = splitter * dey;
+      bhi = c - (c - dey);
+      blo = dey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = dex * cey;
+      c = splitter * dex;
+      ahi = c - (c - dex);
+      alo = dex - ahi;
+      c = splitter * cey;
+      bhi = c - (c - cey);
+      blo = cey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      cd[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      cd[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      cd3 = _j + _i;
+      bvirt = cd3 - _j;
+      cd[2] = _j - (cd3 - bvirt) + (_i - bvirt);
+      cd[3] = cd3;
+      s1 = dex * aey;
+      c = splitter * dex;
+      ahi = c - (c - dex);
+      alo = dex - ahi;
+      c = splitter * aey;
+      bhi = c - (c - aey);
+      blo = aey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = aex * dey;
+      c = splitter * aex;
+      ahi = c - (c - aex);
+      alo = aex - ahi;
+      c = splitter * dey;
+      bhi = c - (c - dey);
+      blo = dey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      da[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      da[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      da3 = _j + _i;
+      bvirt = da3 - _j;
+      da[2] = _j - (da3 - bvirt) + (_i - bvirt);
+      da[3] = da3;
+      s1 = aex * cey;
+      c = splitter * aex;
+      ahi = c - (c - aex);
+      alo = aex - ahi;
+      c = splitter * cey;
+      bhi = c - (c - cey);
+      blo = cey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = cex * aey;
+      c = splitter * cex;
+      ahi = c - (c - cex);
+      alo = cex - ahi;
+      c = splitter * aey;
+      bhi = c - (c - aey);
+      blo = aey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      ac[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      ac[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      ac3 = _j + _i;
+      bvirt = ac3 - _j;
+      ac[2] = _j - (ac3 - bvirt) + (_i - bvirt);
+      ac[3] = ac3;
+      s1 = bex * dey;
+      c = splitter * bex;
+      ahi = c - (c - bex);
+      alo = bex - ahi;
+      c = splitter * dey;
+      bhi = c - (c - dey);
+      blo = dey - bhi;
+      s0 = alo * blo - (s1 - ahi * bhi - alo * bhi - ahi * blo);
+      t1 = dex * bey;
+      c = splitter * dex;
+      ahi = c - (c - dex);
+      alo = dex - ahi;
+      c = splitter * bey;
+      bhi = c - (c - bey);
+      blo = bey - bhi;
+      t0 = alo * blo - (t1 - ahi * bhi - alo * bhi - ahi * blo);
+      _i = s0 - t0;
+      bvirt = s0 - _i;
+      bd[0] = s0 - (_i + bvirt) + (bvirt - t0);
+      _j = s1 + _i;
+      bvirt = _j - s1;
+      _0 = s1 - (_j - bvirt) + (_i - bvirt);
+      _i = _0 - t1;
+      bvirt = _0 - _i;
+      bd[1] = _0 - (_i + bvirt) + (bvirt - t1);
+      bd3 = _j + _i;
+      bvirt = bd3 - _j;
+      bd[2] = _j - (bd3 - bvirt) + (_i - bvirt);
+      bd[3] = bd3;
+
+      const finlen = sum(
+          sum(
+              negate(liftadapt(bc, cd, bd, dez, bez, -cez, aex, aey, aez, adet), adet), adet,
+              liftadapt(cd, da, ac, aez, cez, dez, bex, bey, bez, bdet), bdet, abdet), abdet,
+          sum(
+              negate(liftadapt(da, ab, bd, bez, dez, aez, cex, cey, cez, cdet), cdet), cdet,
+              liftadapt(ab, bc, ac, cez, aez, -bez, dex, dey, dez, ddet), ddet, cddet), cddet, fin);
+
+      let det = estimate(finlen, fin);
+      let errbound = isperrboundB * permanent;
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      bvirt = ax - aex;
+      aextail = ax - (aex + bvirt) + (bvirt - ex);
+      bvirt = ay - aey;
+      aeytail = ay - (aey + bvirt) + (bvirt - ey);
+      bvirt = az - aez;
+      aeztail = az - (aez + bvirt) + (bvirt - ez);
+      bvirt = bx - bex;
+      bextail = bx - (bex + bvirt) + (bvirt - ex);
+      bvirt = by - bey;
+      beytail = by - (bey + bvirt) + (bvirt - ey);
+      bvirt = bz - bez;
+      beztail = bz - (bez + bvirt) + (bvirt - ez);
+      bvirt = cx - cex;
+      cextail = cx - (cex + bvirt) + (bvirt - ex);
+      bvirt = cy - cey;
+      ceytail = cy - (cey + bvirt) + (bvirt - ey);
+      bvirt = cz - cez;
+      ceztail = cz - (cez + bvirt) + (bvirt - ez);
+      bvirt = dx - dex;
+      dextail = dx - (dex + bvirt) + (bvirt - ex);
+      bvirt = dy - dey;
+      deytail = dy - (dey + bvirt) + (bvirt - ey);
+      bvirt = dz - dez;
+      deztail = dz - (dez + bvirt) + (bvirt - ez);
+      if (aextail === 0 && aeytail === 0 && aeztail === 0 &&
+          bextail === 0 && beytail === 0 && beztail === 0 &&
+          cextail === 0 && ceytail === 0 && ceztail === 0 &&
+          dextail === 0 && deytail === 0 && deztail === 0) {
+          return det;
+      }
+
+      errbound = isperrboundC * permanent + resulterrbound * Math.abs(det);
+
+      const abeps = (aex * beytail + bey * aextail) - (aey * bextail + bex * aeytail);
+      const bceps = (bex * ceytail + cey * bextail) - (bey * cextail + cex * beytail);
+      const cdeps = (cex * deytail + dey * cextail) - (cey * dextail + dex * ceytail);
+      const daeps = (dex * aeytail + aey * dextail) - (dey * aextail + aex * deytail);
+      const aceps = (aex * ceytail + cey * aextail) - (aey * cextail + cex * aeytail);
+      const bdeps = (bex * deytail + dey * bextail) - (bey * dextail + dex * beytail);
+      det +=
+          (((bex * bex + bey * bey + bez * bez) * ((cez * daeps + dez * aceps + aez * cdeps) +
+          (ceztail * da3 + deztail * ac3 + aeztail * cd3)) + (dex * dex + dey * dey + dez * dez) *
+          ((aez * bceps - bez * aceps + cez * abeps) + (aeztail * bc3 - beztail * ac3 + ceztail * ab3))) -
+          ((aex * aex + aey * aey + aez * aez) * ((bez * cdeps - cez * bdeps + dez * bceps) +
+          (beztail * cd3 - ceztail * bd3 + deztail * bc3)) + (cex * cex + cey * cey + cez * cez) *
+          ((dez * abeps + aez * bdeps + bez * daeps) + (deztail * ab3 + aeztail * bd3 + beztail * da3)))) +
+          2 * (((bex * bextail + bey * beytail + bez * beztail) * (cez * da3 + dez * ac3 + aez * cd3) +
+          (dex * dextail + dey * deytail + dez * deztail) * (aez * bc3 - bez * ac3 + cez * ab3)) -
+          ((aex * aextail + aey * aeytail + aez * aeztail) * (bez * cd3 - cez * bd3 + dez * bc3) +
+          (cex * cextail + cey * ceytail + cez * ceztail) * (dez * ab3 + aez * bd3 + bez * da3)));
+
+      if (det >= errbound || -det >= errbound) {
+          return det;
+      }
+
+      return insphereexact(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez);
+  }
+
+  function insphere(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez) {
+      const aex = ax - ex;
+      const bex = bx - ex;
+      const cex = cx - ex;
+      const dex = dx - ex;
+      const aey = ay - ey;
+      const bey = by - ey;
+      const cey = cy - ey;
+      const dey = dy - ey;
+      const aez = az - ez;
+      const bez = bz - ez;
+      const cez = cz - ez;
+      const dez = dz - ez;
+
+      const aexbey = aex * bey;
+      const bexaey = bex * aey;
+      const ab = aexbey - bexaey;
+      const bexcey = bex * cey;
+      const cexbey = cex * bey;
+      const bc = bexcey - cexbey;
+      const cexdey = cex * dey;
+      const dexcey = dex * cey;
+      const cd = cexdey - dexcey;
+      const dexaey = dex * aey;
+      const aexdey = aex * dey;
+      const da = dexaey - aexdey;
+      const aexcey = aex * cey;
+      const cexaey = cex * aey;
+      const ac = aexcey - cexaey;
+      const bexdey = bex * dey;
+      const dexbey = dex * bey;
+      const bd = bexdey - dexbey;
+
+      const abc = aez * bc - bez * ac + cez * ab;
+      const bcd = bez * cd - cez * bd + dez * bc;
+      const cda = cez * da + dez * ac + aez * cd;
+      const dab = dez * ab + aez * bd + bez * da;
+
+      const alift = aex * aex + aey * aey + aez * aez;
+      const blift = bex * bex + bey * bey + bez * bez;
+      const clift = cex * cex + cey * cey + cez * cez;
+      const dlift = dex * dex + dey * dey + dez * dez;
+
+      const det = (clift * dab - dlift * abc) + (alift * bcd - blift * cda);
+
+      const aezplus = Math.abs(aez);
+      const bezplus = Math.abs(bez);
+      const cezplus = Math.abs(cez);
+      const dezplus = Math.abs(dez);
+      const aexbeyplus = Math.abs(aexbey);
+      const bexaeyplus = Math.abs(bexaey);
+      const bexceyplus = Math.abs(bexcey);
+      const cexbeyplus = Math.abs(cexbey);
+      const cexdeyplus = Math.abs(cexdey);
+      const dexceyplus = Math.abs(dexcey);
+      const dexaeyplus = Math.abs(dexaey);
+      const aexdeyplus = Math.abs(aexdey);
+      const aexceyplus = Math.abs(aexcey);
+      const cexaeyplus = Math.abs(cexaey);
+      const bexdeyplus = Math.abs(bexdey);
+      const dexbeyplus = Math.abs(dexbey);
+      const permanent =
+          ((cexdeyplus + dexceyplus) * bezplus + (dexbeyplus + bexdeyplus) * cezplus + (bexceyplus + cexbeyplus) * dezplus) * alift +
+          ((dexaeyplus + aexdeyplus) * cezplus + (aexceyplus + cexaeyplus) * dezplus + (cexdeyplus + dexceyplus) * aezplus) * blift +
+          ((aexbeyplus + bexaeyplus) * dezplus + (bexdeyplus + dexbeyplus) * aezplus + (dexaeyplus + aexdeyplus) * bezplus) * clift +
+          ((bexceyplus + cexbeyplus) * aezplus + (cexaeyplus + aexceyplus) * bezplus + (aexbeyplus + bexaeyplus) * cezplus) * dlift;
+
+      const errbound = isperrboundA * permanent;
+      if (det > errbound || -det > errbound) {
+          return det;
+      }
+      return -insphereadapt(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, ex, ey, ez, permanent);
+  }
+
+  function inspherefast(pax, pay, paz, pbx, pby, pbz, pcx, pcy, pcz, pdx, pdy, pdz, pex, pey, pez) {
+      const aex = pax - pex;
+      const bex = pbx - pex;
+      const cex = pcx - pex;
+      const dex = pdx - pex;
+      const aey = pay - pey;
+      const bey = pby - pey;
+      const cey = pcy - pey;
+      const dey = pdy - pey;
+      const aez = paz - pez;
+      const bez = pbz - pez;
+      const cez = pcz - pez;
+      const dez = pdz - pez;
+
+      const ab = aex * bey - bex * aey;
+      const bc = bex * cey - cex * bey;
+      const cd = cex * dey - dex * cey;
+      const da = dex * aey - aex * dey;
+      const ac = aex * cey - cex * aey;
+      const bd = bex * dey - dex * bey;
+
+      const abc = aez * bc - bez * ac + cez * ab;
+      const bcd = bez * cd - cez * bd + dez * bc;
+      const cda = cez * da + dez * ac + aez * cd;
+      const dab = dez * ab + aez * bd + bez * da;
+
+      const alift = aex * aex + aey * aey + aez * aez;
+      const blift = bex * bex + bey * bey + bez * bez;
+      const clift = cex * cex + cey * cey + cez * cez;
+      const dlift = dex * dex + dey * dey + dez * dez;
+
+      return (clift * dab - dlift * abc) + (alift * bcd - blift * cda);
+  }
+
+  const EPSILON = Math.pow(2, -52);
+  const EDGE_STACK = new Uint32Array(512);
+
+  class Delaunator {
+
+      static from(points, getX = defaultGetX, getY = defaultGetY) {
+          const n = points.length;
+          const coords = new Float64Array(n * 2);
+
+          for (let i = 0; i < n; i++) {
+              const p = points[i];
+              coords[2 * i] = getX(p);
+              coords[2 * i + 1] = getY(p);
+          }
+
+          return new Delaunator(coords);
+      }
+
+      constructor(coords) {
+          const n = coords.length >> 1;
+          if (n > 0 && typeof coords[0] !== 'number') throw new Error('Expected coords to contain numbers.');
+
+          this.coords = coords;
+
+          // arrays that will store the triangulation graph
+          const maxTriangles = Math.max(2 * n - 5, 0);
+          this._triangles = new Uint32Array(maxTriangles * 3);
+          this._halfedges = new Int32Array(maxTriangles * 3);
+
+          // temporary arrays for tracking the edges of the advancing convex hull
+          this._hashSize = Math.ceil(Math.sqrt(n));
+          this._hullPrev = new Uint32Array(n); // edge to prev edge
+          this._hullNext = new Uint32Array(n); // edge to next edge
+          this._hullTri = new Uint32Array(n); // edge to adjacent triangle
+          this._hullHash = new Int32Array(this._hashSize).fill(-1); // angular edge hash
+
+          // temporary arrays for sorting points
+          this._ids = new Uint32Array(n);
+          this._dists = new Float64Array(n);
+
+          this.update();
+      }
+
+      update() {
+          const {coords, _hullPrev: hullPrev, _hullNext: hullNext, _hullTri: hullTri, _hullHash: hullHash} =  this;
+          const n = coords.length >> 1;
+
+          // populate an array of point indices; calculate input data bbox
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+
+          for (let i = 0; i < n; i++) {
+              const x = coords[2 * i];
+              const y = coords[2 * i + 1];
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+              this._ids[i] = i;
+          }
+          const cx = (minX + maxX) / 2;
+          const cy = (minY + maxY) / 2;
+
+          let minDist = Infinity;
+          let i0, i1, i2;
+
+          // pick a seed point close to the center
+          for (let i = 0; i < n; i++) {
+              const d = dist(cx, cy, coords[2 * i], coords[2 * i + 1]);
+              if (d < minDist) {
+                  i0 = i;
+                  minDist = d;
+              }
+          }
+          const i0x = coords[2 * i0];
+          const i0y = coords[2 * i0 + 1];
+
+          minDist = Infinity;
+
+          // find the point closest to the seed
+          for (let i = 0; i < n; i++) {
+              if (i === i0) continue;
+              const d = dist(i0x, i0y, coords[2 * i], coords[2 * i + 1]);
+              if (d < minDist && d > 0) {
+                  i1 = i;
+                  minDist = d;
+              }
+          }
+          let i1x = coords[2 * i1];
+          let i1y = coords[2 * i1 + 1];
+
+          let minRadius = Infinity;
+
+          // find the third point which forms the smallest circumcircle with the first two
+          for (let i = 0; i < n; i++) {
+              if (i === i0 || i === i1) continue;
+              const r = circumradius(i0x, i0y, i1x, i1y, coords[2 * i], coords[2 * i + 1]);
+              if (r < minRadius) {
+                  i2 = i;
+                  minRadius = r;
+              }
+          }
+          let i2x = coords[2 * i2];
+          let i2y = coords[2 * i2 + 1];
+
+          if (minRadius === Infinity) {
+              // order collinear points by dx (or dy if all x are identical)
+              // and return the list as a hull
+              for (let i = 0; i < n; i++) {
+                  this._dists[i] = (coords[2 * i] - coords[0]) || (coords[2 * i + 1] - coords[1]);
+              }
+              quicksort(this._ids, this._dists, 0, n - 1);
+              const hull = new Uint32Array(n);
+              let j = 0;
+              for (let i = 0, d0 = -Infinity; i < n; i++) {
+                  const id = this._ids[i];
+                  if (this._dists[id] > d0) {
+                      hull[j++] = id;
+                      d0 = this._dists[id];
+                  }
+              }
+              this.hull = hull.subarray(0, j);
+              this.triangles = new Uint32Array(0);
+              this.halfedges = new Uint32Array(0);
+              return;
+          }
+
+          // swap the order of the seed points for counter-clockwise orientation
+          if (orient2d(i0x, i0y, i1x, i1y, i2x, i2y) < 0) {
+              const i = i1;
+              const x = i1x;
+              const y = i1y;
+              i1 = i2;
+              i1x = i2x;
+              i1y = i2y;
+              i2 = i;
+              i2x = x;
+              i2y = y;
+          }
+
+          const center = circumcenter(i0x, i0y, i1x, i1y, i2x, i2y);
+          this._cx = center.x;
+          this._cy = center.y;
+
+          for (let i = 0; i < n; i++) {
+              this._dists[i] = dist(coords[2 * i], coords[2 * i + 1], center.x, center.y);
+          }
+
+          // sort the points by distance from the seed triangle circumcenter
+          quicksort(this._ids, this._dists, 0, n - 1);
+
+          // set up the seed triangle as the starting hull
+          this._hullStart = i0;
+          let hullSize = 3;
+
+          hullNext[i0] = hullPrev[i2] = i1;
+          hullNext[i1] = hullPrev[i0] = i2;
+          hullNext[i2] = hullPrev[i1] = i0;
+
+          hullTri[i0] = 0;
+          hullTri[i1] = 1;
+          hullTri[i2] = 2;
+
+          hullHash.fill(-1);
+          hullHash[this._hashKey(i0x, i0y)] = i0;
+          hullHash[this._hashKey(i1x, i1y)] = i1;
+          hullHash[this._hashKey(i2x, i2y)] = i2;
+
+          this.trianglesLen = 0;
+          this._addTriangle(i0, i1, i2, -1, -1, -1);
+
+          for (let k = 0, xp, yp; k < this._ids.length; k++) {
+              const i = this._ids[k];
+              const x = coords[2 * i];
+              const y = coords[2 * i + 1];
+
+              // skip near-duplicate points
+              if (k > 0 && Math.abs(x - xp) <= EPSILON && Math.abs(y - yp) <= EPSILON) continue;
+              xp = x;
+              yp = y;
+
+              // skip seed triangle points
+              if (i === i0 || i === i1 || i === i2) continue;
+
+              // find a visible edge on the convex hull using edge hash
+              let start = 0;
+              for (let j = 0, key = this._hashKey(x, y); j < this._hashSize; j++) {
+                  start = hullHash[(key + j) % this._hashSize];
+                  if (start !== -1 && start !== hullNext[start]) break;
+              }
+
+              start = hullPrev[start];
+              let e = start, q;
+              while (q = hullNext[e], orient2d(x, y, coords[2 * e], coords[2 * e + 1], coords[2 * q], coords[2 * q + 1]) >= 0) {
+                  e = q;
+                  if (e === start) {
+                      e = -1;
+                      break;
+                  }
+              }
+              if (e === -1) continue; // likely a near-duplicate point; skip it
+
+              // add the first triangle from the point
+              let t = this._addTriangle(e, i, hullNext[e], -1, -1, hullTri[e]);
+
+              // recursively flip triangles from the point until they satisfy the Delaunay condition
+              hullTri[i] = this._legalize(t + 2);
+              hullTri[e] = t; // keep track of boundary triangles on the hull
+              hullSize++;
+
+              // walk forward through the hull, adding more triangles and flipping recursively
+              let n = hullNext[e];
+              while (q = hullNext[n], orient2d(x, y, coords[2 * n], coords[2 * n + 1], coords[2 * q], coords[2 * q + 1]) < 0) {
+                  t = this._addTriangle(n, i, q, hullTri[i], -1, hullTri[n]);
+                  hullTri[i] = this._legalize(t + 2);
+                  hullNext[n] = n; // mark as removed
+                  hullSize--;
+                  n = q;
+              }
+
+              // walk backward from the other side, adding more triangles and flipping
+              if (e === start) {
+                  while (q = hullPrev[e], orient2d(x, y, coords[2 * q], coords[2 * q + 1], coords[2 * e], coords[2 * e + 1]) < 0) {
+                      t = this._addTriangle(q, i, e, -1, hullTri[e], hullTri[q]);
+                      this._legalize(t + 2);
+                      hullTri[q] = t;
+                      hullNext[e] = e; // mark as removed
+                      hullSize--;
+                      e = q;
+                  }
+              }
+
+              // update the hull indices
+              this._hullStart = hullPrev[i] = e;
+              hullNext[e] = hullPrev[n] = i;
+              hullNext[i] = n;
+
+              // save the two new edges in the hash table
+              hullHash[this._hashKey(x, y)] = i;
+              hullHash[this._hashKey(coords[2 * e], coords[2 * e + 1])] = e;
+          }
+
+          this.hull = new Uint32Array(hullSize);
+          for (let i = 0, e = this._hullStart; i < hullSize; i++) {
+              this.hull[i] = e;
+              e = hullNext[e];
+          }
+
+          // trim typed triangle mesh arrays
+          this.triangles = this._triangles.subarray(0, this.trianglesLen);
+          this.halfedges = this._halfedges.subarray(0, this.trianglesLen);
+      }
+
+      _hashKey(x, y) {
+          return Math.floor(pseudoAngle(x - this._cx, y - this._cy) * this._hashSize) % this._hashSize;
+      }
+
+      _legalize(a) {
+          const {_triangles: triangles, _halfedges: halfedges, coords} = this;
+
+          let i = 0;
+          let ar = 0;
+
+          // recursion eliminated with a fixed-size stack
+          while (true) {
+              const b = halfedges[a];
+
+              /* if the pair of triangles doesn't satisfy the Delaunay condition
+               * (p1 is inside the circumcircle of [p0, pl, pr]), flip them,
+               * then do the same check/flip recursively for the new pair of triangles
+               *
+               *           pl                    pl
+               *          /||\                  /  \
+               *       al/ || \bl            al/    \a
+               *        /  ||  \              /      \
+               *       /  a||b  \    flip    /___ar___\
+               *     p0\   ||   /p1   =>   p0\---bl---/p1
+               *        \  ||  /              \      /
+               *       ar\ || /br             b\    /br
+               *          \||/                  \  /
+               *           pr                    pr
+               */
+              const a0 = a - a % 3;
+              ar = a0 + (a + 2) % 3;
+
+              if (b === -1) { // convex hull edge
+                  if (i === 0) break;
+                  a = EDGE_STACK[--i];
+                  continue;
+              }
+
+              const b0 = b - b % 3;
+              const al = a0 + (a + 1) % 3;
+              const bl = b0 + (b + 2) % 3;
+
+              const p0 = triangles[ar];
+              const pr = triangles[a];
+              const pl = triangles[al];
+              const p1 = triangles[bl];
+
+              const illegal = inCircle(
+                  coords[2 * p0], coords[2 * p0 + 1],
+                  coords[2 * pr], coords[2 * pr + 1],
+                  coords[2 * pl], coords[2 * pl + 1],
+                  coords[2 * p1], coords[2 * p1 + 1]);
+
+              if (illegal) {
+                  triangles[a] = p1;
+                  triangles[b] = p0;
+
+                  const hbl = halfedges[bl];
+
+                  // edge swapped on the other side of the hull (rare); fix the halfedge reference
+                  if (hbl === -1) {
+                      let e = this._hullStart;
+                      do {
+                          if (this._hullTri[e] === bl) {
+                              this._hullTri[e] = a;
+                              break;
+                          }
+                          e = this._hullPrev[e];
+                      } while (e !== this._hullStart);
+                  }
+                  this._link(a, hbl);
+                  this._link(b, halfedges[ar]);
+                  this._link(ar, bl);
+
+                  const br = b0 + (b + 1) % 3;
+
+                  // don't worry about hitting the cap: it can only happen on extremely degenerate input
+                  if (i < EDGE_STACK.length) {
+                      EDGE_STACK[i++] = br;
+                  }
+              } else {
+                  if (i === 0) break;
+                  a = EDGE_STACK[--i];
+              }
+          }
+
+          return ar;
+      }
+
+      _link(a, b) {
+          this._halfedges[a] = b;
+          if (b !== -1) this._halfedges[b] = a;
+      }
+
+      // add a new triangle given vertex indices and adjacent half-edge ids
+      _addTriangle(i0, i1, i2, a, b, c) {
+          const t = this.trianglesLen;
+
+          this._triangles[t] = i0;
+          this._triangles[t + 1] = i1;
+          this._triangles[t + 2] = i2;
+
+          this._link(t, a);
+          this._link(t + 1, b);
+          this._link(t + 2, c);
+
+          this.trianglesLen += 3;
+
+          return t;
+      }
+  }
+
+  // monotonically increases with real angle, but doesn't need expensive trigonometry
+  function pseudoAngle(dx, dy) {
+      const p = dx / (Math.abs(dx) + Math.abs(dy));
+      return (dy > 0 ? 3 - p : 1 + p) / 4; // [0..1]
+  }
+
+  function dist(ax, ay, bx, by) {
+      const dx = ax - bx;
+      const dy = ay - by;
+      return dx * dx + dy * dy;
+  }
+
+  function inCircle(ax, ay, bx, by, cx, cy, px, py) {
+      const dx = ax - px;
+      const dy = ay - py;
+      const ex = bx - px;
+      const ey = by - py;
+      const fx = cx - px;
+      const fy = cy - py;
+
+      const ap = dx * dx + dy * dy;
+      const bp = ex * ex + ey * ey;
+      const cp = fx * fx + fy * fy;
+
+      return dx * (ey * cp - bp * fy) -
+             dy * (ex * cp - bp * fx) +
+             ap * (ex * fy - ey * fx) < 0;
+  }
+
+  function circumradius(ax, ay, bx, by, cx, cy) {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const ex = cx - ax;
+      const ey = cy - ay;
+
+      const bl = dx * dx + dy * dy;
+      const cl = ex * ex + ey * ey;
+      const d = 0.5 / (dx * ey - dy * ex);
+
+      const x = (ey * bl - dy * cl) * d;
+      const y = (dx * cl - ex * bl) * d;
+
+      return x * x + y * y;
+  }
+
+  function circumcenter(ax, ay, bx, by, cx, cy) {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const ex = cx - ax;
+      const ey = cy - ay;
+
+      const bl = dx * dx + dy * dy;
+      const cl = ex * ex + ey * ey;
+      const d = 0.5 / (dx * ey - dy * ex);
+
+      const x = ax + (ey * bl - dy * cl) * d;
+      const y = ay + (dx * cl - ex * bl) * d;
+
+      return {x, y};
+  }
+
+  function quicksort(ids, dists, left, right) {
+      if (right - left <= 20) {
+          for (let i = left + 1; i <= right; i++) {
+              const temp = ids[i];
+              const tempDist = dists[temp];
+              let j = i - 1;
+              while (j >= left && dists[ids[j]] > tempDist) ids[j + 1] = ids[j--];
+              ids[j + 1] = temp;
+          }
+      } else {
+          const median = (left + right) >> 1;
+          let i = left + 1;
+          let j = right;
+          swap(ids, median, i);
+          if (dists[ids[left]] > dists[ids[right]]) swap(ids, left, right);
+          if (dists[ids[i]] > dists[ids[right]]) swap(ids, i, right);
+          if (dists[ids[left]] > dists[ids[i]]) swap(ids, left, i);
+
+          const temp = ids[i];
+          const tempDist = dists[temp];
+          while (true) {
+              do i++; while (dists[ids[i]] < tempDist);
+              do j--; while (dists[ids[j]] > tempDist);
+              if (j < i) break;
+              swap(ids, i, j);
+          }
+          ids[left + 1] = ids[j];
+          ids[j] = temp;
+
+          if (right - i + 1 >= j - left) {
+              quicksort(ids, dists, i, right);
+              quicksort(ids, dists, left, j - 1);
+          } else {
+              quicksort(ids, dists, left, j - 1);
+              quicksort(ids, dists, i, right);
+          }
+      }
+  }
+
+  function swap(arr, i, j) {
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+  }
+
+  function defaultGetX(p) {
+      return p[0];
+  }
+  function defaultGetY(p) {
+      return p[1];
+  }
+
+  cmd.alphaShapes = function(pointLyr, targetDataset, opts) {
+    requirePointLayer(pointLyr);
+    if (opts.interval > 0 === false) {
+      stop('Expected a non-negative interval parameter');
     }
-    if (opts.field) opts.fields = [opts.field]; // support old "field" parameter
-    getGroupId = getCategoryClassifier(opts.fields, lyr.data);
-    if (opts.multipart || opts.group_points) {
-      dissolveShapes = makeMultipartShapes(lyr, getGroupId);
-    } else if (lyr.geometry_type == 'polygon') {
-      dissolveShapes = dissolvePolygonGeometry(lyr.shapes, getGroupId);
-    } else if (lyr.geometry_type == 'polyline') {
-      dissolveShapes = dissolvePolylineGeometry(lyr, getGroupId, arcs, opts);
-    } else if (lyr.geometry_type == 'point') {
-      dissolveShapes = dissolvePointGeometry(lyr, getGroupId, opts);
-    }
-    return composeDissolveLayer(lyr, dissolveShapes, getGroupId, opts);
+    var filter = getAlphaDistanceFilter(targetDataset, opts.interval);
+    var dataset = getPolygonDataset$2(pointLyr, filter, opts);
+    var merged = mergeDatasets([targetDataset, dataset]);
+    var lyr = merged.layers.pop();
+    targetDataset.arcs = merged.arcs;
+    setOutputLayerName(lyr, pointLyr, null, opts);
+    return lyr;
   };
 
-  function makeMultipartShapes(lyr, getGroupId) {
-    var shapes = cloneShapes(lyr.shapes);
-    var shapes2 = [];
-    lyr.shapes.forEach(function(shp, i) {
-      var groupId = getGroupId(i);
-      if (!shp) return;
-      if (!shapes2[groupId]) {
-        shapes2[groupId] = shp;
-      } else {
-        shapes2[groupId].push.apply(shapes2[groupId], shp);
-      }
-    });
-    return shapes2;
+  function getAlphaDistanceFilter(dataset, interval) {
+    return isLatLngDataset(dataset) ? getSphericalFilter(interval) : getPlanarFilter(interval);
   }
 
-  // @lyr: original undissolved layer
-  // @shapes: dissolved shapes
-  function composeDissolveLayer(lyr, shapes, getGroupId, opts) {
-    var records = null;
-    var lyr2;
-    if (lyr.data) {
-      records = aggregateDataRecords(lyr.data.getRecords(), getGroupId, opts);
-      // replace missing shapes with nulls
-      for (var i=0, n=records.length; i<n; i++) {
-        if (shapes && !shapes[i]) {
-          shapes[i] = null;
-        }
-      }
-    }
-    lyr2 = {
-      name: opts.no_replace ? null : lyr.name,
-      shapes: shapes,
-      data: records ? new DataTable(records) : null,
-      geometry_type: lyr.geometry_type
-    };
-    if (!opts.silent) {
-      printDissolveMessage(lyr, lyr2);
-    }
-    return lyr2;
-  }
-
-  function printDissolveMessage(pre, post) {
-    var n1 = getFeatureCount(pre),
-        n2 = getFeatureCount(post),
-        msg = utils.format('Dissolved %,d feature%s into %,d feature%s',
-          n1, utils.pluralSuffix(n1), n2,
-          utils.pluralSuffix(n2));
-    message(msg);
-  }
-
-  // Maps tile ids to shape ids (both are non-negative integers). Supports
-  //    one-to-many mapping (a tile may belong to multiple shapes)
-  // Also maps shape ids to tile ids. A shape may contain multiple tiles
-  // Also supports 'flattening' -- removing one-to-many tile-shape mappings by
-  //    removing all but one shape from a tile.
-  // Supports one-to-many mapping
-  function TileShapeIndex(mosaic, opts) {
-    // indexes for mapping tile ids to shape ids
-    var singleIndex = new Int32Array(mosaic.length);
-    utils.initializeArray(singleIndex, -1);
-    var multipleIndex = [];
-    // index that maps shape ids to tile ids
-    var shapeIndex = [];
-
-    this.getTileIdsByShapeId = function(shapeId) {
-      var ids = shapeIndex[shapeId];
-      // need to filter out tile ids that have been set to -1 (indicating removal)
-      return ids ? ids.filter(function(id) {return id >= 0;}) : [];
-    };
-
-    // assumes index has been flattened
-    this.getShapeIdByTileId = function(id) {
-      var shapeId = singleIndex[id];
-      return shapeId >= 0 ? shapeId : -1;
-    };
-
-    // return ids of all shapes that include a tile
-    this.getShapeIdsByTileId = function(id) {
-      var singleId = singleIndex[id];
-      if (singleId >= 0) {
-        return [singleId];
-      }
-      if (singleId == -1) {
-        return [];
-      }
-      return multipleIndex[id];
-    };
-
-    this.indexTileIdsByShapeId = function(shapeId, tileIds, weightFunction) {
-      // shapeIndex[shapeId] = tileIds;
-      shapeIndex[shapeId] = [];
-      for (var i=0; i<tileIds.length; i++) {
-        indexShapeIdByTileId(shapeId, tileIds[i], weightFunction);
-      }
-    };
-
-    // remove many-to-one tile=>shape mappings
-    this.flatten = function() {
-      multipleIndex.forEach(function(shapeIds, tileId) {
-        flattenStackedTile(tileId);
-      });
-      multipleIndex = [];
-    };
-
-    this.getUnusedTileIds = function() {
-      var ids = [];
-      for (var i=0, n=singleIndex.length; i<n; i++) {
-        if (singleIndex[i] == -1) ids.push(i);
-      }
-      return ids;
-    };
-
-    // used by gap fill; assumes that flatten() has been called
-    this.addTileToShape = function(shapeId, tileId) {
-      if (shapeId in shapeIndex === false || singleIndex[tileId] != -1) {
-        error('Internal error');
-      }
-      singleIndex[tileId] = shapeId;
-      shapeIndex[shapeId].push(tileId);
-    };
-
-    // add a shape id to a tile
-    function indexShapeIdByTileId(shapeId, tileId, weightFunction) {
-      var singleId = singleIndex[tileId];
-      if (singleId != -1 && opts.flat) {
-        // pick the best shape if we have a weight function
-        if (weightFunction && weightFunction(shapeId) > weightFunction(singleId)) {
-          // replace existing shape reference
-          removeTileFromShape(tileId, singleId); // bottleneck when overlaps are many
-          singleIndex[tileId] = singleId;
-          singleId = -1;
-        } else {
-          // keep existing shape reference
-          return;
-        }
-      }
-      if (singleId == -1) {
-        singleIndex[tileId] = shapeId;
-      } else if (singleId == -2) {
-        multipleIndex[tileId].push(shapeId);
-      } else {
-        multipleIndex[tileId] = [singleId, shapeId];
-        singleIndex[tileId] = -2;
-      }
-      shapeIndex[shapeId].push(tileId);
-    }
-
-
-    function flattenStackedTile(tileId) {
-      // TODO: select the best shape (using some metric)
-      var shapeIds = multipleIndex[tileId];
-      // if (!shapeIds || shapeIds.length > 1 === false) error('flattening error');
-      var selectedId = shapeIds[0];
-      var shapeId;
-      singleIndex[tileId] = selectedId; // add shape to single index
-      // remove tile from other stacked shapes
-      for (var i=0; i<shapeIds.length; i++) {
-        shapeId = shapeIds[i];
-        if (shapeId != selectedId) {
-          removeTileFromShape(tileId, shapeId);
-        }
-      }
-    }
-
-    function removeTileFromShape(tileId, shapeId) {
-      var tileIds = shapeIndex[shapeId];
-      for (var i=0; i<tileIds.length; i++) {
-        if (tileIds[i] === tileId) {
-          tileIds[i] = -1;
-          break;
-        }
-      }
-    }
-
-    // This function was a bottleneck in datasets with many overlaps
-    function removeTileFromShape_old(tileId, shapeId) {
-      shapeIndex[shapeId] = shapeIndex[shapeId].filter(function(tileId2) {
-        return tileId2 != tileId;
-      });
-      if (shapeIndex[shapeId].length > 0 === false) {
-        // TODO: make sure to test the case where a shape becomes empty
-        // error("empty shape")
-      }
-    }
-  }
-
-  // Convert an array of intersections into an ArcCollection (for display)
-  //
-
-  function getIntersectionPoints(intersections) {
-    return intersections.map(function(obj) {
-          return [obj.x, obj.y];
-        });
-  }
-
-  // Identify intersecting segments in an ArcCollection
-  //
-  // To find all intersections:
-  // 1. Assign each segment to one or more horizontal stripes/bins
-  // 2. Find intersections inside each stripe
-  // 3. Concat and dedup
-  //
-  // Re-use buffer for temp data -- Chrome's gc starts bogging down
-  // if large buffers are repeatedly created.
-  var buf;
-  function getUint32Array(count) {
-    var bytes = count * 4;
-    if (!buf || buf.byteLength < bytes) {
-      buf = new ArrayBuffer(bytes);
-    }
-    return new Uint32Array(buf, 0, count);
-  }
-
-  function findSegmentIntersections(arcs, optArg) {
-    var opts = utils.extend({}, optArg),
-        bounds = arcs.getBounds(),
-        // TODO: handle spherical bounds
-        spherical = !arcs.isPlanar() &&
-            geom.containsBounds(getWorldBounds(), bounds.toArray()),
-        ymin = bounds.ymin,
-        yrange = bounds.ymax - ymin,
-        stripeCount = opts.stripes || calcSegmentIntersectionStripeCount(arcs),
-        stripeSizes = new Uint32Array(stripeCount),
-        stripeId = stripeCount > 1 && yrange > 0 ? multiStripeId : singleStripeId,
-        i, j;
-
-    if (opts.tolerance >= 0 === false) {
-      // by default, use a small tolerance when detecting segment intersections
-      // (intended to overcome the effects of floating point rounding errors in geometrical formulas)
-      opts.tolerance = getHighPrecisionSnapInterval(bounds.toArray());
-    }
-
-    function multiStripeId(y) {
-      return Math.floor((stripeCount-1) * (y - ymin) / yrange);
-    }
-
-    function singleStripeId(y) {return 0;}
-    // Count segments in each stripe
-    arcs.forEachSegment(function(id1, id2, xx, yy) {
-      var s1 = stripeId(yy[id1]),
-          s2 = stripeId(yy[id2]);
-      while (true) {
-        stripeSizes[s1] = stripeSizes[s1] + 2;
-        if (s1 == s2) break;
-        s1 += s2 > s1 ? 1 : -1;
-      }
-    });
-
-    // Allocate arrays for segments in each stripe
-    var stripeData = getUint32Array(utils.sum(stripeSizes)),
-        offs = 0;
-    var stripes = [];
-    utils.forEach(stripeSizes, function(stripeSize) {
-      var start = offs;
-      offs += stripeSize;
-      stripes.push(stripeData.subarray(start, offs));
-    });
-    // Assign segment ids to each stripe
-    utils.initializeArray(stripeSizes, 0);
-
-    arcs.forEachSegment(function(id1, id2, xx, yy) {
-      var s1 = stripeId(yy[id1]),
-          s2 = stripeId(yy[id2]),
-          count, stripe;
-      while (true) {
-        count = stripeSizes[s1];
-        stripeSizes[s1] = count + 2;
-        stripe = stripes[s1];
-        stripe[count] = id1;
-        stripe[count+1] = id2;
-        if (s1 == s2) break;
-        s1 += s2 > s1 ? 1 : -1;
-      }
-    });
-
-    // Detect intersections among segments in each stripe.
-    var raw = arcs.getVertexData(),
-        intersections = [],
-        arr;
-    for (i=0; i<stripeCount; i++) {
-      arr = intersectSegments(stripes[i], raw.xx, raw.yy, opts);
-      for (j=0; j<arr.length; j++) {
-        intersections.push(arr[j]);
-      }
-    }
-    return dedupIntersections(intersections, opts.unique ? getUniqueIntersectionKey : null);
-  }
-
-
-  function sortIntersections(arr) {
-    arr.sort(function(a, b) {
-      return a.x - b.x || a.y - b.y;
-    });
-  }
-
-
-
-  function dedupIntersections(arr, keyFunction) {
-    var index = {};
-    var getKey = keyFunction || getIntersectionKey;
-    return arr.filter(function(o) {
-      var key = getKey(o);
-      if (key in index) {
-        return false;
-      }
-      index[key] = true;
-      return true;
-    });
-  }
-
-  // Get an indexable key from an intersection object
-  // Assumes that vertex ids of o.a and o.b are sorted
-  function getIntersectionKey(o) {
-    return o.a.join(',') + ';' + o.b.join(',');
-  }
-
-  function getUniqueIntersectionKey(o) {
-    return o.x + ',' + o.y;
-  }
-
-  // Fast method
-  // TODO: measure performance using a range of input data
-  function calcSegmentIntersectionStripeCount2(arcs) {
-    var segs = arcs.getFilteredPointCount() - arcs.size();
-    var stripes = Math.pow(segs, 0.4) * 2;
-    return Math.ceil(stripes) || 1;
-  }
-
-  // Alternate fast method
-  function calcSegmentIntersectionStripeCount(arcs) {
-    var segs = arcs.getFilteredPointCount() - arcs.size();
-    var stripes = Math.ceil(Math.pow(segs * 10, 0.6) / 40);
-    return stripes > 0 ? stripes : 1;
-  }
-
-  // Old method calculates average segment length -- slow
-  function calcSegmentIntersectionStripeCount_old(arcs) {
-    var yrange = arcs.getBounds().height(),
-        segLen = getAvgSegment2(arcs)[1], // slow
-        count = 1;
-    if (segLen > 0 && yrange > 0) {
-      count = Math.ceil(yrange / segLen / 20);
-    }
-    return count || 1;
-  }
-
-  // Find intersections among a group of line segments
-  //
-  // TODO: handle case where a segment starts and ends at the same point (i.e. duplicate coords);
-  //
-  // @ids: Array of indexes: [s0p0, s0p1, s1p0, s1p1, ...] where xx[sip0] <= xx[sip1]
-  // @xx, @yy: Arrays of x- and y-coordinates
-  //
-  function intersectSegments(ids, xx, yy, optsArg) {
-    var lim = ids.length - 2,
-        opts = optsArg || {},
-        intersections = [],
-        tolerance = opts.tolerance, // may be undefined
-        s1p1, s1p2, s2p1, s2p2,
-        s1p1x, s1p2x, s2p1x, s2p2x,
-        s1p1y, s1p2y, s2p1y, s2p2y,
-        hit, seg1, seg2, i, j;
-
-    // Sort segments by xmin, to allow efficient exclusion of segments with
-    // non-overlapping x extents.
-    sortSegmentIds(xx, ids); // sort by ascending xmin
-
-    i = 0;
-    while (i < lim) {
-      s1p1 = ids[i];
-      s1p2 = ids[i+1];
-      s1p1x = xx[s1p1];
-      s1p2x = xx[s1p2];
-      s1p1y = yy[s1p1];
-      s1p2y = yy[s1p2];
-      // count++;
-
-      j = i;
-      while (j < lim) {
-        j += 2;
-        s2p1 = ids[j];
-        s2p1x = xx[s2p1];
-
-        if (s1p2x < s2p1x) break; // x extent of seg 2 is greater than seg 1: done with seg 1
-        //if (s1p2x <= s2p1x) break; // this misses point-segment intersections when s1 or s2 is vertical
-
-        s2p1y = yy[s2p1];
-        s2p2 = ids[j+1];
-        s2p2x = xx[s2p2];
-        s2p2y = yy[s2p2];
-
-        // skip segments with non-overlapping y ranges
-        if (s1p1y >= s2p1y) {
-          if (s1p1y > s2p2y && s1p2y > s2p1y && s1p2y > s2p2y) continue;
-        } else {
-          if (s1p1y < s2p2y && s1p2y < s2p1y && s1p2y < s2p2y) continue;
-        }
-
-        // skip segments that are adjacent in a path (optimization)
-        // TODO: consider if this eliminates some cases that should
-        // be detected, e.g. spikes formed by unequal segments
-        if (s1p1 == s2p1 || s1p1 == s2p2 || s1p2 == s2p1 || s1p2 == s2p2) {
-          continue;
-        }
-
-        // test two candidate segments for intersection
-        hit = geom.segmentIntersection(s1p1x, s1p1y, s1p2x, s1p2y,
-            s2p1x, s2p1y, s2p2x, s2p2y, tolerance);
-        if (hit) {
-          seg1 = [s1p1, s1p2];
-          seg2 = [s2p1, s2p2];
-          intersections.push(formatIntersection(hit, seg1, seg2, xx, yy));
-          if (hit.length == 4) {
-            // two collinear segments may have two endpoint intersections
-            intersections.push(formatIntersection(hit.slice(2), seg1, seg2, xx, yy));
-          }
-        }
-      }
-      i += 2;
-    }
-    return intersections;
-
-    // @p is an [x, y] location along a segment defined by ids @id1 and @id2
-    // return array [i, j] where i and j are the same endpoint ids with i <= j
-    // if @p coincides with an endpoint, return the id of that endpoint twice
-    function getEndpointIds(id1, id2, p) {
-      var i = id1 < id2 ? id1 : id2,
-          j = i === id1 ? id2 : id1;
-      if (xx[i] == p[0] && yy[i] == p[1]) {
-        j = i;
-      } else if (xx[j] == p[0] && yy[j] == p[1]) {
-        i = j;
-      }
-      return [i, j];
-    }
-  }
-
-  function formatIntersection(xy, s1, s2, xx, yy) {
-    var x = xy[0],
-        y = xy[1],
-        a, b;
-    s1 = formatIntersectingSegment(x, y, s1[0], s1[1], xx, yy);
-    s2 = formatIntersectingSegment(x, y, s2[0], s2[1], xx, yy);
-    a = s1[0] < s2[0] ? s1 : s2;
-    b = a == s1 ? s2 : s1;
-    return {x: x, y: y, a: a, b: b};
-  }
-
-  // Receives:
-  //   x, y: coordinates of intersection
-  //   i, j: two segment endpoints, as indexes in xx and yy arrays
-  // Returns:
-  //   if x,y falls within the segment, returns ascending indexes
-  //   if x,y coincides with an endpoint, returns the id of that endpoint twice
-  function formatIntersectingSegment(x, y, i, j, xx, yy) {
-    if (xx[i] == x && yy[i] == y) {
-      return [i, i];
-    }
-    if (xx[j] == x && yy[j] == y) {
-      return [j, j];
-    }
-    return i < j ? [i, j] : [j, i];
-  }
-
-  var SegmentIntersection = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getIntersectionPoints: getIntersectionPoints,
-    findSegmentIntersections: findSegmentIntersections,
-    sortIntersections: sortIntersections,
-    dedupIntersections: dedupIntersections,
-    calcSegmentIntersectionStripeCount2: calcSegmentIntersectionStripeCount2,
-    calcSegmentIntersectionStripeCount: calcSegmentIntersectionStripeCount,
-    intersectSegments: intersectSegments,
-    formatIntersection: formatIntersection,
-    formatIntersectingSegment: formatIntersectingSegment
-  });
-
-  // Functions for dividing polygons and polygons at points where arc-segments intersect
-
-  // TODO:
-  //    Consider inserting cut points on import, when building initial topology
-  //    Improve efficiency (e.g. only update ArcCollection once)
-  //    Remove junk arcs (collapsed and duplicate arcs) instead of just removing
-  //       references to them
-
-  // Divide a collection of arcs at points where segments intersect
-  // and re-index the paths of all the layers that reference the arc collection.
-  // (in-place)
-  function addIntersectionCuts(dataset, _opts) {
-    var opts = _opts || {};
-    var arcs = dataset.arcs;
-    var arcBounds = arcs && arcs.getBounds();
-    var snapDist, nodes;
-    if (!arcBounds || !arcBounds.hasBounds()) {
-      return new NodeCollection([]);
-    }
-
-    if (opts.snap_interval) {
-      snapDist = convertIntervalParam(opts.snap_interval, getDatasetCRS(dataset));
-    } else if (!opts.no_snap && arcBounds.hasBounds()) {
-      snapDist = getHighPrecisionSnapInterval(arcBounds.toArray());
-    } else {
-      snapDist = 0;
-    }
-    debug('addIntersectionCuts() snap dist:', snapDist);
-
-    // bake-in any simplification (bug fix; before, -simplify followed by dissolve2
-    // used to reset simplification)
-    arcs.flatten();
-
-    snapAndCut(dataset, snapDist);
-
-    // Clean shapes by removing collapsed arc references, etc.
-    // TODO: consider alternative -- avoid creating degenerate arcs
-    // in insertCutPoints()
-    dataset.layers.forEach(function(lyr) {
-      if (layerHasPaths(lyr)) {
-        cleanShapes(lyr.shapes, arcs, lyr.geometry_type);
-      }
-    });
-
-    // Further clean-up -- remove duplicate and missing arcs
-    nodes = cleanArcReferences(dataset);
-
-    return nodes;
-  }
-
-  function snapAndCut(dataset, snapDist) {
-    var arcs = dataset.arcs;
-    var cutOpts = snapDist > 0 ? {} : {tolerance: 0};
-    var coordsHaveChanged = false;
-    var snapCount, dupeCount, cutCount;
-    snapCount = snapCoordsByInterval(arcs, snapDist);
-    dupeCount = arcs.dedupCoords();
-
-    // why was topology built here previously????
-    // if (snapCount > 0 || dupeCount > 0) {
-    //   // Detect topology again if coordinates have changed
-    //   internal.buildTopology(dataset);
-    // }
-
-    // cut arcs at points where segments intersect
-    cutCount = cutPathsAtIntersections(dataset, cutOpts);
-    if (cutCount > 0 || snapCount > 0 || dupeCount > 0) {
-      coordsHaveChanged = true;
-    }
-    // perform a second snap + cut pass if needed
-    if (cutCount > 0) {
-      cutCount = 0;
-      snapCount = snapCoordsByInterval(arcs, snapDist);
-      arcs.dedupCoords(); // need to do this here?
-      if (snapCount > 0) {
-        cutCount = cutPathsAtIntersections(dataset, cutOpts);
-      }
-      if (cutCount > 0) {
-        arcs.dedupCoords(); // need to do this here?
-        debug('Second-pass vertices added:', cutCount, 'consider third pass?');
-      }
-    }
-    // Detect topology again if coordinates have changed
-    if (coordsHaveChanged) {
-      buildTopology(dataset);
-    }
-  }
-
-
-  // Remap any references to duplicate arcs in paths to use the same arcs
-  // Remove any unused arcs from the dataset's ArcCollection.
-  // Return a NodeCollection
-  function cleanArcReferences(dataset) {
-    var nodes = new NodeCollection(dataset.arcs);
-    var map = findDuplicateArcs(nodes);
-    var dropCount;
-    if (map) {
-      replaceIndexedArcIds(dataset, map);
-    }
-    dropCount = deleteUnusedArcs(dataset);
-    if (dropCount > 0) {
-      // rebuild nodes if arcs have changed
-      nodes = new NodeCollection(dataset.arcs);
-    }
-    return nodes;
-  }
-
-
-  // @map an Object mapping old to new ids
-  function replaceIndexedArcIds(dataset, map) {
-    var remapPath = function(ids) {
-      var arcId, absId, id2;
-      for (var i=0; i<ids.length; i++) {
-        arcId = ids[i];
-        absId = absArcId(arcId);
-        id2 = map[absId];
-        ids[i] = arcId == absId ? id2 : ~id2;
-      }
-      return ids;
-    };
-    dataset.layers.forEach(function(lyr) {
-      if (layerHasPaths(lyr)) {
-        editShapes(lyr.shapes, remapPath);
-      }
-    });
-  }
-
-  function findDuplicateArcs(nodes) {
-    var map = new Int32Array(nodes.arcs.size()),
-        count = 0,
-        i2;
-    for (var i=0, n=nodes.arcs.size(); i<n; i++) {
-      i2 = nodes.findDuplicateArc(i);
-      map[i] = i2;
-      if (i != i2) count++;
-    }
-    return count > 0 ? map : null;
-  }
-
-  function deleteUnusedArcs(dataset) {
-    var test = getArcPresenceTest2(dataset.layers, dataset.arcs);
-    var count1 = dataset.arcs.size();
-    var map = dataset.arcs.deleteArcs(test); // condenses arcs
-    var count2 = dataset.arcs.size();
-    var deleteCount = count1 - count2;
-    if (deleteCount > 0) {
-      replaceIndexedArcIds(dataset, map);
-    }
-    return deleteCount;
-  }
-
-  // Return a function for updating a path (array of arc ids)
-  // @map array generated by insertCutPoints()
-  // @arcCount number of arcs in divided collection (kludge)
-  function getDividedArcUpdater(map, arcCount) {
-    return function(ids) {
-      var ids2 = [];
-      for (var j=0; j<ids.length; j++) {
-        remapArcId2(ids[j], ids2);
-      }
-      return ids2;
-    };
-
-    function remapArcId2(id, ids) {
-      var rev = id < 0,
-          absId = rev ? ~id : id,
-          min = map[absId],
-          max = (absId >= map.length - 1 ? arcCount : map[absId + 1]) - 1,
-          id2;
-      do {
-        if (rev) {
-          id2 = ~max;
-          max--;
-        } else {
-          id2 = min;
-          min++;
-        }
-        ids.push(id2);
-      } while (max - min >= 0);
-    }
-  }
-
-  // Divides a collection of arcs at points where arc paths cross each other
-  // Returns array for remapping arc ids
-  function divideArcs(arcs, opts) {
-    var points = findClippingPoints(arcs, opts);
-    // TODO: avoid the following if no points need to be added
-    var map = insertCutPoints(points, arcs);
-    // segment-point intersections currently create duplicate points
-    // TODO: consider dedup in a later cleanup pass?
-    // arcs.dedupCoords();
-    return map;
-  }
-
-  function cutPathsAtIntersections(dataset, opts) {
-    var n = dataset.arcs.getPointCount();
-    var map = divideArcs(dataset.arcs, opts);
-    var n2 = dataset.arcs.getPointCount();
-    remapDividedArcs(dataset, map);
-    return n2 - n;
-  }
-
-  function remapDividedArcs(dataset, map) {
-    var remapPath = getDividedArcUpdater(map, dataset.arcs.size());
-    dataset.layers.forEach(function(lyr) {
-      if (layerHasPaths(lyr)) {
-        editShapes(lyr.shapes, remapPath);
-      }
-    });
-  }
-
-  // Inserts array of cutting points into an ArcCollection
-  // Returns array for remapping arc ids
-  function insertCutPoints(unfilteredPoints, arcs) {
-    var data = arcs.getVertexData(),
-        xx0 = data.xx,
-        yy0 = data.yy,
-        nn0 = data.nn,
-        i0 = 0,
-        i1 = 0,
-        nn1 = [],
-        srcArcTotal = arcs.size(),
-        map = new Uint32Array(srcArcTotal),
-        points = filterSortedCutPoints(sortCutPoints(unfilteredPoints, xx0, yy0), arcs),
-        destPointTotal = arcs.getPointCount() + points.length * 2,
-        xx1 = new Float64Array(destPointTotal),
-        yy1 = new Float64Array(destPointTotal),
-        n0, n1, arcLen, p;
-
-    points.reverse(); // reverse sorted order to use pop()
-    p = points.pop();
-
-    for (var srcArcId=0, destArcId=0; srcArcId < srcArcTotal; srcArcId++) {
-      // start merging an arc
-      arcLen = nn0[srcArcId];
-      map[srcArcId] = destArcId;
-      n0 = 0;
-      n1 = 0;
-      while (n0 < arcLen) {
-        // copy another point
-        xx1[i1] = xx0[i0];
-        yy1[i1] = yy0[i0];
-        i1++;
-        n1++;
-        while (p && p.i == i0) {
-          // interpolate any clip points that fall within the current segment
-          xx1[i1] = p.x;
-          yy1[i1] = p.y;
-          i1++;
-          n1++;
-          nn1[destArcId++] = n1; // end current arc at intersection
-          n1 = 0; // begin new arc
-          xx1[i1] = p.x;
-          yy1[i1] = p.y;
-          i1++;
-          n1++;
-          p = points.pop();
-        }
-        n0++;
-        i0++;
-      }
-      nn1[destArcId++] = n1;
-    }
-
-    if (i1 != destPointTotal) error("[insertCutPoints()] Counting error");
-    arcs.updateVertexData(nn1, xx1, yy1, null);
-    return map;
-  }
-
-  function convertIntersectionsToCutPoints(intersections, xx, yy) {
-    var points = [], ix, a, b;
-    for (var i=0, n=intersections.length; i<n; i++) {
-      ix = intersections[i];
-      a = getCutPoint(ix.x, ix.y, ix.a[0], ix.a[1], xx, yy);
-      b = getCutPoint(ix.x, ix.y, ix.b[0], ix.b[1], xx, yy);
-      if (a) points.push(a);
-      if (b) points.push(b);
-    }
-    return points;
-  }
-
-  // i, j: indexes of segment endpoints in xx, yy, or of a single endpoint
-  //   if point x,y falls on an endpoint
-  // Assumes: i <= j
-  function getCutPoint(x, y, i, j, xx, yy) {
-    var ix = xx[i],
-        iy = yy[i],
-        jx = xx[j],
-        jy = yy[j];
-    if (j < i || j > i + 1) {
-      error("Out-of-sequence arc ids:", i, j);
-    }
-
-    // Removed out-of-range check: small out-of-range intersection points are now allowed.
-    // (Such points may occur due to fp rounding, when intersections occur along
-    // vertical or horizontal segments)
-    // if (geom.outsideRange(x, ix, jx) || geom.outsideRange(y, iy, jy)) {
-      // return null;
-    // }
-
-    // Removed endpoint check: intersecting arcs need to be cut both at vertices
-    // and between vertices, so pathfinding functions will work correctly.
-    // if (x == ix && y == iy || x == jx && y == jy) {
-      // return null;
-    // }
-    return {x: x, y: y, i: i};
-  }
-
-  // Sort insertion points in order of insertion
-  // Insertion order: ascending id of first endpoint of containing segment and
-  //   ascending distance from same endpoint.
-  function sortCutPoints(points, xx, yy) {
-    points.sort(function(a, b) {
-      if (a.i != b.i) return a.i - b.i;
-      return geom.distanceSq(xx[a.i], yy[a.i], a.x, a.y) - geom.distanceSq(xx[b.i], yy[b.i], b.x, b.y);
-      // The old code below is no longer reliable, now that out-of-range intersection
-      // points are allowed.
-      // return Math.abs(a.x - xx[a.i]) - Math.abs(b.x - xx[b.i]) ||
-      // Math.abs(a.y - yy[a.i]) - Math.abs(b.y - yy[b.i]);
-    });
-    return points;
-  }
-
-  // Removes duplicate points and arc endpoints
-  function filterSortedCutPoints(points, arcs) {
-    var filtered = [],
-        pointId = 0;
-    arcs.forEach2(function(i, n, xx, yy) {
-      var j = i + n - 1,
-          x0 = xx[i],
-          y0 = yy[i],
-          xn = xx[j],
-          yn = yy[j],
-          p, pp;
-
-      while (pointId < points.length && points[pointId].i <= j) {
-        p = points[pointId];
-        pp = filtered[filtered.length - 1]; // previous point
-        if (p.x == x0 && p.y == y0 || p.x == xn && p.y == yn) {
-          // clip point is an arc endpoint -- discard
-        } else if (pp && pp.x == p.x && pp.y == p.y && pp.i == p.i) {
-          // clip point is a duplicate -- discard
-        } else {
-          filtered.push(p);
-        }
-        pointId++;
-      }
-    });
-    return filtered;
-  }
-
-  function findClippingPoints(arcs, opts) {
-    var intersections = findSegmentIntersections(arcs, opts),
-        data = arcs.getVertexData();
-    return convertIntersectionsToCutPoints(intersections, data.xx, data.yy);
-  }
-
-  var IntersectionCuts = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    addIntersectionCuts: addIntersectionCuts,
-    divideArcs: divideArcs,
-    cutPathsAtIntersections: cutPathsAtIntersections,
-    remapDividedArcs: remapDividedArcs,
-    insertCutPoints: insertCutPoints,
-    getCutPoint: getCutPoint,
-    sortCutPoints: sortCutPoints,
-    filterSortedCutPoints: filterSortedCutPoints,
-    findClippingPoints: findClippingPoints
-  });
-
-  // Create a mosaic layer from a dataset (useful for debugging commands like -clean
-  //    that create a mosaic as an intermediate data structure)
-  // Create additional layers if the "debug" flag is present
-  //
-  function mosaic(dataset, opts) {
-    var layers2 = [];
-    var nodes, output;
-    if (!dataset.arcs) stop("Dataset is missing path data");
-    nodes = addIntersectionCuts(dataset, opts);
-    output = buildPolygonMosaic(nodes);
-    layers2.push({
-      name: 'mosaic',
-      shapes: output.mosaic,
-      geometry_type: 'polygon'
-    });
-    if (opts.debug) {
-      layers2.push({
-        geometry_type: 'polygon',
-        name: 'mosaic-enclosure',
-        shapes: output.enclosures
-      });
-
-      if (output.lostArcs.length > 0) {
-        layers2 = layers2.concat(getLostArcLayers(output.lostArcs, nodes.arcs));
-      }
-    }
-    return layers2;
-
-    function getLostArcLayers(lostArcs, arcs) {
-      var arcLyr = {geometry_type: 'polyline', name: 'lost-arcs', shapes: []};
-      var pointLyr = {geometry_type: 'point', name: 'lost-arc-endpoints', shapes: []};
-      var arcData = [];
-      var pointData = [];
-      lostArcs.forEach(function(arcId) {
-        var first = arcs.getVertex(arcId, 0);
-        var last = arcs.getVertex(arcId, -1);
-        arcData.push({ARCID: arcId});
-        arcLyr.shapes.push([[arcId]]);
-        pointData.push({ARCID: arcId}, {ARCID: arcId});
-        pointLyr.shapes.push([[first.x, first.y]], [[last.x, last.y]]);
-      });
-      arcLyr.data = new DataTable(arcData);
-      pointLyr.data = new DataTable(pointData);
-      return [arcLyr, pointLyr];
-    }
-  }
-
-  // Process arc-node topology to generate a layer of indivisible mosaic "tiles" {mosaic}
-  //   ... also return a layer of outer-boundary polygons {enclosures}
-  //   ... also return an array of arcs that were dropped from the mosaic {lostArcs}
-  //
-  // Assumes that the arc-node topology of @nodes NodeCollection meets several
-  //    conditions (expected to be true if addIntersectionCuts() has just been run)
-  // 1. Arcs only touch at endpoints.
-  // 2. The angle between any two segments that meet at a node is never zero.
-  //      (this should follow from 1... but may occur due to FP errors)
-  // TODO: a better job of handling FP errors
-  //
-  function buildPolygonMosaic(nodes) {
-    T.start();
-    // Detach any acyclic paths (spikes) from arc graph (these would interfere with
-    //    the ring finding operation). This modifies @nodes -- a side effect.
-    nodes.detachAcyclicArcs();
-    var data = findMosaicRings(nodes);
-
-    // Process CW rings: these are indivisible space-enclosing boundaries of mosaic tiles
-    var mosaic = data.cw.map(function(ring) {return [ring];});
-    T.stop('Find mosaic rings');
-    T.start();
-
-    // Process CCW rings: these are either holes or enclosure
-    // TODO: optimize -- testing CCW path of every island is costly
-    var enclosures = [];
-    var index = new PathIndex(mosaic, nodes.arcs); // index CW rings to help identify holes
-    data.ccw.forEach(function(ring) {
-      var id = index.findSmallestEnclosingPolygon(ring);
-      if (id > -1) {
-        // Enclosed CCW rings are holes in the enclosing mosaic tile
-        mosaic[id].push(ring);
-      } else {
-        // Non-enclosed CCW rings are outer boundaries -- add to enclosures layer
-        reversePath(ring);
-        enclosures.push([ring]);
-      }
-    });
-    T.stop(utils.format("Detect holes (holes: %d, enclosures: %d)", data.ccw.length - enclosures.length, enclosures.length));
-
-    return {mosaic: mosaic, enclosures: enclosures, lostArcs: data.lostArcs};
-  }
-
-  function findMosaicRings(nodes) {
-    var arcs = nodes.arcs,
-        cw = [],
-        ccw = [],
-        empty = [],
-        lostArcs = [];
-
-    var flags = new Uint8Array(arcs.size());
-    var findPath = getPathFinder(nodes, useRoute);
-
-    for (var i=0, n=flags.length; i<n; i++) {
-      tryPath(i);
-      // TODO: consider skipping detection of island ccw paths here (if possible)
-      tryPath(~i);
-    }
-    return {
-      cw: cw,
-      ccw: ccw,
-      empty: empty,
-      lostArcs: lostArcs
-    };
-
-    function tryPath(arcId) {
-      var ring, area;
-      if (!routeIsOpen(arcId)) return;
-      ring = findPath(arcId);
-      if (!ring) {
-        // arc is unused, but can not be extended to a complete ring
-        lostArcs.push(arcId);
-        debug("Dead-end arc:", arcId);
-        return;
-      }
-      area = geom.getPlanarPathArea(ring, arcs);
-      if (area > 0) {
-        cw.push(ring);
-      } else if (area < 0) {
-        ccw.push(ring);
-      } else {
-        empty.push(ring);
-      }
-    }
-
-    function useRoute(arcId) {
-      return routeIsOpen(arcId, true);
-    }
-
-    function routeIsOpen(arcId, closeRoute) {
-      var absId = absArcId(arcId);
-      var bit = absId == arcId ? 1 : 2;
-      var isOpen = (flags[absId] & bit) === 0;
-      if (closeRoute && isOpen) flags[absId] |= bit;
-      return isOpen;
-    }
-  }
-
-  var PolygonMosaic = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    mosaic: mosaic,
-    buildPolygonMosaic: buildPolygonMosaic
-  });
-
-  // Map positive or negative integer ids to non-negative integer ids
-
-  function IdLookupIndex(n, clearable) {
-    var fwdIndex = new Int32Array(n);
-    var revIndex = new Int32Array(n);
-    var index = this;
-    var setList = [];
-    utils.initializeArray(fwdIndex, -1);
-    utils.initializeArray(revIndex, -1);
-
-    this.setId = function(id, val) {
-      if (clearable && !index.hasId(id)) {
-        setList.push(id);
-      }
-      if (id < 0) {
-        revIndex[~id] = val;
-      } else {
-        fwdIndex[id] = val;
-      }
-    };
-
-    this.clear = function() {
-      if (!clearable) {
-        error('Index is not clearable');
-      }
-      setList.forEach(function(id) {
-        index.setId(id, -1);
-      });
-      setList = [];
-    };
-
-    this.clearId = function(id) {
-      if (!index.hasId(id)) {
-        error('Tried to clear an unset id');
-      }
-      index.setId(id, -1);
-    };
-
-    this.hasId = function(id) {
-      var val = index.getId(id);
-      return val > -1;
-    };
-
-    this.getId = function(id) {
-      var idx = id < 0 ? ~id : id;
-      if (idx >= n) {
-        return -1; // TODO: consider throwing an error?
-      }
-      return id < 0 ? revIndex[idx] : fwdIndex[idx];
+  function getPlanarFilter(interval) {
+    return function(a, b) {
+      return distance2D(a[0], a[1], b[0], b[1]) <= interval;
     };
   }
 
-  // Associate mosaic tiles with shapes (i.e. identify the groups of tiles that
-  //   belong to each shape)
-  //
-  function PolygonTiler(mosaic, arcTileIndex, nodes, opts) {
-    var arcs = nodes.arcs;
-    var visitedTileIndex = new IdTestIndex(mosaic.length);
-    var divide = getHoleDivider(nodes);
-    // temp vars
-    var currHoles; // arc ids of all holes in shape
-    var currShapeId;
-    var currRingBbox;
-    var tilesInShape; // accumulator for tile ids of tiles in current shape
-    var ringIndex = new IdTestIndex(arcs.size());
-    var holeIndex = new IdTestIndex(arcs.size());
-
-    // return ids of tiles in shape
-    this.getTilesInShape = function(shp, shapeId) {
-      var cw = [], ccw = [], retn;
-      tilesInShape = [];
-      currHoles = [];
-      currShapeId = shapeId;
-      if (opts.no_holes) {
-        divide(shp, cw, ccw);
-        // ccw.forEach(internal.reversePath);
-        // cw = cw.concat(ccw);
-      } else {
-        // divide shape into rings and holes (splits self-intersecting rings)
-        // TODO: rewrite divide() -- it is a performance bottleneck and can convert
-        //   space-filling areas into ccw holes
-        divide(shp, cw, ccw);
-        ccw.forEach(procShapeHole);
-        holeIndex.setIds(currHoles);
-      }
-      cw.forEach(procShapeRing);
-      retn = tilesInShape;
-      // reset tmp vars, etc
-      tilesInShape = null;
-      holeIndex.clearIds(currHoles);
-      currHoles = null;
-      return retn;
-    };
-
-    function procShapeHole(path) {
-      currHoles = currHoles ? currHoles.concat(path) : path;
-    }
-
-    function procShapeRing(path) {
-      currRingBbox = arcs.getSimpleShapeBounds2(path);
-      ringIndex.setIds(path);
-      procArcIds(path);
-      ringIndex.clearIds(path);
-      // allow overlapping rings to visit the same tiles
-      visitedTileIndex.clearIds(tilesInShape);
-    }
-
-    // optimized version: traversal without recursion (to avoid call stack oflo, excessive gc, etc)
-    function procArcIds(ids) {
-      var stack = ids.concat();
-      var arcId, tileId;
-      while (stack.length > 0) {
-        arcId = stack.pop();
-        tileId = procRingArc(arcId);
-        if (tileId >= 0) {
-          accumulateTraversibleArcIds(stack, mosaic[tileId]);
-        }
-      }
-    }
-
-    function accumulateTraversibleArcIds(ids, tile) {
-      var arcId, ring;
-      for (var j=0, n=tile.length; j<n; j++) {
-        ring = tile[j];
-        for (var i=0, m=ring.length; i<m; i++) {
-          arcId = ring[i];
-          if (arcIsTraversible(arcId)) {
-            ids.push(~arcId);
-          }
-        }
-      }
-    }
-
-    function arcIsTraversible(tileArc) {
-      var neighborArc = ~tileArc;
-      var traversible = !(ringIndex.hasId(tileArc) || ringIndex.hasId(neighborArc) || holeIndex.hasId(tileArc) || holeIndex.hasId(neighborArc));
-      return traversible;
-    }
-
-    function procRingArc(arcId) {
-      var tileId = arcTileIndex.getShapeIdByArcId(arcId);
-      if (tileId == -1 || visitedTileIndex.hasId(tileId)) return -1;
-      if (arcs.arcIsContained(absArcId(arcId), currRingBbox) === false) {
-        // don't cross boundary of the current ring or of any hole in the current shape
-        // TODO: this indicates a geometry bug that should be fixed
-        debug('Out-of-bounds ring arc', arcId);
-        return -1;
-      }
-      visitedTileIndex.setId(tileId);
-      tilesInShape.push(tileId);
-      return tileId;
-    }
-  }
-
-  var PolygonTiler$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    PolygonTiler: PolygonTiler
-  });
-
-  function MosaicIndex(lyr, nodes, optsArg) {
-    var opts = optsArg || {};
-    var shapes = lyr.shapes;
-    var divide = getHoleDivider(nodes);
-    var mosaic = buildPolygonMosaic(nodes).mosaic;
-    // map arc ids to tile ids
-    var arcTileIndex = new ShapeArcIndex(mosaic, nodes.arcs);
-    // keep track of which tiles have been assigned to shapes
-    var fetchedTileIndex = new IdTestIndex(mosaic.length);
-    // bidirection index of tile ids <=> shape ids
-    var tileShapeIndex = new TileShapeIndex(mosaic, opts);
-    // assign tiles to shapes
-    var shapeTiler = new PolygonTiler(mosaic, arcTileIndex, nodes, opts);
-    var weightFunction = null;
-    if (!opts.simple && opts.flat) {
-      // opts.simple is an optimization when dissolving everything into one polygon
-      // using -dissolve2. In this situation, we don't need a weight function.
-      // Otherwise, if polygons are being dissolved into multiple groups,
-      // we use a function to assign tiles in overlapping areas to a single shape.
-      weightFunction = getAreaWeightFunction(lyr.shapes, nodes.arcs);
-    }
-    this.mosaic = mosaic;
-    this.nodes = nodes; // kludge
-    this.getSourceIdsByTileId = tileShapeIndex.getShapeIdsByTileId; // expose for -mosaic command
-    this.getTileIdsByShapeId = tileShapeIndex.getTileIdsByShapeId;
-
-    // Assign shape ids to mosaic tile shapes.
-    shapes.forEach(function(shp, shapeId) {
-      var tileIds = shapeTiler.getTilesInShape(shp, shapeId);
-      tileShapeIndex.indexTileIdsByShapeId(shapeId, tileIds, weightFunction);
-    });
-
-    // ensure each tile is assigned to only one shape
-    if (opts.flat) {
-      tileShapeIndex.flatten();
-    }
-
-    // fill gaps
-    // (assumes that tiles have been allocated to shapes and mosaic has been flattened)
-    this.removeGaps = function(filter) {
-      if (!opts.flat) {
-        error('MosaicIndex#removeGaps() should only be called with a flat mosaic');
-      }
-      var remainingIds = tileShapeIndex.getUnusedTileIds();
-      var filledIds = remainingIds.filter(function(tileId) {
-        var tile = mosaic[tileId];
-        return filter(tile[0]); // test tile ring, ignoring any holes (does this matter?)
-      });
-      filledIds.forEach(assignTileToAdjacentShape);
-      return {
-        removed: filledIds.length,
-        remaining: remainingIds.length - filledIds.length
-      };
-    };
-
-    this.getUnusedTiles = function() {
-      return tileShapeIndex.getUnusedTileIds().map(tileIdToTile);
-    };
-
-    this.getTilesByShapeIds = function(shapeIds) {
-      return getTileIdsByShapeIds(shapeIds).map(tileIdToTile);
-    };
-
-    function getAreaWeightFunction(shapes, arcs) {
-      var index = [];
-      return function(shpId) {
-        var weight;
-        if (shpId in index) {
-          weight = index[shpId];
-        } else {
-          weight = index[shpId] = Math.abs(geom.getShapeArea(shapes[shpId], arcs));
-        }
-        return weight;
-      };
-    }
-
-    function tileIdToTile(id, i) {
-      return mosaic[id];
-    }
-
-    function assignTileToAdjacentShape(tileId) {
-      var ring = mosaic[tileId][0];
-      var arcs = nodes.arcs;
-      var arcId, neighborShapeId, neighborTileId, arcLen;
-      var shapeId = -1, maxArcLen = 0;
-      for (var i=0; i<ring.length; i++) {
-        arcId = ring[i];
-        neighborTileId = arcTileIndex.getShapeIdByArcId(~arcId);
-        if (neighborTileId < 0) continue;
-        neighborShapeId = tileShapeIndex.getShapeIdByTileId(neighborTileId);
-        if (neighborShapeId < 0) continue;
-        arcLen = geom.getPathPerimeter([arcId], arcs);
-        if (arcLen > maxArcLen) {
-          shapeId = neighborShapeId;
-          maxArcLen = arcLen;
-        }
-      }
-      if (shapeId > -1) {
-        tileShapeIndex.addTileToShape(shapeId, tileId);
-      }
-    }
-
-    function getTileIdsByShapeIds(shapeIds) {
-      var uniqIds = [];
-      var tileId, tileIds, i, j;
-      for (i=0; i<shapeIds.length; i++) {
-        tileIds = tileShapeIndex.getTileIdsByShapeId(shapeIds[i]);
-        for (j=0; j<tileIds.length; j++) {
-          tileId = tileIds[j];
-          // uniqify tile ids (in case the shape contains overlapping rings)
-          if (fetchedTileIndex.hasId(tileId)) continue;
-          fetchedTileIndex.setId(tileId);
-          uniqIds.push(tileId);
-        }
-      }
-      // clearing this index allows duplicate tile ids between calls to this function
-      // (should not happen in a typical dissolve)
-      fetchedTileIndex.clearIds(uniqIds);
-      return uniqIds;
-    }
-  }
-
-  // Map arc ids to shape ids, assuming perfect topology
-  // (an arcId maps to at most one shape)
-  // Supports looking up a shape id using an arc id.
-  function ShapeArcIndex(shapes, arcs) {
-    var n = arcs.size();
-    var index = new IdLookupIndex(n);
-    var shapeId;
-    shapes.forEach(onShape);
-
-    function onShape(shp, i) {
-      shapeId = i;
-      shp.forEach(onPart);
-    }
-    function onPart(path) {
-      var arcId;
-      for (var i=0, n=path.length; i<n; i++) {
-        arcId = path[i];
-        index.setId(arcId, shapeId);
-      }
-    }
-
-    // returns -1 if shape has not been indexed
-    this.getShapeIdByArcId = function(arcId) {
-      return index.getId(arcId);
+  // TODO: switch to real distance metric (don't assume meters, use CRS data)
+  function getSphericalFilter(interval) {
+    return function(a, b) {
+      return greatCircleDistance(a[0], a[1], b[0], b[1]) <= interval;
     };
   }
 
-  var MosaicIndex$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    MosaicIndex: MosaicIndex,
-    ShapeArcIndex: ShapeArcIndex
-  });
 
-  // Assumes that arcs do not intersect except at endpoints
-  function dissolvePolygonLayer2(lyr, dataset, opts) {
-    opts = utils.extend({}, opts);
-    if (opts.field) {
-      opts.fields = [opts.field]; // support old "field" parameter
-    }
-    var getGroupId = getCategoryClassifier(opts.fields, lyr.data);
-    var groups = groupPolygons2(lyr, getGroupId);
-    var shapes2 = dissolvePolygonGroups2(groups, lyr, dataset, opts);
-    return composeDissolveLayer(lyr, shapes2, getGroupId, opts);
-  }
-
-  function getArcLayer(arcs, name) {
-    var records = [];
-    var lyr = {
-      geometry_type: 'polyline',
-      shapes: [],
-      name: name
+  function getTriangleDataset(lyr, filter, opts) {
+    var points = getPointsInLayer(lyr);
+    var del = Delaunator.from(points);
+    var index = opts.keep_points ? new Uint8Array(points.length) : null;
+    var triangles = del.triangles;
+    var geojson = {
+      type: 'MultiPolygon',
+      coordinates: []
     };
-    for (var i=0, n=arcs.size(); i<n; i++) {
-      lyr.shapes.push([[i]]);
-      records.push({arc_id: i});
-    }
-    lyr.data = new DataTable(records);
-    return lyr;
-  }
-
-  function composeMosaicLayer(lyr, shapes2) {
-    var records = shapes2.map(function(shp, i) {
-      return {tile_id: i};
-    });
-    return utils.defaults({
-      shapes: shapes2,
-      data: new DataTable(records)
-    }, lyr);
-  }
-
-  function groupPolygons2(lyr, getGroupId) {
-    return lyr.shapes.reduce(function(groups, shape, shapeId) {
-      var groupId = getGroupId(shapeId);
-      if (groupId in groups === false) {
-        groups[groupId] = [];
-      }
-      groups[groupId].push(shapeId);
-      return groups;
-    }, []);
-  }
-
-  function getGapRemovalMessage(removed, retained, areaLabel) {
-    var msg;
-    if (removed > 0 === false) return '';
-    return utils.format('Removed %,d / %,d sliver%s using %s',
-        removed, removed + retained, utils.pluralSuffix(removed), areaLabel);
-  }
-
-  function dissolvePolygonGroups2(groups, lyr, dataset, opts) {
-    var arcFilter = getArcPresenceTest(lyr.shapes, dataset.arcs);
-    var nodes = new NodeCollection(dataset.arcs, arcFilter);
-    var mosaicOpts = {
-      flat: true,
-      simple: groups.length == 1
-    };
-    var mosaicIndex = new MosaicIndex(lyr, nodes, mosaicOpts);
-    var sliverOpts = utils.extend({sliver_control: 1}, opts);
-    var filterData = getSliverFilter(lyr, dataset, sliverOpts);
-    var cleanupData = mosaicIndex.removeGaps(filterData.filter);
-    var pathfind = getRingIntersector(mosaicIndex.nodes);
-    var dissolvedShapes = groups.map(function(shapeIds) {
-      var tiles = mosaicIndex.getTilesByShapeIds(shapeIds);
-      if (opts.tiles) {
-        return tiles.reduce(function(memo, tile) {
-          return memo.concat(tile);
-        }, []);
-      }
-      return dissolveTileGroup2(tiles, pathfind);
-    });
-    // convert self-intersecting rings to outer/inner rings, for OGC
-    // Simple Features compliance
-    dissolvedShapes = fixTangentHoles(dissolvedShapes, pathfind);
-    var gapMessage = getGapRemovalMessage(cleanupData.removed, cleanupData.remaining, filterData.label);
-    if (gapMessage) message(gapMessage);
-    return dissolvedShapes;
-  }
-
-  function dissolveTileGroup2(tiles, pathfind) {
-    var rings = [],
-        holes = [],
-        dissolved, tile;
-    for (var i=0, n=tiles.length; i<n; i++) {
-      tile = tiles[i];
-      rings.push(tile[0]);
-      if (tile.length > 1) {
-        holes = holes.concat(tile.slice(1));
+    var a, b, c, ai, bi, ci;
+    for (var i=0, n=triangles.length; i<n; i+=3) {
+      // a, b, c: triangle verticies in CCW order
+      ai = triangles[i];
+      bi = triangles[i+1];
+      ci = triangles[i+2];
+      a = points[ai];
+      b = points[bi];
+      c = points[ci];
+      if (!(filter(a, b) && filter(b, c) && filter(a, c))) continue;
+      geojson.coordinates.push([[c, b, a, c]]);
+      if (index) {
+        index[ai] = 1;
+        index[bi] = 1;
+        index[ci] = 1;
       }
     }
-    dissolved = pathfind(rings.concat(holes), 'dissolve');
-    if (dissolved.length > 1) {
-      // Commenting-out nesting order repair -- new method should prevent nesting errors
-      // dissolved = internal.fixNestingErrors(dissolved, arcs);
+    if (index) {
+      addPointSymbols(geojson, points, index);
     }
-    return dissolved.length > 0 ? dissolved : null;
+    return importGeoJSON(geojson);
   }
 
-  function fixTangentHoles(shapes, pathfind) {
-    var onRing = function(memo, ring) {
-      reversePath(ring);
-      var fixed = pathfind([ring], 'flatten');
-      if (fixed.length > 1) {
-        fixed.forEach(reversePath);
-        memo = memo.concat(fixed);
-      } else {
-        memo.push(reversePath(ring));
+  function addPointSymbols(geom, points, index) {
+    var p;
+    for (var i=0, n=index.length; i<n; i++) {
+      if (index[i] === 0) {
+        geom.coordinates.push(getPointSymbolCoords(points[i]));
       }
-      return memo;
-    };
-    return shapes.map(function(rings) {
-      if (!rings) return null;
-      return rings.reduce(onRing, []);
-    });
+    }
   }
 
-  var PolygonDissolve2 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    dissolvePolygonLayer2: dissolvePolygonLayer2,
-    composeMosaicLayer: composeMosaicLayer,
-    dissolvePolygonGroups2: dissolvePolygonGroups2
-  });
+  function getPointSymbolCoords(p) {
+    var d = 0.0001,
+        x = p[0],
+        y = p[1];
+    return [[[x, y], [x, y+d], [x+d, y+d], [x+d, y], [x, y]]];
+  }
+
+  function getPolygonDataset$2(lyr, filter, opts) {
+    var dataset = getTriangleDataset(lyr, filter, opts);
+    buildTopology(dataset);
+    if (!opts.debug) {
+      cleanLayers(dataset.layers, dataset, {quiet: true});
+    }
+    return dataset;
+  }
 
   function dissolveBufferDataset(dataset, optsArg) {
     var opts = optsArg || {};
@@ -22619,8 +26163,7 @@ ${svg}
       geom.segmentIntersection(a[0], a[1], b[0], b[1], bb.xmax, bb.ymin, bb.xmin, bb.ymin));
   }
 
-  function getGeodesic(dataset) {
-    var P = getDatasetCRS(dataset);
+  function getGeodesic(P) {
     if (!isLatLngCRS(P)) error('Expected an unprojected CRS');
     var f = P.es / (1 + Math.sqrt(P.one_es));
     var GeographicLib = require('mproj').internal.GeographicLib;
@@ -22650,17 +26193,11 @@ ${svg}
     return [lng2, lat2];
   }
 
-  function getGeodeticSegmentFunction(dataset, highPrecision) {
-    var P = getDatasetCRS(dataset);
+  function getGeodeticSegmentFunction(P) {
     if (!isLatLngCRS(P)) {
       return getPlanarSegmentEndpoint;
     }
-    if (!highPrecision) {
-      // CAREFUL: this function has higher error at very large distances and at the poles
-      // also, it wouldn't work for other planets than Earth
-      return fastGeodeticSegmentFunction;
-    }
-    var g = getGeodesic(dataset);
+    var g = getGeodesic(P);
     return function(lng, lat, bearing, meterDist) {
       var o = g.Direct(lat, lng, bearing, meterDist);
       var p = [o.lon2, o.lat2];
@@ -22668,11 +26205,10 @@ ${svg}
     };
   }
 
-  function getGeodeticDistanceFunction(dataset, highPrecision) {
-    var P = getDatasetCRS(dataset);
-    if (!isLatLngCRS(P)) {
-      return getPlanarSegmentEndpoint;
-    }
+  function getFastGeodeticSegmentFunction(P) {
+    // CAREFUL: this function has higher error at very large distances and at the poles
+    // also, it wouldn't work for other planets than Earth
+    return isLatLngCRS(P) ? fastGeodeticSegmentFunction : getPlanarSegmentEndpoint;
   }
 
   // Useful for determining if a segment that intersects another segment is
@@ -22711,7 +26247,9 @@ ${svg}
 
   var Geodesic = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    getPlanarSegmentEndpoint: getPlanarSegmentEndpoint,
     getGeodeticSegmentFunction: getGeodeticSegmentFunction,
+    getFastGeodeticSegmentFunction: getFastGeodeticSegmentFunction,
     segmentTurn: segmentTurn,
     getBearingFunction: getBearingFunction
   });
@@ -23019,7 +26557,7 @@ ${svg}
   function makeShapeBufferGeoJSON(lyr, dataset, opts) {
     var distanceFn = getBufferDistanceFunction(lyr, dataset, opts);
     var toleranceFn = getBufferToleranceFunction(dataset, opts);
-    var geod = getGeodeticSegmentFunction(dataset, false);
+    var geod = getFastGeodeticSegmentFunction(getDatasetCRS(dataset));
     var getBearing = getBearingFunction(dataset);
     var makerOpts = Object.assign({geometry_type: lyr.geometry_type}, opts);
     var factory = opts.v2 ? getPolylineBufferMaker2 : getPolylineBufferMaker;
@@ -23044,19 +26582,390 @@ ${svg}
     return dataset2;
   }
 
+  // Utility functions for GeoJSON-style lat-long [x,y] coordinates and arrays of coords
+
+  var e = 1e-10;
+  var T = 90 - e;
+  var L = -180 + e;
+  var B = -90 + e;
+  var R = 180 - e;
+
+  function lastEl(arr) {
+    return arr[arr.length - 1];
+  }
+
+  function samePoint(a, b) {
+    return a[0] === b[0] && a[1] === b[1];
+  }
+
+  function isClosedPath(arr) {
+    return samePoint(arr[0], lastEl(arr));
+  }
+
+  // duplicate points occur if a vertex is on the antimeridan
+  function dedup(ring) {
+    return ring.reduce(function(memo, p, i) {
+      var pp = memo.length > 0 ? memo[memo.length-1] : null;
+      if (!pp || pp[0] != p[0] || pp[1] != p[1]) memo.push(p);
+      return memo;
+    }, []);
+  }
+
+  // remove likely rounding errors
+  function snapToEdge(p) {
+    if (p[0] <= L) p[0] = -180;
+    if (p[0] >= R) p[0] = 180;
+    if (p[1] <= B) p[1] = -90;
+    if (p[1] >= T) p[1] = 90;
+  }
+
+  function onPole(p) {
+    return p[1] >= T || p[1] <= B;
+  }
+
+  function isWholeWorld(coords) {
+    // TODO: check that l,r,t,b are all reached
+    for (var i=0, n=coords.length; i<n; i++) {
+      if (!isEdgePoint(coords[i])) return false;
+    }
+    return true;
+  }
+
+  function touchesEdge(coords) {
+    for (var i=0, n=coords.length; i<n; i++) {
+      if (isEdgePoint(coords[i])) return true;
+    }
+    return false;
+  }
+
+  function isEdgeSegment(a, b) {
+    // TODO: handle segments between pole and non-edge point
+    // (these shoudn't exist in a properly clipped path)
+    return (onPole(a) || onPole(b)) ||
+      a[0] <= L && b[0] <= L || a[0] >= R && b[0] >= R;
+  }
+
+  function isEdgePoint(p) {
+    return p[1] <= B || p[1] >= T || p[0] <= L || p[0] >= R;
+  }
+
+  // Remove segments that belong solely to cut points
+  // TODO: verify that antimeridian crosses have matching y coords
+  // TODO: stitch together split-apart polygons ?
+  //
+  function removeCutSegments(coords) {
+    if (!touchesEdge(coords)) return coords;
+    var coords2 = [];
+    var a, b, c, x, y;
+    var skipped = false;
+    coords.pop(); // remove duplicate point
+    a = coords[coords.length-1];
+    b = coords[0];
+    for (var ci=1, n=coords.length; ci <= n; ci++) {
+      c = ci == n ? coords2[0] : coords[ci];
+      if (!c) continue; // undefined c could occur in a defective path
+      if ((skipped || isEdgeSegment(a, b)) && isEdgeSegment(b, c)) {
+        // skip b
+        // console.log("skipping b:", ci, a, b, c)
+        skipped = true;
+      } else {
+        if (skipped === true) {
+          skipped = false;
+        }
+        coords2.push(b);
+        a = b;
+      }
+      b = c;
+    }
+    if (coords2.length > 0) {
+      coords2.push(coords2[0].concat()); // close the path
+    }
+    // TODO: handle runs that are split at the array boundary
+    return coords2;
+  }
+
+
+  function removePolylineCrosses(path) {
+    return splitPathAtAntimeridian(path);
+  }
+
+  function isAntimeridianPoint(p) {
+    // return p[0] <= L || p[0] >= R;
+    return p[0] == -180 || p[0] == 180;
+  }
+
+  // Removes antimeridian crossings from an array of polygon rings
+  // TODO: handle edge case: segment is collinear with antimeridian
+  // TODO: handle edge case: path coordinates exceed the standard lat-long range
+  //
+  // rings: array of rings of [x,y] points.
+  // Returns array of split-apart rings
+  function removePolygonCrosses(rings) {
+    var rings2 = [];
+    var splitRings = [];
+    var ring;
+    for (var i=0; i<rings.length; i++) {
+      ring = rings[i];
+      if (!isClosedPath(ring)) {
+        error('Received an open path');
+      }
+      if (countCrosses(ring) === 0) {
+        rings2.push(ring);
+      } else {
+        splitRings = splitRings.concat(splitPathAtAntimeridian(ring));
+      }
+    }
+    if (splitRings.length > 0) {
+      rings2 = rings2.concat(reconnectSplitParts(splitRings));
+    }
+    return rings2;
+  }
+
+  // Stitch an array of split-apart paths into coordinate rings
+  // Assumes that the first and last point of each split-apart path is 180 or -180
+  // parts: array of paths that have been split at the antimeridian
+  function reconnectSplitParts(parts) {
+    var yy = getSortedIntersections(parts);
+    var rings = [];
+    var usedParts = [];
+    var errors = 0;
+    parts.forEach(function(part, i) {
+      if (usedParts[i]) return;
+      if (!isValidSplitPart(part)) {
+        error('Geometry error');
+      }
+      var ring = addPartToRing(part, []);
+      if (ring) {
+        if (!isClosedPath(ring)) {
+          error('Generated an open ring');
+        }
+        rings.push(ring);
+      } else {
+        errors++;
+      }
+    });
+
+    return rings;
+
+    function addPartToRing(part, ring) {
+      var lastPoint = lastEl(part);
+      var i = parts.indexOf(part);
+      if (usedParts[i]) {
+        debug('Tried to use a previously used path');
+        return null;
+      }
+      usedParts[i] = true;
+      ring = ring.concat(part);
+      var nextPoint = findNextPoint(parts, lastPoint, yy);
+      if (!nextPoint) {
+        return null;
+      }
+      if (lastPoint[0] != nextPoint[0]) {
+        // add polar line to switch from east to west or west to east
+        // coming from east -> turn south
+        // coming from west -> turn north
+        var poleY = lastPoint[0] == 180 ? -90 : 90;
+        // need a center point (lines longer than 90 degrees cause confusion when rotating)
+        ring.push([lastPoint[0], poleY], [0, poleY], [nextPoint[0], poleY]);
+      }
+      var nextPart = findPartStartingAt(parts, nextPoint);
+      if (!nextPart) {
+        return null;
+      }
+      if (samePoint(ring[0], nextPart[0])) {
+        // done!
+        ring.push(ring[0]); // close the ring
+        return ring;
+      }
+      return addPartToRing(nextPart, ring);
+    }
+  }
+
+  function addSubPath(paths, path) {
+    if (path.length > 1) paths.push(path);
+  }
+
+  function isValidSplitPart(part) {
+    var lastX = lastEl(part)[0];
+    var firstX = part[0][0];
+    return (lastX == 180 || lastX == -180) && (firstX == 180 || firstX == -180);
+  }
+
+  // p: last point of previous part
+  function findNextPoint(parts, p, yy) {
+    var x = p[0];
+    var y = p[1];
+    var i = yy.indexOf(y);
+    var xOpp = x == -180 ? 180 : -180;
+    var turnSouth = x == 180; // intersecting from the east -> turn south
+    var iNext = turnSouth ? i - 1 : i + 1;
+    var nextPoint;
+    if (x != 180 && x != -180) {
+      debug('Unexpected error');
+      return null;
+    }
+    if (i == -1) {
+      debug('Point missing from intersection table:', p);
+      return null;
+    }
+    if (iNext < 0 || iNext >= yy.length) {
+      // no path to traverse to along the antimeridian --
+      // assume the path surrounds one of the poles
+      // enclose south pole
+      nextPoint = [xOpp, y];
+    } else {
+      nextPoint = [x, yy[iNext]];
+    }
+    return nextPoint;
+  }
+
+  function findPartStartingAt(parts, firstPoint) {
+    for (var i=0; i<parts.length; i++) {
+      if (samePoint(parts[i][0], firstPoint)) {
+        return parts[i];
+      }
+    }
+    return null;
+  }
+
+  function countCrosses(path) {
+    var c = 0, pp, p;
+    for (var i=0, n=path.length; i<n; i++) {
+      p = path[i];
+      if (i>0 && Math.abs(pp[0] - p[0]) > 180) {
+        c++;
+      }
+      pp = p;
+    }
+    return c;
+  }
+
+  function splitPathAtAntimeridian(path) {
+    var parts = [];
+    var part = [];
+    var firstPoint = path[0];
+    var lastPoint = lastEl(path);
+    var closed = samePoint(firstPoint, lastPoint);
+    var p, pp, y, y2;
+    for (var i=0, n=path.length; i<n; i++) {
+      p = path[i];
+      if (i>0 && segmentCrossesAntimeridian(pp, p)) {
+        // y = sphericalIntercept(pp, p);
+        y = planarIntercept(pp, p);
+        addIntersectionPoint(part, pp, y);
+        addSubPath(parts, part);
+        part = [];
+        addIntersectionPoint(part, p, y);
+        // console.log(y, y2)
+      }
+      part.push(p);
+      pp = p;
+    }
+    addSubPath(parts, part);
+
+    // join first and last parts of a split-apart ring, so that the first part
+    // originates at the antimeridian
+    if (closed && parts.length > 1 && !isAntimeridianPoint(firstPoint)) {
+      part = parts.pop();
+      part.pop(); // remove duplicate point
+      parts[0] = part.concat(parts[0]);
+    }
+    return parts;
+  }
+
+  function segmentCrossesAntimeridian(a, b) {
+    return Math.abs(a[0] - b[0]) > 180;
+  }
+
+  function getSortedIntersections(parts) {
+    var values = parts.map(function(p) {
+      return p[0][1];
+    });
+    return utils.genericSort(values, true);
+  }
+
+
+  function addIntersectionPoint(part, p, yint) {
+    var xint = p[0] < 0 ? -180 : 180;
+    if (!isAntimeridianPoint(p)) { // don't a point if p is already on the antimeridian
+      part.push([xint, yint]);
+    }
+  }
+
+
+  // p1, p2: two vertices on different sides of the antimeridian
+  // Returns y-intercept of the segment connecting p1, p2
+  // TODO: consider using the great-circle intersection, instead of
+  // the planar intersection.
+  // (Planar should be fine if p1 and p2 are close to lon. 180)
+  function planarIntercept(p1, p2) {
+    var dx = p2[0] - p1[0]; // pos: crosses antimeridian w->e, neg: e->w
+    var dx1, dx2;
+    if (dx > 0) {
+      dx1 = p1[0] + 180;
+      dx2 = 180 - p2[0];
+    } else {
+      dx1 = 180 - p1[0];
+      dx2 = p2[0] + 180;
+    }
+    // avoid fp rounding error if a point is on antimeridian
+    if (dx1 === 0) return p1[1];
+    if (dx2 === 0) return p2[1];
+    return (dx2 * p1[1] + dx1 * p2[1]) / (dx1 + dx2);
+  }
+
+  // From: https://github.com/d3/d3-geo/blob/master/src/clip/antimeridian.js
+  function sphericalIntercept(p1, p2) {
+    var lam1 = p1[0] * D2R,
+        phi1 = p1[1] * D2R,
+        lam2 = p2[0] * D2R,
+        phi2 = p2[1] * D2R,
+        sinLam1Lam2 = Math.sin(lam1 - lam2),
+        cosPhi2 = Math.cos(phi2),
+        cosPhi1 = Math.cos(phi1),
+        phi;
+    if (Math.abs(sinLam1Lam2) > 1e-6) {
+      phi = Math.atan((Math.sin(phi1) * cosPhi2 * Math.sin(lam2) -
+        Math.sin(phi2) * cosPhi1) * Math.sin(lam1)) / (cosPhi1 * cosPhi2 * sinLam1Lam2);
+    } else {
+      phi = (phi1 + phi2) / 2;
+    }
+    return phi * R2D;
+  }
+
+  function ringArea(ring) {
+    var iter = new PointIter(ring);
+    return getSphericalPathArea2(iter);
+  }
+
   function makePointBuffer(lyr, dataset, opts) {
     var geojson = makePointBufferGeoJSON(lyr, dataset, opts);
     return importGeoJSON(geojson, {});
   }
 
+  // Make a single geodetic circle
+  function getCircleGeoJSON(center, radius, vertices, opts) {
+    var n = vertices || 360;
+    var geod = getGeodeticSegmentFunction(getCRS('wgs84')); // ?
+    if (opts.inset) {
+      radius -= opts.inset;
+    }
+    return opts.geometry_type == 'polyline' ?
+      getPointBufferLineString([center], radius, n, geod) :
+      getPointBufferPolygon([center], radius, n, geod, true);
+  }
+
+  // Convert a point layer to circles
   function makePointBufferGeoJSON(lyr, dataset, opts) {
     var vertices = opts.vertices || 72;
     var distanceFn = getBufferDistanceFunction(lyr, dataset, opts);
-    var geod = getGeodeticSegmentFunction(dataset);
+    var crs = getDatasetCRS(dataset);
+    var spherical = isLatLngCRS(crs);
+    var geod = getGeodeticSegmentFunction(crs);
     var geometries = lyr.shapes.map(function(shape, i) {
       var dist = distanceFn(i);
       if (!dist || !shape) return null;
-      return getPointBufferGeometry(shape, dist, vertices, geod);
+      return getPointBufferPolygon(shape, dist, vertices, geod, spherical);
     });
     // TODO: make sure that importer supports null geometries (nonstandard GeoJSON);
     return {
@@ -23065,35 +26974,73 @@ ${svg}
     };
   }
 
-  function getPointBufferGeometry(points, distance, vertices, geod) {
-    var coordinates = [];
+  function getPointBufferPolygon(points, distance, vertices, geod, spherical) {
+    var rings = [], coords, coords2;
     if (!points || !points.length) return null;
     for (var i=0; i<points.length; i++) {
-      coordinates.push(getPointBufferPolygonCoordinates(points[i], distance, vertices, geod));
+      coords = getPointBufferCoordinates(points[i], distance, vertices, geod);
+      if (!spherical) {
+        rings.push([coords]);
+      } else if (countCrosses(coords) > 0) {
+        coords2 = removePolygonCrosses([coords]);
+        while (coords2.length > 0) rings.push([coords2.pop()]); // geojson polygon coords, no hole
+      } else if (ringArea(coords) < 0) {
+        // negative spherical area: CCW ring, indicating a circle of >180 degrees
+        // that fully encloses both poles and the antimeridian.
+        // need to add an enclosure around the entire sphere
+        // TODO: compare to distance param as a sanity check
+        rings.push([
+          [[180, 90], [180, -90], [0, -90], [-180, -90], [-180, 90], [0, 90], [180, 90]],
+          coords
+          ]);
+      } else {
+        rings.push([coords]);
+      }
     }
-    return coordinates.length == 1 ? {
-      type: 'Polygon',
-      coordinates: coordinates[0]
-    } : {
+    return {
       type: 'MultiPolygon',
-      coordinates: coordinates
+      coordinates: rings
     };
   }
 
-  function getPointBufferPolygonCoordinates(p, meterDist, vertices, geod) {
-    var coords = [],
-        angle = 360 / vertices;
-    for (var i=0; i<vertices; i++) {
-      coords.push(geod(p[0], p[1], i * angle, meterDist));
+  function getPointBufferLineString(points, distance, vertices, geod) {
+    var rings = [], coords;
+    if (!points || !points.length) return null;
+    for (var i=0; i<points.length; i++) {
+      coords = getPointBufferCoordinates(points[i], distance, vertices, geod);
+      coords = removePolylineCrosses(coords);
+      while (coords.length > 0) rings.push(coords.pop());
     }
-    coords.push(coords[0].concat());
-    return [coords]; // return vertices as the first (space-enclosing) ring of a Polygon geometry
+    return rings.length == 1 ? {
+      type: 'LineString',
+      coordinates: rings[0]
+    } : {
+      type: 'MultiLineString',
+      coordinates: rings
+    };
   }
 
-  // returns a dataset
-  cmd.buffer = function(layers, dataset, opts) {
-    return makeBufferLayer(layers[0], dataset, opts);
-  };
+  // Returns array of [x, y] coordinates in a closed ring
+  function getPointBufferCoordinates(center, meterDist, vertices, geod) {
+    var coords = [],
+        angle = 360 / vertices,
+        theta;
+    for (var i=0; i<vertices; i++) {
+      // offsetting by half a step so 4 sides are flat, not pointy
+      // (looks better on low-vertex circles)
+      theta = (i + 0.5) * angle % 360;
+      coords.push(geod(center[0], center[1], theta, meterDist));
+    }
+    coords.push(coords[0].concat());
+    return coords;
+  }
+
+  // TODO: consider if layers should be buffered together
+  // cmd.buffer = function(layers, dataset, opts) {
+  //   return makeBufferLayer(layers[0], dataset, opts);
+  // };
+
+  cmd.buffer = makeBufferLayer;
 
   function makeBufferLayer(lyr, dataset, opts) {
     var dataset2, lyr2;
@@ -23108,7 +27055,7 @@ ${svg}
     }
     var outputLayers = mergeDatasetsIntoDataset(dataset, [dataset2]);
     lyr2 = outputLayers[0];
-    lyr2.name = lyr.name;
+    setOutputLayerName(lyr2, lyr, null, opts);
     if (lyr.data && !lyr2.data) {
       lyr2.data = opts.no_replace ? lyr.data.clone() : lyr.data;
     }
@@ -23187,19 +27134,57 @@ ${svg}
     return output;
   }
 
-  var categorical = 'Category10,Accent,Dark2,Paired,Pastel1,Pastel2,Set1,Set2,Set3,Tableau10'.split(',');
-  var sequential = 'Blues,Greens,Greys,Purples,Reds,Oranges,BuGn,BuPu,GnBu,OrRd,PuBuGn,PuBu,PuRd,RdPu,YlGnBu,YlGn,YlOrBr,YlOrRd'.split(',');
-  var rainbow = 'Cividis,CubehelixDefault,Rainbow,Warm,Cool,Sinebow,Turbo,Viridis,Magma,Inferno,Plasma'.split(',');
-  var diverging = 'BrBG,PRGn,PRGn,PiYG,PuOr,RdBu,RdGy,RdYlBu,RdYlGn,Spectral'.split(',');
+  var index = {
+    categorical: [],
+    sequential: [],
+    rainbow: [],
+    diverging: []
+  };
+  var ramps;
+
+  function initSchemes() {
+    if (ramps) return;
+    ramps = {};
+    addSchemesFromD3('categorical', 'Category10,Accent,Dark2,Paired,Pastel1,Pastel2,Set1,Set2,Set3,Tableau10');
+    addSchemesFromD3('sequential', 'Blues,Greens,Greys,Purples,Reds,Oranges,BuGn,BuPu,GnBu,OrRd,PuBuGn,PuBu,PuRd,RdPu,YlGnBu,YlGn,YlOrBr,YlOrRd');
+    addSchemesFromD3('rainbow', 'Cividis,CubehelixDefault,Rainbow,Warm,Cool,Sinebow,Turbo,Viridis,Magma,Inferno,Plasma');
+    addSchemesFromD3('diverging', 'BrBG,PRGn,PRGn,PiYG,PuOr,RdBu,RdGy,RdYlBu,RdYlGn,Spectral');
+    testLib(); // make sure these schemes are all available
+    addCategoricalScheme('Category20',
+      '1f77b4aec7e8ff7f0effbb782ca02c98df8ad62728ff98969467bdc5b0d58c564bc49c94e377c2f7b6d27f7f7fc7c7c7bcbd22dbdb8d17becf9edae5');
+    addCategoricalScheme('Category20b',
+      '393b795254a36b6ecf9c9ede6379398ca252b5cf6bcedb9c8c6d31bd9e39e7ba52e7cb94843c39ad494ad6616be7969c7b4173a55194ce6dbdde9ed6');
+    addCategoricalScheme('Category20c',
+      '3182bd6baed69ecae1c6dbefe6550dfd8d3cfdae6bfdd0a231a35474c476a1d99bc7e9c0756bb19e9ac8bcbddcdadaeb636363969696bdbdbdd9d9d9');
+    addCategoricalScheme('Tableau20',
+      '4c78a89ecae9f58518ffbf7954a24b88d27ab79a20f2cf5b43989483bcb6e45756ff9d9879706ebab0acd67195fcbfd2b279a2d6a5c99e765fd8b5a5');
+  }
+
+  function addSchemesFromD3(type, names) {
+    index[type] = index[type].concat(names.split(','));
+  }
+
+  function addCategoricalScheme(name, str) {
+    index.categorical.push(name);
+    ramps[name] = unpackRamp(str);
+  }
+
+  function unpackRamp(str) {
+    var colors = [];
+    for (var i=0, n=str.length; i<n; i+=6) {
+      colors.push('#' + str.substr(i, 6));
+    }
+    return colors;
+  }
 
   function testLib() {
     var lib = require('d3-scale-chromatic');
-    schemes(categorical);
-    schemes(sequential);
-    schemes(diverging);
-    interpolators(sequential);
-    interpolators(rainbow);
-    interpolators(diverging);
+    schemes(index.categorical);
+    schemes(index.sequential);
+    schemes(index.diverging);
+    interpolators(index.sequential);
+    interpolators(index.rainbow);
+    interpolators(index.diverging);
 
     function schemes(arr) {
       arr.forEach(function(name) {
@@ -23219,19 +27204,20 @@ ${svg}
   }
 
   function printColorSchemeNames() {
-    testLib();
+    initSchemes();
     print('Built-in color schemes (from d3):');
-    print ('Categorical\n' + formatStringsAsGrid(categorical));
-    print ('\nSequential\n' + formatStringsAsGrid(sequential));
-    print ('\nDiverging\n' + formatStringsAsGrid(diverging));
-    print ('\nMulti-hue/rainbow\n' + formatStringsAsGrid(rainbow));
+    print ('Categorical\n' + formatStringsAsGrid(index.categorical));
+    print ('\nSequential\n' + formatStringsAsGrid(index.sequential));
+    print ('\nDiverging\n' + formatStringsAsGrid(index.diverging));
+    print ('\nMulti-hue/rainbow\n' + formatStringsAsGrid(index.rainbow));
   }
 
   function getCategoricalColorScheme(name, n) {
-    if (categorical.includes(name) === false) {
+    initSchemes();
+    if (index.categorical.includes(name) === false) {
       stop(name, 'is not a categorical color scheme');
     }
-    var colors = require('d3-scale-chromatic')['scheme' + name];
+    var colors = ramps[name] || require('d3-scale-chromatic')['scheme' + name];
     if (n > colors.length) {
       stop(name, 'does not contain', n, 'colors');
     }
@@ -23239,10 +27225,13 @@ ${svg}
   }
 
   function isColorSchemeName(name) {
-    return categorical.concat(sequential).concat(rainbow).concat(diverging).includes(name);
+    initSchemes();
+    return index.categorical.includes(name) || index.sequential.includes(name) ||
+      index.diverging.includes(name) || index.rainbow.includes(name);
   }
 
   function getColorRamp(name, n, stops) {
+    initSchemes();
     var lib = require('d3-scale-chromatic');
     var ramps = lib['scheme' + name];
     var interpolate = lib['interpolate' + name];
@@ -23250,7 +27239,7 @@ ${svg}
     if (!ramps && !interpolate) {
       stop('Unknown color scheme name:', name);
     }
-    if (categorical.includes(name)) {
+    if (index.categorical.includes(name)) {
       stop(name, ' is a categorical color scheme (expected a sequential color scheme)');
     }
     if (ramps && ramps[n]) {
@@ -23437,7 +27426,7 @@ ${svg}
       chartHeight: 90,
       chartColor: '#ddd',
       ticColor: 'rgba(0,0,0,0.3)',
-      ticLen: opts.key_tic_length >= 0 ? opts.key_tic_length : 6,
+      ticLen: opts.key_tic_length >= 0 ? +opts.key_tic_length : 6,
       fontFamily: 'sans-serif',
       fontSize: opts.key_font_size || 13,
       textColor: '#555'
@@ -24058,6 +28047,7 @@ ${svg}
       numBuckets = opts.classes;
     }
 
+
     // TODO: better validation of breaks values
     if (opts.breaks) {
       numBuckets = opts.breaks.length + 1;
@@ -24065,13 +28055,24 @@ ${svg}
 
     if (opts.index_field) {
       dataField = opts.index_field;
-      numBuckets = validateClassIndexField(records, opts.index_field);
+      if (numBuckets > 0 === false) {
+        stop('The index-field= option requires the classes= option to be set');
+      }
+      // You can't infer the number of classes by looking at index values;
+      // this can cause unwanted interpolation if one or more values are
+      // not present in the index field
+      // numBuckets = validateClassIndexField(records, opts.index_field);
 
     } else if (opts.field) {
       dataField = opts.field;
 
     } else {
       stop('Missing a data field to classify');
+    }
+
+    // expand categories if value is '*'
+    if (dataField && opts.categories && opts.categories.includes('*')) {
+      opts.categories = getUniqFieldValues(records, dataField);
     }
 
     requireDataField(lyr.data, dataField);
@@ -24097,7 +28098,6 @@ ${svg}
 
       if (opts.categories) {
         classValues = getCategoricalColorScheme(colorScheme, opts.categories.length);
-        message('Colors:', formatValuesForLogging(classValues));
         numBuckets = numValues = classValues.length;
       } else {
         if (!numBuckets) {
@@ -24208,251 +28208,6 @@ ${svg}
       vals.push(i);
     }
     return vals;
-  }
-
-  // Assumes intersection cuts have been added and duplicated points removed
-  // TODO: consider closing undershoots (see mapshaper-undershoots.js)
-  function cleanPolylineLayerGeometry(lyr, dataset, opts) {
-    var arcs = dataset.arcs;
-    var filter = getArcPresenceTest(lyr.shapes, arcs);
-    var nodes = new NodeCollection(arcs, filter);
-    var arcIndex = new IdLookupIndex(arcs.size(), true);
-    lyr.shapes = lyr.shapes.map(function(shp, i) {
-      if (!shp) return null;
-      // split parts at nodes (where multiple arcs intersect)
-      shp = divideShapeAtNodes(shp, nodes);
-
-      // remove multiple references to the same arc within the same part
-      // (this could happen if the path doubles back to form a spike)
-      // TODO: remove spikes within a single arc
-      arcIndex.clear();
-      shp = uniqifyArcs(shp, arcIndex);
-
-      // try to combine parts that form a contiguous line
-      // (some datasets may use a separate part for each segment)
-      arcIndex.clear();
-      shp = combineContiguousParts(shp, nodes, arcIndex);
-      return shp;
-    });
-  }
-
-  function uniqifyArcs(shp, index) {
-    var shp2 = shp.reduce(function(memo, ids) {
-      addUnusedArcs(memo, ids, index);
-      return memo;
-    }, []);
-    return shp2.length > 0 ? shp2 : null;
-  }
-
-  function addUnusedArcs(shp, ids, index) {
-    var part = [], arcId;
-    for (var i=0; i<ids.length; i++) {
-      arcId = ids[i];
-      if (!index.hasId(arcId)) {
-        part.push(arcId);
-      } else if (part.length > 0) {
-        shp.push(part);
-        part = [];
-      }
-      index.setId(arcId, i);
-      index.setId(~arcId, i);
-    }
-    if (part.length > 0) shp.push(part);
-  }
-
-
-  function divideShapeAtNodes(shp, nodes) {
-    var shp2 = [];
-    forEachShapePart(shp, onPart);
-    return shp2;
-
-    function onPart(ids) {
-      var n = ids.length;
-      var id, connected;
-      var ids2 = [];
-      for (var i=0; i<n; i++) {
-        // check each segment of the current part (equivalent to a LineString)
-        id = ids[i];
-        ids2.push(id);
-        if (i < n-1 && nodes.getConnectedArcs(id).length > 1) {
-          // divide the current part if the front endpoint of the current segment
-          // touches any other segment than the next segment in this part
-          // TODO: consider not dividing if the intersection does not involve
-          // the current feature (ie. it is not a self-intersection).
-          shp2.push(ids2);
-          ids2 = [];
-        }
-      }
-      if (ids2.length > 0) shp2.push(ids2);
-    }
-  }
-
-  function combineContiguousParts(parts, nodes, endpointIndex) {
-    if (parts.length < 2) return parts;
-
-    // Index the terminal arcs of this group of polyline parts
-    parts.forEach(function(ids, i) {
-      var tailId = ~ids[0]; // index the reversed arc (so it points outwards)
-      var headId = ids[ids.length - 1];
-      // edge case: an endpoint arc is shared by multiple parts
-      // only processing the first of such parts, skipping subsequent parts
-      // (this should be an exceptional case... should probably investigate
-      // why this happens and handle this better)
-      if (endpointIndex.hasId(tailId) || endpointIndex.hasId(headId)) {
-        error('Indexing error');
-      }
-      endpointIndex.setId(tailId, i);
-      endpointIndex.setId(headId, i);
-      procEndpoint(tailId, i);
-      procEndpoint(headId, i);
-    });
-
-    return parts.filter(function(ids) { return !!ids; });
-
-    function procEndpoint(endpointId, sourcePartId) {
-      var joins = 0;
-      var partId2 = -1;
-      var endpointId2;
-      var indexedPartId = endpointIndex.getId(endpointId);
-      nodes.forEachConnectedArc(endpointId, function(arcId) {
-        if (endpointIndex.hasId(arcId)) {
-          partId2 = endpointIndex.getId(arcId);
-          endpointId2 = arcId;
-        }
-        joins++;
-      });
-      if (joins == 1 && partId2 > -1 && partId2 < sourcePartId) {
-        extendPolylinePart(parts, partId2, endpointId2, indexedPartId, endpointId);
-        // update indexed part id of joining endpoint
-        endpointIndex.setId(endpointId, partId2);
-        // update indexed part id of other endpoint
-        var ids = parts[indexedPartId];
-        var otherEndpointId = getOtherEndpointId(ids, endpointId);
-        endpointIndex.setId(otherEndpointId, partId2);
-        if (indexedPartId != partId2) {
-          parts[indexedPartId] = null;
-        }
-      }
-    }
-  }
-
-  function getOtherEndpointId(ids, endpointId) {
-    var headId = ~ids[0];
-    var tailId = ids[ids.length-1];
-    if (endpointId == headId) return tailId;
-    else if (endpointId == tailId) return headId;
-    error('Indexing error');
-  }
-
-  function extendPolylinePart(parts, partId1, endpoint1, partId2, endpoint2) {
-    var ids1 = parts[partId1];
-    var ids2 = parts[partId2];
-    var joinToTail, joinFromTail;
-    if (~endpoint1 == ids1[0]) {
-      joinToTail = true;
-    } else if (endpoint1 == ids1[ids1.length-1]) {
-      joinToTail = false;
-    } else {
-      error('Index error');
-    }
-    if (~endpoint2 == ids2[0]) {
-      joinFromTail = true;
-    } else if (endpoint2 == ids2[ids2.length-1]) {
-      joinFromTail = false;
-    } else {
-      error('Index error 2');
-    }
-    if (!joinFromTail) {
-      ids2 = reversePath(ids2.concat());
-    }
-    if (joinToTail) {
-      prependPath(ids1, ids2);
-    } else {
-      appendPath(ids1, ids2);
-    }
-  }
-
-  function prependPath(target, source) {
-    source = reversePath(source.concat());
-    var args = [0, 0].concat(source);
-    target.splice.apply(target, args);
-  }
-
-  function appendPath(target, source) {
-    target.push.apply(target, source);
-  }
-
-  cmd.cleanLayers = function(layers, dataset, optsArg) {
-    var opts = optsArg || {};
-    var deepClean = !opts.only_arcs;
-    var pathClean = utils.some(layers, layerHasPaths);
-    var nodes;
-    if (opts.debug) {
-      addIntersectionCuts(dataset, opts);
-      return;
-    }
-    layers.forEach(function(lyr) {
-      if (!layerHasGeometry(lyr)) return;
-      if (lyr.geometry_type == 'polygon' && opts.rewind) {
-        rewindPolygons(lyr, dataset.arcs);
-      }
-      if (deepClean) {
-        if (!nodes) {
-          nodes = addIntersectionCuts(dataset, opts);
-        }
-        if (lyr.geometry_type == 'polygon') {
-          cleanPolygonLayerGeometry(lyr, dataset, opts);
-        } else if (lyr.geometry_type == 'polyline') {
-          cleanPolylineLayerGeometry(lyr, dataset, opts);
-        } else if (lyr.geometry_type == 'point') {
-          cleanPointLayerGeometry(lyr, dataset, opts);
-        }
-      }
-      if (!opts.allow_empty) {
-        cmd.filterFeatures(lyr, dataset.arcs, {remove_empty: true});
-      }
-    });
-
-    if (!opts.no_arc_dissolve && pathClean && dataset.arcs) {
-      // remove leftover endpoints within contiguous lines
-      dissolveArcs(dataset);
-    }
-  };
-
-  function cleanPolygonLayerGeometry(lyr, dataset, opts) {
-    var groups = lyr.shapes.map(function(shp, i) {
-      return [i];
-    });
-    lyr.shapes = dissolvePolygonGroups2(groups, lyr, dataset, opts);
-  }
-
-  // Remove duplicate points from multipoint geometries
-  // TODO: consider checking for invalid coordinates
-  function cleanPointLayerGeometry(lyr, dataset, opts) {
-    var index, parts;
-    lyr.shapes = lyr.shapes.map(function(shp, i) {
-      if (!shp || shp.length > 0 === false) {
-        return null;
-      }
-      if (shp.length == 1) {
-        return shp; // single part
-      }
-      // remove duplicate points from multipoint geometry
-      index = {};
-      parts = [];
-      shp.forEach(onPoint);
-      if (parts.length === 0) {
-        return null;
-      }
-      return parts;
-    });
-
-    function onPoint(p) {
-      var key = p.join('~');
-      if (key in index) return;
-      index[key] = true;
-      parts.push(p);
-    }
   }
 
   // Remove small-area polygon rings (very simple implementation of sliver removal)
@@ -24630,12 +28385,10 @@ ${svg}
       targetShapes = targetShapes.map(dissolvePolygon);
     }
 
-    // NOTE: commenting-out dissolve of clipping shapes, because the dissolve function
-    //   does not tolerate overlapping shapes and some other topology errors.
-    //   Dissolving was an optimization intended to improve performance when using a
-    //   mosaic (e.g. counties, states) to clip or erase another layer. The user
-    //   can optimize this case by dissolving as a separate step.
-    // // merge rings of clip/erase polygons and dissolve them all
+    // Originally, clip shapes were dissolved here as an optimization, using
+    // an unreliable dissolve function.
+    // Now, clip shapes are dissolved using a more reliable (but slower)
+    // function in mapshaper-clip-erase.js
     // clipShapes = [dissolvePolygon(internal.concatShapes(clipShapes))];
 
     // Open pathways in the clip/erase layer
@@ -24885,11 +28638,14 @@ ${svg}
     if (bbox) {
       clipDataset = convertClipBounds(bbox);
       clipLyr = clipDataset.layers[0];
-    } else if (clipSrc) {
+    } else if (!clipSrc) {
+      stop("Command requires a source file, layer id or bbox");
+    } else if (clipSrc.layer && clipSrc.dataset) {
       clipLyr = clipSrc.layer;
       clipDataset = utils.defaults({layers: [clipLyr]}, clipSrc.dataset);
-    } else {
-      stop("Command requires a source file, layer id or bbox");
+    } else if (clipSrc.layers && clipSrc.layers.length == 1) {
+      clipLyr = clipSrc.layers[0];
+      clipDataset = clipSrc;
     }
     if (targetDataset.arcs != clipDataset.arcs) {
       // using external dataset -- need to merge arcs
@@ -25081,6 +28837,17 @@ ${svg}
     return cmd.sliceLayers([targetLyr], src, dataset, opts);
   };
 
+  function clipLayersInPlace(layers, clipSrc, dataset, type, opts) {
+    var outputLayers = clipLayers(layers, clipSrc, dataset, type, opts);
+    // remove arcs from the clipping dataset, if they are not used by any layer
+    layers.forEach(function(lyr, i) {
+      var lyr2 = outputLayers[i];
+      lyr.shapes = lyr2.shapes;
+      lyr.data = lyr2.data;
+    });
+    dissolveArcs(dataset);
+  }
+
   // @clipSrc: layer in @dataset or filename
   // @type: 'clip' or 'erase'
   function clipLayers(targetLayers, clipSrc, targetDataset, type, opts) {
@@ -25091,15 +28858,20 @@ ${svg}
       return clipLayersByBBox(targetLayers, targetDataset, opts);
     }
     mergedDataset = mergeLayersForOverlay(targetLayers, targetDataset, clipSrc, opts);
+    clipLyr = mergedDataset.layers[mergedDataset.layers.length-1];
     if (usingPathClip) {
       // add vertices at all line intersections
       // (generally slower than actual clipping)
       nodes = addIntersectionCuts(mergedDataset, opts);
       targetDataset.arcs = mergedDataset.arcs;
+      // dissolve clip layer shapes (to remove overlaps and other topological issues
+      // that might confuse the clipping function)
+      clipLyr = dissolvePolygonLayer2(clipLyr, mergedDataset, {quiet: true, silent: true});
+
     } else {
       nodes = new NodeCollection(mergedDataset.arcs);
     }
-    clipLyr = mergedDataset.layers.pop();
+    // clipLyr = mergedDataset.layers.pop();
     return clipLayersByLayer(targetLayers, clipLyr, nodes, type, opts);
   }
 
@@ -25201,6 +28973,8 @@ ${svg}
 
   var ClipErase = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    clipLayersInPlace: clipLayersInPlace,
+    clipLayers: clipLayers,
     clipLayersByBBox: clipLayersByBBox,
     clipLayersByLayer: clipLayersByLayer,
     getClipMessage: getClipMessage
@@ -25902,6 +29676,15 @@ ${svg}
     };
   }
 
+  cmd.define = function(opts) {
+    if (!opts.expression) {
+      stop('Missing an assignment expression');
+    }
+    var defs = getStateVar('defs');
+    var compiled = compileFeatureExpression(opts.expression, {}, null, {no_warn: true});
+    var result = compiled(null, defs);
+  };
+
   // Removes small gaps and all overlaps
   cmd.dissolve2 = function(layers, dataset, opts) {
     layers.forEach(requirePolygonLayer);
@@ -26218,6 +30001,10 @@ ${svg}
         joinFields = opts.fields;
         validateFieldNames(joinFields);
       }
+    } else if (opts.calc) {
+      // presence of calc= option suggests a many-to-one or many-to-many join;
+      // it usually doesn't make sense to join all fields by default
+      joinFields = [];
     } else {
       // If a list of fields to join is not given, try to join all of the
       // source fields
@@ -26339,37 +30126,748 @@ ${svg}
     }
   }
 
-  cmd.dots = function(lyr, arcs, opts) {
-    requirePolygonLayer(lyr);
-    requireDataField(lyr, opts.field);
-    var records = lyr.data ? lyr.data.getRecords() : [];
-    var shapes = [];
-    lyr.shapes.forEach(function(shp, i) {
-      var d = records[i];
-      var n = d ? +d[opts.field] : 0;
-      var coords = null;
-      if (n > 0) {
-        coords = createInnerPoints(shp, arcs, n);
-      }
-      shapes.push(coords);
-    });
-    return {
-      type: 'point',
-      shapes: shapes
-    };
-  };
-
-  function createInnerPoints(shp, arcs, n) {
-    if (!shp || shp.length != 1) {
-      return null; // TODO: support polygons with holes and multipart polygons
-    }
-    return fillPolygonWithDots(shp, arcs, n);
+  function MinHeap() {
+    return new Heap('min');
   }
 
+  function MaxHeap() {
+    return new Heap('max');
+  }
 
-  function fillPolygonWithDots(shp, arcs, n) {
-    var area = geom.getPlanarShapeArea(shp, arcs);
+  // A heap data structure used for computing Visvalingam simplification data.
+  // type: 'max' or 'min' (min is default)
+  //
+  function Heap(type) {
+    var heapBuf = utils.expandoBuffer(Int32Array),
+        indexBuf = utils.expandoBuffer(Int32Array),
+        heavierThan = type == 'max' ? lessThan : greaterThan,
+        itemsInHeap = 0,
+        dataArr,
+        heapArr,
+        indexArr;
+
+    this.init = function(values) {
+      var i;
+      dataArr = values;
+      itemsInHeap = values.length;
+      heapArr = heapBuf(itemsInHeap);
+      indexArr = indexBuf(itemsInHeap);
+      for (i=0; i<itemsInHeap; i++) {
+        insertValue(i, i);
+      }
+      // place non-leaf items
+      for (i=(itemsInHeap-2) >> 1; i >= 0; i--) {
+        downHeap(i);
+      }
+    };
+
+    this.size = function() {
+      return itemsInHeap;
+    };
+
+    // Update a single value and re-heap
+    this.updateValue = function(valIdx, val) {
+      var heapIdx = indexArr[valIdx];
+      dataArr[valIdx] = val;
+      if (!(heapIdx >= 0 && heapIdx < itemsInHeap)) {
+        error("Out-of-range heap index.");
+      }
+      downHeap(upHeap(heapIdx));
+    };
+
+    this.popValue = function() {
+      return dataArr[this.pop()];
+    };
+
+    this.getValue = function(idx) {
+      return dataArr[idx];
+    };
+
+    this.peek = function() {
+      return heapArr[0];
+    };
+
+    this.peekValue = function() {
+      return dataArr[heapArr[0]];
+    };
+
+    // Return the idx of the lowest-value item in the heap
+    this.pop = function() {
+      var popIdx;
+      if (itemsInHeap <= 0) {
+        error("Tried to pop from an empty heap.");
+      }
+      popIdx = heapArr[0];
+      insertValue(0, heapArr[--itemsInHeap]); // move last item in heap into root position
+      downHeap(0);
+      return popIdx;
+    };
+
+    function upHeap(idx) {
+      var parentIdx;
+      // Move item up in the heap until it's at the top or is not lighter than its parent
+      while (idx > 0) {
+        parentIdx = (idx - 1) >> 1;
+        if (heavierThan(idx, parentIdx)) {
+          break;
+        }
+        swapItems(idx, parentIdx);
+        idx = parentIdx;
+      }
+      return idx;
+    }
+
+    // Swap item at @idx with any lighter children
+    function downHeap(idx) {
+      var minIdx = compareDown(idx);
+
+      while (minIdx > idx) {
+        swapItems(idx, minIdx);
+        idx = minIdx; // descend in the heap
+        minIdx = compareDown(idx);
+      }
+    }
+
+    function swapItems(a, b) {
+      var i = heapArr[a];
+      insertValue(a, heapArr[b]);
+      insertValue(b, i);
+    }
+
+    // Associate a heap idx with the index of a value in data arr
+    function insertValue(heapIdx, valId) {
+      indexArr[valId] = heapIdx;
+      heapArr[heapIdx] = valId;
+    }
+
+    // comparator for Visvalingam min heap
+    // @a, @b: Indexes in @heapArr
+    function greaterThan(a, b) {
+      var idx1 = heapArr[a],
+          idx2 = heapArr[b],
+          val1 = dataArr[idx1],
+          val2 = dataArr[idx2];
+      // If values are equal, compare array indexes.
+      // This is not a requirement of the Visvalingam algorithm,
+      // but it generates output that matches Mahes Visvalingam's
+      // reference implementation.
+      // See https://hydra.hull.ac.uk/assets/hull:10874/content
+      return (val1 > val2 || val1 === val2 && idx1 > idx2);
+    }
+
+    // comparator for max heap
+    function lessThan(a, b) {
+      var idx1 = heapArr[a],
+          idx2 = heapArr[b];
+      return dataArr[idx1] < dataArr[idx2];
+    }
+
+    function compareDown(idx) {
+      var a = 2 * idx + 1,
+          b = a + 1,
+          n = itemsInHeap;
+      if (a < n && heavierThan(idx, a)) {
+        idx = a;
+      }
+      if (b < n && heavierThan(idx, b)) {
+        idx = b;
+      }
+      return idx;
+    }
+  }
+
+  // TODO: optimize point-in-polygon tests for complex polygons and many points
+  // import { PathIndex } from '../paths/mapshaper-path-index';
+
+  function placeDotsInPolygon(shp, arcs, n, opts) {
+    // TODO: skip tiny sliver polygons?
+    if (n === 0) return [];
+    if (opts.evenness === 0) return placeDotsRandomly(shp, arcs, n);
+    // TODO: if n == 1, consider using the 'inner' point of a polygon
+    return placeDotsEvenly(shp, arcs, n, opts);
+  }
+
+  function placeDotsRandomly(shp, arcs, n) {
     var bounds = arcs.getMultiShapeBounds(shp);
+    var coords = [];
+    for (var i=0; i<n; i++) {
+      coords.push(placeRandomDot(shp, arcs, bounds));
+    }
+    return coords;
+  }
+
+  function placeRandomDot(shp, arcs, bounds) {
+    var limit = 100;
+    var i = 0;
+    var x, y;
+    while (++i < limit) {
+      x = bounds.xmin + Math.random() * bounds.width();
+      y = bounds.ymin + Math.random() * bounds.height();
+      if (testPointInPolygon(x, y, shp, arcs)) {
+        return [x, y];
+      }
+    }
+    return null;
+  }
+
+  function placeDotsEvenly(shp, arcs, n, opts) {
+    var evenness = opts.evenness >= 0 ? Math.min(opts.evenness, 1) : 1;
+    var shpArea = geom.getPlanarShapeArea(shp, arcs);
+    if (shpArea > 0 === false) return [];
+    var bounds = arcs.getMultiShapeBounds(shp);
+    var approxQueries = Math.round(n * bounds.area() / shpArea);
+    if (opts.progressive) {
+      // TODO: implement this properly
+      approxQueries = Math.ceil(approxQueries / 6);
+    }
+    var grid = new DotGrid(bounds, approxQueries, evenness);
+    var coords = [];
+    for (var i=0; i<n; i++) {
+      coords.push(placeDot(shp, arcs, grid));
+    }
+    grid.done();
+    return coords;
+  }
+
+  function placeDot(shp, arcs, grid) {
+    var i = 0;
+    var limit = 100;
+    var p;
+    while (++i < limit) {
+      p = grid.getPoint();
+      if (!p) continue;
+      if (testPointInPolygon(p[0], p[1], shp, arcs)) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  // A method for placing dots in a 2D rectangular space
+  // evenness: varies from 0-1
+  //   0 is purely random
+  //   1 uses a hybrid approach, first creating a sparse structure of random
+  //      dots, then progressively filling in the spaces between dots
+  //   (0-1) first creates an evenish structure of dots, then places additional
+  //      dots using "dart-throwing" -- picking random points until a point
+  //      is found that exceeds a (variable) distance from any other point
+  //
+  function DotGrid(bounds, approxQueries, evenness) {
+    var x0 = bounds.xmin;
+    var y0 = bounds.ymin;
+    var w = bounds.width();
+    var h = bounds.height();
+    var k =  0.5 * (evenness - 1) + 1; // k varies from 0.5 to 1
+    var approxCells = approxQueries * 0.9 * k;
+    var cols = Math.round(Math.sqrt(approxCells * w / h)) || 1;
+    var rows = Math.ceil(cols * h / w); // overshoots bbox height
+    var gridWidth = w;
+    var gridHeight = w * rows / cols;
+    var cells = cols * rows;
+    var cellSize = gridWidth / cols;
+    var cellId = -1;
+    var shuffledIds;
+    var grid = initGrid(cells);
+    // data used by optimal method
+    var bestPoints;
+    var bestHeap;
+
+    // Set the initial distance threshold between dots (based on a square grid)
+    // When evenness < 1 (dart-throwing mode) the distance threshold is reduced in
+    //   proportion to the value of evenness.
+    // From trial and error, a 0.7 constant seems to give good results.
+    var initialDotSpacing = gridWidth / cols * 0.7 * evenness;
+    var dotSpacing = initialDotSpacing;
+
+    // metrics
+    var queries = 0;
+    var bestCount = 0;
+
+    this.done = done;
+    this.getPoint = getPoint;
+
+    function done() {
+      // console.log( 'queries:', queries,'bestPct:', pct(bestCount, queries), "dotSpacing:", Math.round(dotSpacing));
+      function pct(a, b) {
+        return Math.round(a / b * 100) + '%';
+      }
+    }
+
+    function getPoint() {
+      queries++;
+      if (evenness === 1) return getOptimalPoint();
+      if (evenness === 0) return getRandomPoint();
+      return getSpacedPoint();
+    }
+
+    function initGrid(n) {
+      var arr = [];
+      for (var i=0; i<n; i++) arr.push([]);
+      return arr;
+    }
+
+    function getOptimalPoint() {
+      var p = getFirstFillPoint();
+      if (p) return usePoint(p);
+
+      // fill in the gaps of the initial placement, starting with the largest gap
+      if (!bestPoints) {
+        initBestPoints();
+      }
+      return useBestPoint();
+    }
+
+    // try to place a random but spaced point in each grid cell
+    // (to create an initial sparse structure that gets filled in later)
+    function getFirstFillPoint() {
+      var p;
+      if (!shuffledIds) {
+        shuffledIds = utils.range(cells);
+        utils.shuffle(shuffledIds);
+      }
+      while (++cellId < cells) {
+        p = getRandomPointInCell(shuffledIds[cellId]);
+        if (pointIsUsable(p)) {
+          return p;
+        }
+      }
+    }
+
+    function getSpacedPoint() {
+      // use dart-throwing, reject points that are within the minimum distance
+      var probesBeforeRelaxation = Math.ceil(Math.pow(cells, 0.8));
+      var maxProbes = cells * 10;
+      var probes = 0;
+      var p = getFirstFillPoint();
+      if (p) return usePoint(p);
+
+      while (probes++ < maxProbes) {
+        p = getRandomPoint();
+        if (pointIsUsable(p)) {
+          return usePoint(p);
+        }
+        if (probes % probesBeforeRelaxation === 0) {
+          // relax min dist after a number of failed probes
+          dotSpacing *= 0.9;
+        }
+      }
+      return null;
+    }
+
+    // Add point to grid of used points
+    function usePoint(p) {
+      var i = pointToIdx(p);
+      grid[i].push(p);
+      return p;
+    }
+
+    function useBestPoint() {
+      var bestId = bestHeap.peek();
+      var p = bestPoints[bestId];
+      usePoint(p); // add to grid of used points
+      updateNeighbors(p, bestId); // update best point of this cell and neighbors
+      dotSpacing = bestHeap.peekValue();
+      bestCount++;
+      return p;
+    }
+
+    function initBestPoints() {
+      var values = [];
+      bestPoints = [];
+      for (var i=0; i<cells; i++) {
+        values.push(findBestPointInCell(i));
+      }
+      bestHeap = new MaxHeap();
+      bestHeap.init(values);
+    }
+
+    function updateNeighbors(p, i) {
+      var r = idxToRow(i);
+      var c = idxToCol(i);
+      updateBestPointInCell(i);
+      updateNeighbor(p, c+1, r);
+      updateNeighbor(p, c, r+1);
+      updateNeighbor(p, c-1, r);
+      updateNeighbor(p, c, r-1);
+      updateNeighbor(p, c+1, r+1);
+      updateNeighbor(p, c-1, r+1);
+      updateNeighbor(p, c-1, r-1);
+      updateNeighbor(p, c+1, r-1);
+    }
+
+    function updateNeighbor(addedPt, c, r) {
+      var i = colRowToIdx(c, r);
+      if (i == -1) return;
+      var bestPt = bestPoints[i];
+      var dist = bestHeap.getValue(i);
+      // don't need to update best point if the newly added point is too far away
+      // to have an effect.
+      // (about 80% of updates are skipped, typically)
+      if (distSq(addedPt, bestPt) < dist * dist) {
+        updateBestPointInCell(i);
+      }
+    }
+
+    function updateBestPointInCell(i) {
+      var dist = findBestPointInCell(i);
+      bestHeap.updateValue(i, dist);
+    }
+
+    // simpler, less performant -- for debugging
+    function findBestPointInCell2(idx) {
+      var r = idxToRow(idx);
+      var c = idxToCol(idx);
+      var perSide = 4;
+      var maxDist = 0;
+      var dist, p, bestPoint;
+      for (var i=0; i<perSide; i++) {
+        for (var j=0; j<perSide; j++) {
+          p = getGridPointInCell(c, r, i, j, perSide);
+          dist = findDistanceFromNearbyFeatures(maxDist, p, c, r);
+          if (dist > maxDist) {
+            maxDist = dist;
+            bestPoint = p;
+          }
+        }
+      }
+      bestPoints[idx] = bestPoint;
+      return maxDist;
+    }
+
+    function findBestPointInCell(idx) {
+      // Find a point by finding the best-placed center point in a grid of sub-cells,
+      // then recursively dividing the winning sub-cell
+      var r = idxToRow(idx);
+      var c = idxToCol(idx);
+      var p = findBestPointInSubCell(c, r, 0, 0, 1);
+      bestPoints[idx] = p;
+      return p.pop();
+    }
+
+    // c, r: location of parent cell in the grid
+    // c1, r1: index of sub-cell at the given z-value
+    // z: depth of recursive subdivision
+    function findBestPointInSubCell(c, r, c1, r1, z) {
+      // using a 3x3 grid instead of 2x2 ... testing showed that 2x2 was more
+      // likely to misidentify the sub-cell with the optimal point
+      var q = 3;
+      var perSide = Math.pow(q, z); // number of cell divisions per axis at this z
+      var maxDist = 0;
+      var c2, r2, p, best, dist;
+      for (var i=0; i<q; i++) {
+        for (var j=0; j<q; j++) {
+          p = getGridPointInCell(c, r, c1 + i, r1 + j, perSide);
+          dist = findDistanceFromNearbyFeatures(maxDist, p, c, r);
+          if (dist > maxDist) {
+            maxDist = dist;
+            best = p;
+            c2 = i;
+            r2 = j;
+          }
+        }
+      }
+      if (z == 2) { // stop subdividing the cell at this level
+        best.push(maxDist); // return distance as third element
+        return best;
+      } else {
+        return findBestPointInSubCell(c, r, (c1 + c2)*q, (r1 + r2)*q, z + 1);
+      }
+    }
+
+    function getGridPointInCell(c, r, c2, r2, n) {
+      var dx = (c2 + 0.5) / n;
+      var dy = (r2 + 0.5) / n;
+      var x = (dx + c) / cols * w + x0;
+      var y = (dy + r) / rows * h + y0;
+      return [x, y];
+    }
+
+    // col, row offsets of a cell and its 8 neighbors
+    // (ordered to reject unsuitable points faster)
+    var nabes = [
+      [0, 0], [0, -1], [-1, 0], [1, 0], [0, 1],
+      [-1, 1], [1, -1], [-1, -1], [1, 1]
+    ];
+
+    function findDistanceFromNearbyFeatures(memo, xy, c, r) {
+      var minDistSq = Infinity;
+      var offs, c2, r2, distSq, dist;
+      for (var i=0; i<9; i++) {
+        offs = nabes[i];
+        c2 = offs[0];
+        r2 = offs[1];
+        distSq = distSqFromPointsInCell(xy, c + c2, r + r2);
+        if (distSq < memo * memo) {
+          // short-circuit rejection of this point (optimization)
+          // -- it is closer than a previously tested point
+          return 0;
+        }
+        if (distSq < minDistSq) {
+          minDistSq = distSq;
+        }
+      }
+      dist = Math.sqrt(minDistSq);
+      // maintain distance from grid edge
+      // (this prevents two sets of dots from appearing right along the edges of
+      // rectangular polygons).
+      dist = Math.min(dist, spaceFromEdge(xy, c, r));
+      return dist;
+    }
+
+    function spaceFromEdge(xy, c, r) {
+      // ignore edges if cell is internal to the grid
+      if (c > 0 && r > 0 && c < cols-1 && r < rows-1) return Infinity;
+      var x = xy[0], y = xy[1];
+      // exaggerating the true distance to prevent a visible gutter from appearing
+      // along the borders of shapes with rectangular edges.
+      return Math.min(x - x0, x0 + w - x, y - y0, y0 + h - y) * 3;
+    }
+
+    function distSqFromPointsInCell(xy, c, r) {
+      var minDist = Infinity, dist;
+      var idx = colRowToIdx(c, r);
+      var points = idx > -1 ? grid[idx] : []; // off the edge
+      for (var i=0; i<points.length; i++) {
+        dist = distSq(xy, points[i]);
+        if (dist < minDist) minDist = dist;
+      }
+      return minDist;
+    }
+
+    function distSq(a, b) {
+      var dx = a[0] - b[0];
+      var dy = a[1] - b[1];
+      return dx * dx + dy * dy;
+    }
+
+    function getRandomPointInCell(i) {
+      var r = idxToRow(i);
+      var c = idxToCol(i);
+      var x = (Math.random() + c) / cols * w + x0;
+      var y = (Math.random() + r) / rows * h + y0;
+      var p = [x, y];
+      return p;
+    }
+
+    function getRandomPoint() {
+      return getRandomPointInCell(getRandomCell());
+    }
+
+    function getRandomCell() {
+      return Math.floor(Math.random() * cells);
+    }
+
+    function pointIsUsable(xy) {
+      var c = pointToCol(xy),
+          r = pointToRow(xy);
+      var collision = testCollision(xy, c, r) ||
+        testEdgeCollision(xy, c, r) ||
+        testCollision(xy, c+1, r) ||
+        testCollision(xy, c, r+1) ||
+        testCollision(xy, c-1, r) ||
+        testCollision(xy, c, r-1) ||
+        testCollision(xy, c+1, r+1) ||
+        testCollision(xy, c-1, r+1) ||
+        testCollision(xy, c-1, r-1) ||
+        testCollision(xy, c+1, r-1);
+      return !collision;
+    }
+
+    function testEdgeCollision(xy, c, r) {
+      return spaceFromEdge(xy, c, r) < dotSpacing;
+    }
+
+    function testCollision(xy, c, r) {
+      var i = colRowToIdx(c, r);
+      if (i == -1) return false;
+      var points = grid[i];
+      return testPointCollision(xy, points, dotSpacing);
+    }
+
+    function testPointCollision(xy, points, dist) {
+      var d2 = dist * dist;
+      for (var i=0; i<points.length; i++) {
+        if (distSq(xy, points[i]) < d2) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function pointToCol(xy) {
+      var dx = xy[0] - x0;
+      var c = Math.floor(dx / w * cols);
+      if (c < 0) c = 0;
+      if (c >= cols) c = cols-1;
+      return c;
+    }
+
+    function pointToRow(xy) {
+      var dy = xy[1] - y0;
+      var r = Math.floor(dy / h * rows);
+      if (r < 0) r = 0;
+      if (r >= rows) r = rows-1;
+      return r;
+    }
+
+    function colRowToIdx(c, r) {
+      if (c < 0 || r < 0 || c >= cols || r >= rows) return -1;
+      return r * cols + c;
+    }
+
+    function pointToIdx(xy) {
+      var c = pointToCol(xy);
+      var r = pointToRow(xy);
+      var idx = r * cols + c;
+      return idx;
+    }
+
+    function idxToCol(i) {
+      return i % cols;
+    }
+
+    function idxToRow(i) {
+      return Math.floor(i / cols);
+    }
+  }
+
+  cmd.dots = function(lyr, arcs, opts) {
+    requirePolygonLayer(lyr);
+    if (!Array.isArray(opts.fields)) {
+      stop("Missing required fields parameter");
+    }
+    if (layerHasNonNullData(lyr)) {
+      opts.fields.forEach(function(f, i) {
+        requireDataField(lyr, f);
+      });
+      (opts.copy_fields || []).forEach(function(f) {
+        requireDataField(lyr, f);
+      });
+    }
+    // if (!Array.isArray(opts.colors)) {
+    //   stop("Missing required colors parameter");
+    // }
+    if (Array.isArray(opts.colors)) {
+      opts.colors.forEach(parseColor); // validate colors
+    }
+
+    var records = lyr.data ? lyr.data.getRecords() : [];
+    var shapes2 = [];
+    var records2 = [];
+    lyr.shapes.forEach(function(shp, i) {
+      var d = records[i];
+      if (!d) return;
+      var data =  makeDotsForShape(shp, arcs, d, opts);
+      for (var j=0, n=data.shapes.length; j<n; j++) {
+        shapes2.push(data.shapes[j]);
+        records2.push(data.attributes[j]);
+      }
+    });
+
+    var lyr2 = {
+      geometry_type: 'point',
+      shapes: shapes2,
+      data: new DataTable(records2)
+    };
+    setOutputLayerName(lyr2, lyr, null, opts);
+    return [lyr2];
+  };
+
+  function makeDotsForShape(shp, arcs, rec, opts) {
+    var retn = {
+      shapes: [],
+      attributes:[]
+    };
+    if (!shp) return retn;
+    var counts = opts.fields.map(function(f) {
+      var val = rec[f] || 0;
+      if (opts.per_dot > 0) {
+        val = Math.round(val / opts.per_dot);
+      }
+      return val;
+    });
+    var indexes = expandCounts(counts);
+    var dots = placeDots(shp, arcs, indexes.length, opts);
+
+    // randomize dot sequence so dots of the same color do not always overlap dots of
+    // other colors in dense areas.
+    // TODO: instead of random shuffling, interleave dot classes more regularly?
+    utils.shuffle(indexes);
+    var idx, prevIdx = -1;
+    var multipart = !!opts.multipart;
+    var coords, p, d;
+    for (var i=0; i<dots.length; i++) {
+      p = dots[i];
+      if (!p) continue;
+      idx = indexes[i];
+      if (p.length === 3 && opts.debug) {
+        idx = p.pop(); // way to debug dot placement visually
+      }
+      if (!multipart || idx != prevIdx) {
+        prevIdx = idx;
+        retn.shapes.push(coords = []);
+        d = getDataRecord(idx, rec, opts);
+        retn.attributes.push(d);
+      }
+      coords.push(p);
+    }
+    return retn;
+  }
+
+  function placeDots(shp, arcs, n, opts) {
+    // split apart multipart polygons for more efficient dot placement
+    var polys = shp.length > 1 ? explodePolygon(shp, arcs) : [shp];
+    var counts = apportionDotsByArea(polys, arcs, n);
+    var dots = [];
+    for (var i=0; i<polys.length; i++) {
+      dots = dots.concat(placeDotsInPolygon(polys[i], arcs, counts[i], opts));
+    }
+    return dots;
+  }
+
+  function apportionDotsByArea(polys, arcs, n) {
+    if (polys.length === 1) return [n];
+    var areas = polys.map(function(shp) {
+      return geom.getPlanarShapeArea(shp, arcs);
+    });
+    var remainingArea = utils.sum(areas);
+    var remainingDots = n;
+    return areas.map(function(area, i) {
+      var pct = area / remainingArea;
+      var count = Math.round(remainingDots * pct);
+      remainingDots -= count;
+      remainingArea -= area;
+      return count;
+    });
+  }
+
+  function expandCounts(counts) {
+    var arr = [];
+    counts.forEach(function(n, i) {
+      while (n-- > 0) arr.push(i);
+    });
+    return arr;
+  }
+
+  // i: dot class index
+  // d: properties of original polygon
+  // opts: dots command options
+  function getDataRecord(i, d, opts) {
+    var o = {};
+    var key = opts.save_as || 'fill';
+    var values = opts.colors || opts.values;
+    if (values) {
+      o[key] = values[i];
+      o.r = opts.r || 1.3;
+    } else if (opts.r) {
+      o.r = opts.r;
+    }
+    if (opts.copy_fields) {
+      for (var j=0; j<opts.copy_fields.length; j++) {
+        o[opts.copy_fields[j]] = d[opts.copy_fields[j]];
+      }
+    }
+    return o;
   }
 
   cmd.drop2 = function(catalog, targets, opts) {
@@ -26418,7 +30916,9 @@ ${svg}
     if (opts && opts.where) {
       filter = compileValueExpression(opts.where, lyr, arcs);
     }
-    compiled = compileFeatureExpression(exp, lyr, arcs, {context: getStateVar('defs')});
+    // 'defs' are now added to the context of all expressions
+    // compiled = compileFeatureExpression(exp, lyr, arcs, {context: getStateVar('defs')});
+    compiled = compileFeatureExpression(exp, lyr, arcs);
     // call compiled expression with id of each record
     for (var i=0; i<n; i++) {
       if (!filter || filter(i)) {
@@ -26673,6 +31173,27 @@ ${svg}
 
     return filteredLyr;
   };
+
+  // TODO: update filter command to use this function
+  function filterLayerInPlace(lyr, filter, invert) {
+    var records = lyr.data ? lyr.data.getRecords() : null,
+        shapes = lyr.shapes || null,
+        n = getFeatureCount(lyr),
+        filteredShapes = shapes ? [] : null,
+        filteredRecords = records ? [] : null;
+    utils.repeat(n, function(shapeId) {
+      var result = filter(shapeId);
+      if (invert) result = !result;
+      if (result === true) {
+        if (shapes) filteredShapes.push(shapes[shapeId] || null);
+        if (records) filteredRecords.push(records[shapeId] || null);
+      } else if (result !== false) {
+        stop("Expression must return true or false");
+      }
+    });
+    lyr.shapes = filteredShapes;
+    lyr.data = filteredRecords ? new DataTable(filteredRecords) : null;
+  }
 
   function getNullGeometryFilter(lyr, arcs) {
     var shapes = lyr.shapes;
@@ -26934,29 +31455,37 @@ ${svg}
   //   }).join(",") + "}");
   // };
 
-  // TODO: use an actual index instead of linear search
-  function PointIndex(shapes, opts) {
-    var buf = utils.isNonNegNumber(opts.buffer) ? opts.buffer : 1e-3;
-    var minDistSq, minId, target;
-    this.findNearestPointFeature = function(shape) {
-      minDistSq = Infinity;
-      minId = -1;
-      target = shape || [];
-      forEachPoint(shapes, testPoint);
-      return minId;
-    };
+  cmd.filterPoints = function(lyr, dataset, opts) {
+    requireSinglePointLayer(lyr);
+    if (opts.group_interval > 0 === false) {
+      stop('Expected a positive group_interval parameter');
+    }
 
-    function testPoint(p, id) {
-      var distSq;
-      for (var i=0; i<target.length; i++) {
-        distSq = geom.distanceSq(target[i][0], target[i][1], p[0], p[1]);
-        if (distSq < minDistSq && distSq <= buf * buf) {
-          minDistSq = distSq;
-          minId = id;
-        }
+    // TODO: remove duplication with mapshaper-alpha-shapes.js
+    var alphaFilter = getAlphaDistanceFilter(dataset, opts.group_interval);
+    var points = getPointsInLayer(lyr);
+    var del = Delaunator.from(points);
+    var triangles = del.triangles;
+    var index = new Uint8Array(points.length);
+    var a, b, c, ai, bi, ci;
+    for (var i=0, n=triangles.length; i<n; i+=3) {
+      // a, b, c: triangle verticies in CCW order
+      ai = triangles[i];
+      bi = triangles[i+1];
+      ci = triangles[i+2];
+      a = points[ai];
+      b = points[bi];
+      c = points[ci];
+      if (alphaFilter(a, b) && alphaFilter(b, c) && alphaFilter(a, c)) {
+        index[ai] = 1;
+        index[bi] = 1;
+        index[ci] = 1;
       }
     }
-  }
+    filterLayerInPlace(lyr, function(shpId) {
+      return index[shpId] == 1;
+    });
+  };
 
   function joinPointsToPolygons(targetLyr, arcs, pointLyr, opts) {
     // TODO: option to copy points that can't be joined to a new layer
@@ -26971,11 +31500,6 @@ ${svg}
     return joinTables(targetLyr.data, polygonLyr.data, joinFunction, opts);
   }
 
-  function joinPointsToPoints(targetLyr, srcLyr, opts) {
-    var joinFunction = getPointToPointFunction(targetLyr, srcLyr, opts);
-    prepJoinLayers(targetLyr, srcLyr);
-    return joinTables(targetLyr.data, srcLyr.data, joinFunction, opts);
-  }
 
   function prepJoinLayers(targetLyr, srcLyr) {
     if (!targetLyr.data) {
@@ -26985,16 +31509,6 @@ ${svg}
     if (!srcLyr.data) {
       stop("Can't join a layer that is missing attribute data");
     }
-  }
-
-  function getPointToPointFunction(targetLyr, srcLyr, opts) {
-    var shapes = targetLyr.shapes;
-    var index = new PointIndex(srcLyr.shapes, {});
-    return function(targId) {
-      var srcId = index.findNearestPointFeature(shapes[targId]);
-      // TODO: accept multiple hits
-      return srcId > -1 ? [srcId] : null;
-    };
   }
 
   function getPolygonToPointsFunction(polygonLyr, arcs, pointLyr, opts) {
@@ -27059,7 +31573,6 @@ ${svg}
     __proto__: null,
     joinPointsToPolygons: joinPointsToPolygons,
     joinPolygonsToPoints: joinPolygonsToPoints,
-    joinPointsToPoints: joinPointsToPoints,
     prepJoinLayers: prepJoinLayers,
     getPolygonToPointsFunction: getPolygonToPointsFunction
   });
@@ -27217,6 +31730,7 @@ ${svg}
     return maxValue;
   }
 
+  // Returns number of arcs that were removed
   function editArcs(arcs, onPoint) {
     var nn2 = [],
         xx2 = [],
@@ -27277,6 +31791,1092 @@ ${svg}
     }
   }
 
+  function DatasetEditor(dataset) {
+    var layers = [];
+    var arcs = [];
+
+    this.done = function() {
+      dataset.layers = layers;
+      if (arcs.length) {
+        dataset.arcs = new ArcCollection(arcs);
+        buildTopology(dataset);
+      }
+    };
+
+    this.editLayer = function(lyr, cb) {
+      var type = lyr.geometry_type;
+      if (dataset.layers.indexOf(lyr) != layers.length) {
+        error('Layer was edited out-of-order');
+      }
+      if (!type) {
+        layers.push(lyr);
+        return;
+      }
+      var shapes = lyr.shapes.map(function(shape, shpId) {
+        var shape2 = [], retn, input;
+        for (var i=0, n=shape ? shape.length : 0; i<n; i++) {
+          input = type == 'point' ? shape[i] : idsToCoords(shape[i]);
+          retn = cb(input, i, shape);
+          if (!Array.isArray(retn)) continue;
+          if (type == 'point') {
+            shape2.push(retn);
+          } else if (type == 'polygon' || type == 'polyline') {
+            extendPathShape(shape2, retn || []);
+          }
+        }
+        return shape2.length > 0 ? shape2 : null;
+      });
+      layers.push(Object.assign(lyr, {shapes: shapes}));
+    };
+
+    function extendPathShape(shape, parts) {
+      for (var i=0; i<parts.length; i++) {
+        shape.push([arcs.length]);
+        arcs.push(parts[i]);
+      }
+    }
+
+    function idsToCoords(ids) {
+      var coords = [];
+      var iter = dataset.arcs.getShapeIter(ids);
+      while (iter.hasNext()) {
+        coords.push([iter.x, iter.y]);
+      }
+      return coords;
+    }
+  }
+
+  function densifyDataset(dataset, opts) {
+    var interval = opts.interval;
+    if (interval > 0 === false) {
+      error('Expected a valid interval parameter');
+    }
+    var editor = new DatasetEditor(dataset);
+    dataset.layers.forEach(function(lyr) {
+      var type = lyr.geometry_type;
+      editor.editLayer(lyr, function(coords, i, shape) {
+        if (type == 'point') return coords;
+        return [densifyPathByInterval(coords, interval)];
+      });
+    });
+    editor.done();
+  }
+
+
+  // Planar densification by an interval
+  function densifyPathByInterval(coords, interval, interpolate) {
+    if (findMaxPathInterval(coords) < interval) return coords;
+    if (!interpolate) {
+      interpolate = getIntervalInterpolator(interval);
+    }
+    var coords2 = [coords[0]], a, b;
+    for (var i=1, n=coords.length; i<n; i++) {
+      a = coords[i-1];
+      b = coords[i];
+      if (geom.distance2D(a[0], a[1], b[0], b[1]) > interval + 1e-4) {
+        appendArr(coords2, interpolate(a, b));
+      }
+      coords2.push(b);
+    }
+    return coords2;
+  }
+
+  function getIntervalInterpolator(interval) {
+    return function(a, b) {
+      var points = [];
+      // var rev = a[0] == b[0] ? a[1] > b[1] : a[0] > b[0];
+      var dist = geom.distance2D(a[0], a[1], b[0], b[1]);
+      var n = Math.round(dist / interval) - 1;
+      var dx = (b[0] - a[0]) / (n + 1),
+          dy = (b[1] - a[1]) / (n + 1);
+      for (var i=1; i<=n; i++) {
+        points.push([a[0] + dx * i, a[1] + dy * i]);
+      }
+      return points;
+    };
+  }
+
+
+  // Interpolate the same points regardless of segment direction
+  function densifyAntimeridianSegment(a, b, interval) {
+    var y1, y2;
+    var coords = [];
+    var ascending = a[1] < b[1];
+    if (a[0] != b[0]) error('Expected an edge segment');
+    if (interval > 0 === false) error('Expected a positive interval');
+    if (ascending) {
+      y1 = a[1];
+      y2 = b[1];
+    } else {
+      y1 = b[1];
+      y2 = a[1];
+    }
+    var y = Math.floor(y1 / interval) * interval + interval;
+    while (y < y2) {
+      coords.push([a[0], y]);
+      y += interval;
+    }
+    if (!ascending) coords.reverse();
+    return coords;
+  }
+
+
+  function appendArr(dest, src) {
+    for (var i=0; i<src.length; i++) dest.push(src[i]);
+  }
+
+  function findMaxPathInterval(coords) {
+    var maxSq = 0, intSq, a, b;
+    for (var i=1, n=coords.length; i<n; i++) {
+      a = coords[i-1];
+      b = coords[i];
+      intSq = geom.distanceSq(a[0], a[1], b[0], b[1]);
+      if (intSq > maxSq) maxSq = intSq;
+    }
+    return Math.sqrt(maxSq);
+  }
+
+  function densifyUnprojectedPathByDistance(coords, meters) {
+    // stub
+  }
+
+  function projectAndDensifyArcs(arcs, proj) {
+    var interval = getDefaultDensifyInterval(arcs, proj);
+    var minIntervalSq = interval * interval * 25;
+    var p;
+    return editArcs(arcs, onPoint);
+
+    function onPoint(append, lng, lat, prevLng, prevLat, i) {
+      var pp = p;
+      p = proj(lng, lat);
+      if (!p) return false; // signal that current arc contains an error
+
+      // Don't try to densify shorter segments (optimization)
+      if (i > 0 && geom.distanceSq(p[0], p[1], pp[0], pp[1]) > minIntervalSq) {
+        densifySegment(prevLng, prevLat,  pp[0],  pp[1], lng, lat, p[0], p[1], proj, interval)
+          .forEach(append);
+      }
+      append(p);
+    }
+  }
+
+  function getDefaultDensifyInterval(arcs, proj) {
+    var xy = getAvgSegment2(arcs),
+        bb = arcs.getBounds(),
+        a = proj(bb.centerX(), bb.centerY()),
+        b = proj(bb.centerX() + xy[0], bb.centerY() + xy[1]),
+        c = proj(bb.centerX(), bb.ymin), // right center
+        d = proj(bb.xmax, bb.centerY()); // bottom center
+    // interval A: based on average segment length
+    var intervalA = a && b ? geom.distance2D(a[0], a[1], b[0], b[1]) : Infinity;
+    // interval B: a fraction of avg bbox side length
+    // (added this for bbox densification)
+    var intervalB = c && d ? (geom.distance2D(a[0], a[1], c[0], c[1]) +
+          geom.distance2D(a[0], a[1], d[0], d[1])) / 5000 : Infinity;
+    var interval = Math.min(intervalA, intervalB);
+    if (interval == Infinity) {
+      error('Densification error');
+    }
+    return interval;
+  }
+
+  // Interpolate points into a projected line segment if needed to prevent large
+  //   deviations from path of original unprojected segment.
+  // @points (optional) array of accumulated points
+  function densifySegment(lng0, lat0, x0, y0, lng2, lat2, x2, y2, proj, interval, points) {
+    // Find midpoint between two endpoints and project it (assumes longitude does
+    // not wrap). TODO Consider bisecting along great circle path -- although this
+    // would not be good for boundaries that follow line of constant latitude.
+    var lng1 = (lng0 + lng2) / 2,
+        lat1 = (lat0 + lat2) / 2,
+        p = proj(lng1, lat1),
+        distSq;
+    if (!p) return; // TODO: consider if this is adequate for handling proj. errors
+    distSq = geom.pointSegDistSq2(p[0], p[1], x0, y0, x2, y2); // sq displacement
+    points = points || [];
+    // Bisect current segment if the projected midpoint deviates from original
+    //   segment by more than the @interval parameter.
+    //   ... but don't bisect very small segments to prevent infinite recursion
+    //   (e.g. if projection function is discontinuous)
+    if (distSq > interval * interval * 0.25 && geom.distance2D(lng0, lat0, lng2, lat2) > 0.01) {
+      densifySegment(lng0, lat0, x0, y0, lng1, lat1, p[0], p[1], proj, interval, points);
+      points.push(p);
+      densifySegment(lng1, lat1, p[0], p[1], lng2, lat2, x2, y2, proj, interval, points);
+    }
+    return points;
+  }
+
+  // Create rectangles around each feature in a layer
+  cmd.rectangles = function(targetLyr, targetDataset, opts) {
+    if (!layerHasGeometry(targetLyr)) {
+      stop("Layer is missing geometric shapes");
+    }
+    var crs = getDatasetCRS(targetDataset);
+    var records = targetLyr.data ? targetLyr.data.getRecords() : null;
+    var geometries = targetLyr.shapes.map(function(shp) {
+      var bounds = targetLyr.geometry_type == 'point' ?
+        getPointFeatureBounds(shp) : targetDataset.arcs.getMultiShapeBounds(shp);
+      bounds = applyRectangleOptions(bounds, crs, opts);
+      if (!bounds) return null;
+      return convertBboxToGeoJSON(bounds.toArray(), opts);
+    });
+    var geojson = {
+      type: 'FeatureCollection',
+      features: geometries.map(function(geom, i) {
+        var rec = records && records[i] || null;
+        if (rec && opts.no_replace) {
+          rec = utils.extend({}, rec); // make a copy
+        }
+        return {
+          type: 'Feature',
+          properties: rec,
+          geometry: geom
+        };
+      })
+    };
+    var dataset = importGeoJSON(geojson, {});
+    var outputLayers = mergeDatasetsIntoDataset(targetDataset, [dataset]);
+    setOutputLayerName(outputLayers[0], targetLyr, null, opts);
+    return outputLayers;
+  };
+
+  // Create rectangles around one or more target layers
+  //
+  cmd.rectangle2 = function(target, opts) {
+    var datasets = target.layers.map(function(lyr) {
+      var dataset = cmd.rectangle({layer: lyr, dataset: target.dataset}, opts);
+      setOutputLayerName(dataset.layers[0], lyr, null, opts);
+      if (!opts.no_replace) {
+        dataset.layers[0].name = lyr.name || dataset.layers[0].name;
+      }
+      return dataset;
+    });
+    return mergeDatasetsIntoDataset(target.dataset, datasets);
+  };
+
+  cmd.rectangle = function(source, opts) {
+    var offsets, bounds, crs, coords, sourceInfo;
+    if (source) {
+      bounds = getLayerBounds(source.layer, source.dataset.arcs);
+      sourceInfo = source.dataset.info;
+      crs = getDatasetCRS(source.dataset);
+    } else if (opts.bbox) {
+      bounds = new Bounds(opts.bbox);
+      crs = getCRS('wgs84');
+    }
+    bounds = bounds && applyRectangleOptions(bounds, crs, opts);
+    if (!bounds || !bounds.hasBounds()) {
+      stop('Missing rectangle extent');
+    }
+    var geojson = convertBboxToGeoJSON(bounds.toArray(), opts);
+    var dataset = importGeoJSON(geojson, {});
+    dataset.layers[0].name = opts.name || 'rectangle';
+    if (sourceInfo) {
+      setDatasetCRS(dataset, sourceInfo);
+    }
+    return dataset;
+  };
+
+  function applyRectangleOptions(bounds, crs, opts) {
+    var isGeoBox = probablyDecimalDegreeBounds(bounds);
+    if (opts.offset) {
+      bounds = applyBoundsOffset(opts.offset, bounds, crs);
+    }
+    if (bounds.area() > 0 === false) return null;
+    if (opts.aspect_ratio) {
+      bounds = applyAspectRatio(opts.aspect_ratio, bounds);
+    }
+    if (isGeoBox) {
+      bounds = clampToWorldBounds(bounds);
+    }
+    return bounds;
+  }
+
+  // opt: aspect ratio as a single number or a range (e.g. "1,2");
+  function applyAspectRatio(opt, bounds) {
+    var range = String(opt).split(',').map(parseFloat),
+      aspectRatio = bounds.width() / bounds.height(),
+      min, max; // min is height limit, max is width limit
+    if (range.length == 1) {
+      range.push(range[0]);
+    } else if (range[0] > range[1]) {
+      range.reverse();
+    }
+    min = range[0];
+    max = range[1];
+    if (!min && !max) return bounds;
+    if (!min) min = -Infinity;
+    if (!max) max = Infinity;
+    if (aspectRatio < min) {
+      bounds.fillOut(min);
+    } else if (aspectRatio > max) {
+      bounds.fillOut(max);
+    }
+    return bounds;
+  }
+
+  function applyBoundsOffset(offsetOpt, bounds, crs) {
+    var offsets = convertFourSides(offsetOpt, crs, bounds);
+    bounds.padBounds(offsets[0], offsets[1], offsets[2], offsets[3]);
+    return bounds;
+  }
+
+  function convertBboxToGeoJSON(bbox, optsArg) {
+    var opts = optsArg || {};
+    var coords = [[bbox[0], bbox[1]], [bbox[0], bbox[3]], [bbox[2], bbox[3]],
+        [bbox[2], bbox[1]], [bbox[0], bbox[1]]];
+    if (opts.interval > 0) {
+      coords = densifyPathByInterval(coords, opts.interval);
+    }
+    return opts.geometry_type == 'polyline' ? {
+      type: 'LineString',
+      coordinates: coords
+    } : {
+      type: 'Polygon',
+      coordinates: [coords]
+    };
+  }
+
+  var Rectangle = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyAspectRatio: applyAspectRatio,
+    convertBboxToGeoJSON: convertBboxToGeoJSON
+  });
+
+  function getSemiMinorAxis(P) {
+    return P.a * Math.sqrt(1 - (P.es || 0));
+  }
+
+  function getCircleRadiusFromAngle(P, angle) {
+    // Using semi-minor axis radius, to prevent overflowing projection bounds
+    // when clipping up to the edge of the projectable area
+    // TODO: improve (this just gives a safe minimum distance, not the best distance)
+    // TODO: modify point buffer function to use angle + ellipsoidal geometry
+    return angle * Math.PI / 180 * getSemiMinorAxis(P);
+  }
+
+  function getCrsSlug(P) {
+    return P.params.proj.param; // kludge
+  }
+
+  // 'normal' = the projection is aligned to the Earth's axis
+  // (i.e. it has a normal aspect)
+  function isRotatedNormalProjection(P) {
+    return isAxisAligned(P) && P.lam0 !== 0;
+  }
+
+  // Projection is vertically aligned to earth's axis
+  function isAxisAligned(P) {
+    // TODO: consider projections that may or may not be aligned,
+    // depending on parameters
+    if (inList(P, 'cassini,gnom,bertin1953,chamb,ob_tran,tpeqd,healpix,rhealpix,' +
+      'ocea,omerc,tmerc,etmerc')) {
+      return false;
+    }
+    if (isAzimuthal(P)) {
+      return false;
+    }
+    return true;
+  }
+
+  function getBoundingMeridian(P) {
+    if (P.lam0 === 0) return 180;
+    return getAntimeridian(P.lam0 * 180 / Math.PI);
+  }
+
+  // Are the projection's bounds meridians?
+  function isMeridianBounded(P) {
+    // TODO: add azimuthal projection with lat0 == 0
+    // if (inList(P, 'ortho') && P.lam0 === 0) return true;
+    return isAxisAligned(P); // TODO: look for exceptions to this
+  }
+
+  // Is the projection bounded by parallels or polar lines?
+  function isParallelBounded(P) {
+    // TODO: add polar azimuthal projections
+    // TODO: reject world projections that do not have polar lines
+    return isAxisAligned(P);
+  }
+
+
+  function isConic(P) {
+    return inList(P, 'aea,bonne,eqdc,lcc,poly,euler,murd1,murd2,murd3,pconic,tissot,vitk1');
+  }
+
+  function isAzimuthal(P) {
+    return inList(P,
+      'aeqd,gnom,laea,mil_os,lee_os,gs48,alsk,gs50,nsper,tpers,ortho,qsc,stere,ups,sterea');
+  }
+
+  function inList(P, str) {
+    return str.split(',').includes(getCrsSlug(P));
+  }
+
+  // based on d3 implementation of Euler-angle rotation
+  // https://github.com/d3/d3-geo/blob/master/src/rotation.js
+  // license: https://github.com/d3/d3-geo/blob/master/LICENSE
+
+  function rotateDatasetCoords(dataset, rotation, inv) {
+    var proj = getRotationFunction(rotation, inv);
+    dataset.layers.filter(layerHasPoints).forEach(function(lyr) {
+      projectPointLayer(lyr, proj);
+    });
+    if (dataset.arcs) {
+      projectArcs(dataset.arcs, proj);
+    }
+  }
+
+  function getRotationFunction(rotation, inv) {
+    var f = getRotationFunction2(rotation, inv);
+    return function(lng, lat) {
+      return f([lng, lat]);
+    };
+  }
+
+  function getRotationFunction2(rotation, inv) {
+    var a = (rotation[0] || 0) * D2R,
+        b = (rotation[1] || 0) * D2R,
+        c = (rotation[2] || 0) * D2R;
+    return function(p) {
+      p[0] *= D2R;
+      p[1] *= D2R;
+      var rotate = inv ? rotatePointInv : rotatePoint;
+      rotate(p, a, b, c);
+      p[0] *= R2D;
+      p[1] *= R2D;
+      return p;
+    };
+  }
+
+  function rotatePoint(p, deltaLam, deltaPhi, deltaGam) {
+    if (deltaLam != 0) rotateLambda(p, deltaLam);
+    if (deltaPhi !== 0 || deltaGam !== 0) {
+      rotatePhiGamma(p, deltaPhi, deltaGam, false);
+    }
+    return p;
+  }
+
+  function rotatePointInv(p, deltaLam, deltaPhi, deltaGam) {
+    if (deltaPhi !== 0 || deltaGam !== 0) {
+      rotatePhiGamma(p, deltaPhi, deltaGam, true);
+    }
+    if (deltaLam != 0) rotateLambda(p, -deltaLam);
+    return p;
+  }
+
+  function rotateLambda(p, deltaLam) {
+    var lam = p[0] + deltaLam;
+    if (lam > Math.PI) lam -= 2 * Math.PI;
+    else if (lam < -Math.PI) lam += 2 * Math.PI;
+    p[0] = lam;
+  }
+
+  function rotatePhiGamma(p, deltaPhi, deltaGam, inv) {
+    var cosDeltaPhi = Math.cos(deltaPhi),
+        sinDeltaPhi = Math.sin(deltaPhi),
+        cosDeltaGam = Math.cos(deltaGam),
+        sinDeltaGam = Math.sin(deltaGam),
+        cosPhi = Math.cos(p[1]),
+        x = Math.cos(p[0]) * cosPhi,
+        y = Math.sin(p[0]) * cosPhi,
+        z = Math.sin(p[1]),
+        k;
+    if (inv) {
+      k = z * cosDeltaGam - y * sinDeltaGam;
+      p[0] = Math.atan2(y * cosDeltaGam + z * sinDeltaGam, x * cosDeltaPhi + k * sinDeltaPhi);
+      p[1] = Math.asin(k * cosDeltaPhi - x * sinDeltaPhi);
+    } else {
+      k = z * cosDeltaPhi + x * sinDeltaPhi;
+      p[0] = Math.atan2(y * cosDeltaGam - k * sinDeltaGam, x * cosDeltaPhi - z * sinDeltaPhi);
+      p[1] = Math.asin(k * cosDeltaGam + y * sinDeltaGam);
+    }
+  }
+
+  cmd.rotate = rotateDataset;
+
+  function rotateDataset(dataset, opts) {
+    if (!isLatLngCRS(getDatasetCRS(dataset))) {
+      stop('Command requires a lat-long dataset.');
+    }
+    if (!Array.isArray(opts.rotation) || !opts.rotation.length) {
+      stop('Invalid rotation parameter');
+    }
+    var rotatePoint = getRotationFunction2(opts.rotation, opts.invert);
+    var editor = new DatasetEditor(dataset);
+    if (dataset.arcs) {
+      dataset.arcs.flatten();
+    }
+
+    dataset.layers.forEach(function(lyr) {
+      var type = lyr.geometry_type;
+      editor.editLayer(lyr, getGeometryRotator(type, rotatePoint, opts));
+    });
+    editor.done();
+    if (!opts.debug) {
+      buildTopology(dataset);
+      cleanProjectedLayers(dataset);
+    }
+  }
+
+  function getGeometryRotator(layerType, rotatePoint, opts) {
+    var rings;
+    if (layerType == 'point') {
+      return function(coords) {
+        coords.forEach(rotatePoint);
+        return coords;
+      };
+    }
+    if (layerType == 'polyline') {
+      return function(coords) {
+        coords = densifyPathByInterval(coords, 0.5);
+        coords.forEach(rotatePoint);
+        return removePolylineCrosses(coords);
+      };
+    }
+    if (layerType == 'polygon') {
+      return function(coords, i, shape) {
+        if (isWholeWorld(coords)) {
+          coords = densifyPathByInterval(coords, 0.5);
+        } else {
+          coords.forEach(snapToEdge);
+          coords = removeCutSegments(coords);
+          coords = densifyPathByInterval(coords, 0.5, getInterpolator(0.5));
+          coords.forEach(rotatePoint);
+          // coords.forEach(snapToEdge);
+        }
+        if (i === 0) { // first part
+          rings = [];
+        }
+        if (coords.length < 4) {
+          debug('Short ring', coords);
+          return;
+        }
+        if (!samePoint(coords[0], lastEl(coords))) {
+          error('Open polygon ring');
+        }
+        rings.push(coords); // accumulate rings
+        if (i == shape.length - 1) { // last part
+          return opts.debug ? rings : removePolygonCrosses(rings);
+        }
+      };
+    }
+    return null; // assume layer has no geometry -- callback should not be called
+  }
+
+  function getInterpolator(interval) {
+    var interpolate = getIntervalInterpolator(interval);
+    return function(a, b) {
+      var points;
+      if (onPole(a) || onPole(b)) {
+        points = [];
+      } else if (isEdgeSegment(a, b)) {
+        points = densifyAntimeridianSegment(a, b, interval);
+      } else if (segmentCrossesAntimeridian(a, b)) {
+        // TODO: interpolate up to antimeridian?
+        points = [];
+      } else {
+        points = interpolate(a, b);
+      }
+      return points;
+    };
+  }
+
+  cmd.lines = function(lyr, dataset, opts) {
+    opts = opts || {};
+    if (opts.callouts) {
+      requirePointLayer(lyr);
+      return pointsToCallouts(lyr, dataset, opts);
+    } else if (lyr.geometry_type == 'point') {
+      return pointsToLines(lyr, dataset, opts);
+    } else if (opts.segments) {
+      return [convertShapesToSegments(lyr, dataset)];
+    } else if (opts.arcs) {
+      return [convertShapesToArcs(lyr, dataset)];
+    } else if (lyr.geometry_type == 'polygon') {
+      return polygonsToLines(lyr, dataset.arcs, opts);
+    } else {
+      requirePolygonLayer(lyr, "Command requires a polygon or point layer");
+    }
+  };
+
+  function convertShapesToArcs(lyr, dataset) {
+    var arcs = dataset.arcs;
+    var test = getArcPresenceTest(lyr.shapes, arcs);
+    var records = [];
+    var shapes = [];
+    for (var i=0, n=arcs.size(); i<n; i++) {
+      if (!test(i)) continue;
+      records.push({arcid: i});
+      shapes.push([[i]]);
+    }
+    return {
+      geometry_type: 'polyline',
+      data: new DataTable(records),
+      shapes: shapes
+    };
+  }
+
+  function convertShapesToSegments(lyr, dataset) {
+    var arcs = dataset.arcs;
+    var features = [];
+    var geojson = {type: 'FeatureCollection', features: []};
+    var test = getArcPresenceTest(lyr.shapes, arcs);
+    var arcId;
+    for (var i=0, n=arcs.size(); i<n; i++) {
+      arcId = i;
+      if (!test(arcId)) continue;
+      arcs.forEachArcSegment(arcId, onSeg);
+    }
+    function onSeg(i1, i2, xx, yy) {
+      var a = xx[i1],
+          b = yy[i1],
+          c = xx[i2],
+          d = yy[i2];
+      geojson.features.push({
+        type: 'Feature',
+        properties: {arc: arcId, i1: i1, i2: i2, x1: a, y1: b, x2: c, y2: d},
+        geometry: {type: 'LineString', coordinates: [[a, b], [c, d]]}
+      });
+    }
+    var merged = mergeDatasets([dataset, importGeoJSON(geojson, {})]);
+    dataset.arcs = merged.arcs;
+    // buildTopology(dataset);
+    return merged.layers.pop();
+  }
+
+  function pointsToLines(lyr, dataset, opts) {
+    var geojson = opts.groupby ?
+      groupedPointsToLineGeoJSON(lyr, opts.groupby, opts) :
+      pointShapesToLineGeometry(lyr.shapes); // no grouping: return single line with no attributes
+    var dataset2 = importGeoJSON(geojson);
+    var outputLayers = mergeDatasetsIntoDataset(dataset, [dataset2]);
+    // if (!opts.no_replace) {
+    //   outputLayers[0].name = lyr.name || outputLayers[0].name;
+    // }
+    setOutputLayerName(outputLayers[0], lyr, null, opts);
+    return outputLayers;
+  }
+
+  function pointsToCallouts(lyr, dataset, opts) {
+    var records = lyr.data ? lyr.data.getRecords() : null;
+    var calloutLen = getLayerBounds(lyr).width() / 50;
+    var pointToSegment = function(p) {
+      return [p, [p[0] + calloutLen, p[1]]];
+    };
+    var geojson = {
+      type: 'FeatureCollection',
+      features: lyr.shapes.map(function(shp, i) {
+        return {
+          type: 'Feature',
+          properties: records ? records[i] : null,
+          geometry: {
+            type: 'MultiLineString',
+            coordinates: shp.map(pointToSegment)
+          }
+        };
+      })
+    };
+    var dataset2 = importGeoJSON(geojson);
+    var outputLayers = mergeDatasetsIntoDataset(dataset, [dataset2]);
+    setOutputLayerName(outputLayers[0], lyr.name, null, opts);
+    return outputLayers;
+  }
+
+  function groupedPointsToLineGeoJSON(lyr, field, opts) {
+    var groups = [];
+    var getGroupId = getCategoryClassifier([field], lyr.data);
+    var dataOpts = utils.defaults({fields: [field]}, opts);
+    var records = aggregateDataRecords(lyr.data.getRecords(), getGroupId, dataOpts);
+    var features;
+    lyr.shapes.forEach(function(shape, i) {
+      var groupId = getGroupId(i);
+      if (groupId in groups === false) {
+        groups[groupId] = [];
+      }
+      groups[groupId].push(shape);
+    });
+    features = groups.map(function(shapes, i) {
+      return {
+        type: 'Feature',
+        properties: records[i],
+        geometry: shapes.length > 1 ? pointShapesToLineGeometry(shapes) : null
+      };
+    });
+    return {
+      type: 'FeatureCollection',
+      features: features
+    };
+  }
+
+  // TOOD: automatically convert rings into separate shape parts
+  function pointShapesToLineGeometry(shapes) {
+    var coords = [];
+    forEachPoint(shapes, function(p) {
+      coords.push(p.concat());
+    });
+    return {type: 'LineString', coordinates: coords};
+  }
+
+  function polygonsToLines(lyr, arcs, opts) {
+    opts = opts || {};
+    var filter = opts.where ? compileFeaturePairFilterExpression(opts.where, lyr, arcs) : null,
+        decorateRecord = opts.each ? getLineRecordDecorator(opts.each, lyr, arcs) : null,
+        classifier = getArcClassifier(lyr.shapes, arcs, {filter: filter}),
+        fields = utils.isArray(opts.fields) ? opts.fields : [],
+        rankId = 0,
+        shapes = [],
+        records = [],
+        outputLyr;
+
+    if (fields.length > 0 && !lyr.data) {
+      stop("Missing a data table");
+    }
+
+    addLines(extractOuterLines(lyr.shapes, classifier), 'outer');
+
+    fields.forEach(function(field) {
+      var data = lyr.data.getRecords();
+      var key = function(a, b) {
+        var arec = data[a];
+        var brec = data[b];
+        var aval, bval;
+        if (!arec || !brec || arec[field] === brec[field]) {
+          return null;
+        }
+        return a + '-' + b;
+      };
+      requireDataField(lyr, field);
+      addLines(extractLines(lyr.shapes, classifier(key)), field);
+    });
+
+    addLines(extractInnerLines(lyr.shapes, classifier), 'inner');
+    outputLyr = createLineLayer(shapes, records);
+    setOutputLayerName(outputLyr, lyr, null, opts);
+    return outputLyr;
+
+    function addLines(lines, typeName) {
+      var attr = lines.map(function(shp, i) {
+        var rec = {RANK: rankId, TYPE: typeName};
+        if (decorateRecord) decorateRecord(rec, shp);
+        return rec;
+      });
+      shapes = utils.merge(lines, shapes);
+      records = utils.merge(attr, records);
+      rankId++;
+    }
+  }
+
+
+  // kludgy way to implement each= option of -lines command
+  function getLineRecordDecorator(exp, lyr, arcs) {
+    // repurpose arc classifier function to convert arc ids to shape ids of original polygons
+    var procArcId = getArcClassifier(lyr.shapes, arcs)(procShapeIds);
+    var compiled = compileFeaturePairExpression(exp, lyr, arcs);
+    var tmp;
+
+    function procShapeIds(shpA, shpB) {
+      compiled(shpA, shpB, tmp);
+    }
+
+    return function(rec, shp) {
+      tmp = rec;
+      procArcId(shp[0][0]);
+      return rec;
+    };
+  }
+
+
+  function createLineLayer(lines, records) {
+    return {
+      geometry_type: 'polyline',
+      shapes: lines,
+      data: records ? new DataTable(records) : null
+    };
+  }
+
+  function extractOuterLines(shapes, classifier) {
+    var key = function(a, b) {return b == -1 ? String(a) : null;};
+    return extractLines(shapes, classifier(key));
+  }
+
+  function extractInnerLines(shapes, classifier) {
+    var key = function(a, b) {return b > -1 ? a + '-' + b : null;};
+    return extractLines(shapes, classifier(key));
+  }
+
+  function extractLines(shapes, classify) {
+    var lines = [],
+        index = {},
+        prev = null,
+        prevKey = null,
+        part;
+
+    traversePaths(shapes, onArc, onPart);
+
+    function onArc(o) {
+      var arcId = o.arcId,
+          key = classify(arcId),
+          isContinuation, line;
+      if (!!key) {
+        line = key in index ? index[key] : null;
+        isContinuation = key == prevKey && o.shapeId == prev.shapeId && o.partId == prev.partId;
+        if (!line) {
+          line = [[arcId]]; // new shape
+          index[key] = line;
+          lines.push(line);
+        } else if (isContinuation) {
+          line[line.length-1].push(arcId); // extending prev part
+        } else {
+          line.push([arcId]); // new part
+        }
+
+        // if extracted line is split across endpoint of original polygon ring, then merge
+        if (o.i == part.arcs.length - 1 &&  // this is last arc in ring
+            line.length > 1 &&              // extracted line has more than one part
+            line[0][0] == part.arcs[0]) {   // first arc of first extracted part is first arc in ring
+          line[0] = line.pop().concat(line[0]);
+        }
+      }
+      prev = o;
+      prevKey = key;
+    }
+
+    function onPart(o) {
+      part = o;
+    }
+
+    return lines;
+  }
+
+  var Lines = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    polygonsToLines: polygonsToLines,
+    createLineLayer: createLineLayer,
+    extractInnerLines: extractInnerLines
+  });
+
+  function getClippingDataset(src, dest, opts) {
+    return getUnprojectedBoundingPolygon(src, dest, opts);
+  }
+
+  function getUnprojectedBoundingPolygon(src, dest, opts) {
+    var dataset;
+    if (isCircleClippedProjection(dest) || opts.clip_angle || dest.clip_angle) {
+      dataset = getBoundingCircle(src, dest, opts);
+    } else if (isRectangleClippedProjection(dest) || opts.clip_bbox) {
+      dataset = getBoundingRectangle(dest, opts);
+    }
+    return dataset || null;
+  }
+
+  // If possible, return a lat-long bbox that can be used to
+  // test whether data exceeds the projection bounds ands needs to be clipped
+  // export function getInnerBoundingBBox(P, opts) {
+  //   var bbox = null;
+  //   if (opts.clip_bbox) {
+  //     bbox = opts.clip_bbox;
+  //   } else if (isRectangleClippedProjection(dest)) {
+  //     bbox
+  //   }
+  //   return bbox;
+  // }
+
+  // Return projected polygon extent of both clipped and unclipped projections
+  function getPolygonDataset$1(src, dest, opts) {
+    // use clipping area if projection is clipped
+    var dataset = getUnprojectedBoundingPolygon(src, dest, opts);
+    if (!dataset) {
+      // use entire world if projection is not clipped
+      dataset = getBoundingRectangle(dest, {clip_bbox: [-180,-90,180,90]});
+    }
+    projectDataset(dataset, src, dest, {no_clip: false, quiet: true});
+    return dataset;
+  }
+
+  // Return projected outline of clipped projections
+  function getOutlineDataset(src, dest, opts) {
+    var dataset = getUnprojectedBoundingPolygon(src, dest, opts);
+    if (dataset) {
+      // project, with cutting & cleanup
+      projectDataset(dataset, src, dest, {no_clip: false, quiet: true});
+      dataset.layers[0].geometry_type = 'polyline';
+    }
+    return dataset || null;
+  }
+
+  function getBoundingRectangle(dest, opts) {
+    var bbox = opts.clip_bbox || getDefaultClipBBox(dest);
+    var rotation = getRotationParams(dest);
+    if (!bbox) error('Missing expected clip bbox.');
+    opts = Object.assign({interval: 0.5}, opts); // make sure edges can curve
+    var geojson = convertBboxToGeoJSON(bbox, opts);
+    var dataset = importGeoJSON(geojson);
+    if (rotation) {
+      rotateDataset(dataset, {rotation: rotation, invert: true});
+    }
+    return dataset;
+  }
+
+  function getBoundingCircle(src, dest, opts) {
+    var angle = opts.clip_angle || dest.clip_angle || getDefaultClipAngle(dest);
+    if (!angle) return null;
+    verbose(`Using clip angle of ${ +angle.toFixed(2) } degrees`);
+    var dist = getClippingRadius(src, angle);
+    var cp = getProjCenter(dest);
+    // kludge: attach the clipping angle to the CRS, so subsequent commands
+    // (e.g. -graticule) can create an outline
+    dest.clip_angle = angle;
+    var geojson = getCircleGeoJSON(cp, dist, null, opts);
+    return importGeoJSON(geojson);
+  }
+
+  function isRectangleClippedProjection(P) {
+    // TODO: add tmerc, etmerc, ...
+    // return inList(P, 'tmerc,utm,etmerc,merc,bertin1953');
+    return inList(P, 'merc,bertin1953');
+  }
+
+  function getDefaultClipBBox(P) {
+    var e = 1e-3;
+    var slug = getCrsSlug(P);
+    var tmerc = [-179,-90,179,90];
+    var bbox = {
+      // longlat: [-180, -90, 180, 90],
+      tmerc: tmerc,
+      utm: tmerc,
+      etmerc: tmerc,
+      merc: [-180, -89, 180, 89],
+      lcc: [-180, -89, 180, 89],
+      bertin1953: [-180 + e, -90 + e, 180 - e, 90 - e]
+    }[slug];
+    return bbox;
+  }
+
+  function getClampBBox(P) {
+    var bbox;
+    if (inList(P, 'merc,lcc')) {
+      bbox = getDefaultClipBBox(P);
+    }
+    return bbox;
+  }
+
+  function isCircleClippedProjection(P) {
+    return inList(P, 'stere,sterea,ups,ortho,gnom,laea,nsper,tpers');
+  }
+
+  function getPerspectiveClipAngle(P) {
+    var h = parseFloat(P.params.h.param);
+    if (!h || h < 0) {
+      return 0;
+    }
+    var theta = Math.acos(P.a / (P.a + h)) * 180 / Math.PI;
+    theta *= 0.995; // reducing a bit to avoid out-of-range errors
+    return theta;
+  }
+
+  function getDefaultClipAngle(P) {
+    var slug = getCrsSlug(P);
+    if (slug == 'nsper') return getPerspectiveClipAngle(P);
+    if (slug == 'tpers') {
+      message('Automatic clipping is not supported for the Tilted Perspective projection');
+      return 0;
+    }
+    return {
+      gnom: 60,
+      laea: 179,
+      ortho: 89.9, // TODO: investigate projection errors closer to 90
+      stere: 142,
+      sterea: 142,
+      ups: 10.5 // TODO: should be 6.5 deg at north pole
+    }[slug] || 0;
+  }
+
+  function getRotationParams(P) {
+    var slug = getCrsSlug(P);
+    if (slug == 'bertin1953') return [-16.5,-42];
+    if (slug == 'tmerc' || slug == 'utm' || slug == 'etmerc') {
+      if (P.lam0 !== 0) return [P.lam0 * 180 / Math.PI];
+    }
+    return null;
+  }
+
+
+  function getProjCenter(P) {
+    var rtod = 180 / Math.PI;
+    return [P.lam0 * rtod, P.phi0 * rtod];
+  }
+
+  // Convert a clip angle to a distance in meters
+  function getClippingRadius(P, angle) {
+    return getCircleRadiusFromAngle(P, angle);
+  }
+
+  function preProjectionClip(dataset, src, dest, opts) {
+    if (!isLatLngCRS(src) || opts.no_clip) return false;
+    // rotated normal-aspect projections can generally have a thin slice removed
+    // from the rotated antimeridian, instead of clipping them
+    var cut = insertPreProjectionCuts(dataset, src, dest);
+    var clipped = false;
+    var clipData;
+    // experimental -- we can probably get away with just clamping some CRSs that
+    // have a slightly restricted coord range (e.g. Mercator), instead of doing
+    // a clip (more expensive)
+    var clampBox = getClampBBox(dest);
+    if (clampBox) {
+      clampDataset(dataset, clampBox);
+    } else {
+      clipData = getClippingDataset(src, dest, opts);
+    }
+    if (clipData) {
+      // TODO: don't bother to clip content that is fully within
+      // the clipping shape. But how to tell?
+      clipLayersInPlace(dataset.layers, clipData, dataset, 'clip');
+      clipped = true;
+    }
+    return cut || clipped;
+  }
+
+
+  function insertPreProjectionCuts(dataset, src, dest) {
+    var antimeridian = getAntimeridian(dest.lam0 * 180 / Math.PI);
+    // currently only supports adding a single vertical cut to earth axis-aligned
+    // map projections centered on a non-zero longitude.
+    // TODO: need a more sophisticated kind of cutting to handle other cases
+    if (dataset.arcs && isRotatedNormalProjection(dest) && datasetCrossesLon(dataset, antimeridian)) {
+      insertVerticalCut(dataset, antimeridian);
+      dissolveArcs(dataset);
+      return true;
+    }
+    return false;
+  }
+
+  function clampDataset(dataset, bbox) {
+    transformPoints(dataset, function(x, y) {
+      return [utils.clamp(x, bbox[0], bbox[2]), utils.clamp(y, bbox[1], bbox[3])];
+    });
+  }
+
+  function datasetCrossesLon(dataset, lon) {
+    var crosses = 0;
+    dataset.arcs.forEachSegment(function(i, j, xx, yy) {
+      var ax = xx[i],
+          bx = xx[j];
+      if (ax <= lon && bx >= lon || ax >= lon && bx <= lon) crosses++;
+    });
+    return crosses > 0;
+  }
+
+  function insertVerticalCut(dataset, lon) {
+    var pathLayers = dataset.layers.filter(layerHasPaths);
+    if (pathLayers.length === 0) return;
+    var e = 1e-8;
+    var bbox = [lon-e, -91, lon+e, 91];
+    // densify (so cut line can curve, e.g. Cupola projection)
+    var geojson = convertBboxToGeoJSON(bbox, {interval: 0.5});
+    var clip = importGeoJSON(geojson);
+    clipLayersInPlace(pathLayers, clip, dataset, 'erase');
+  }
+
   // Converts a Proj.4 projection name (e.g. lcc, tmerc) to a Proj.4 string
   // by picking parameters that are appropriate to the extent of the dataset
   // being projected (e.g. standard parallels, longitude of origin)
@@ -27310,11 +32910,13 @@ ${svg}
     return getDatasetBounds(dataset).toArray();
   }
 
+  // See: Savric & Jenny, "Automating the selection of standard parallels for conic map projections"
+  // Using one-sixth rule, not the more complicated formula proposed by the authors
   function getConicParams(bbox, decimals) {
     var cx = (bbox[0] + bbox[2]) / 2;
     var h = bbox[3] - bbox[1];
-    var sp1 = bbox[1] + 0.25 * h;
-    var sp2 = bbox[1] + 0.75 * h;
+    var sp1 = bbox[1] + 1/6 * h;
+    var sp2 = bbox[1] + 5/6 * h;
     return `+lon_0=${ cx.toFixed(decimals) } +lat_1=${ sp1.toFixed(decimals) } +lat_2=${ sp2.toFixed(decimals) }`;
   }
 
@@ -27347,7 +32949,7 @@ ${svg}
     // are preserved if an error occurs
     var modifyCopy = runningInBrowser(),
         originals = [],
-        target = {},
+        target = {info: dataset.info || {}},
         src, dest;
 
     dest = destInfo.crs;
@@ -27377,24 +32979,16 @@ ${svg}
       target.arcs = modifyCopy ? dataset.arcs.getCopy() : dataset.arcs;
     }
 
-    target.layers = dataset.layers.filter(layerHasPoints).map(function(lyr) {
+    target.layers = dataset.layers.map(function(lyr) {
       if (modifyCopy) {
         originals.push(lyr);
-        lyr = utils.extend({}, lyr);
-        lyr.shapes = cloneShapes(lyr.shapes);
+        lyr = copyLayerShapes(lyr);
       }
       return lyr;
     });
 
-    try {
-      projectDataset(target, src, dest, opts || {});
-    } catch(e) {
-      console.error(e);
-      stop(utils.format("Projection failure%s (%s)",
-        e.point ? ' at ' + e.point.join(' ') : '', e.message));
-    }
+    projectDataset(target, src, dest, opts || {});
 
-    dataset.info.crs = dest;
     dataset.info.prj = destInfo.prj; // may be undefined
     dataset.arcs = target.arcs;
     originals.forEach(function(lyr, i) {
@@ -27431,32 +33025,71 @@ ${svg}
 
   function projectDataset(dataset, src, dest, opts) {
     var proj = getProjTransform2(src, dest); // v2 returns null points instead of throwing an error
-    var errors;
+    var badArcs = 0;
+    var badPoints = 0;
+    var clipped = preProjectionClip(dataset, src, dest, opts);
+
     dataset.layers.forEach(function(lyr) {
       if (layerHasPoints(lyr)) {
-        projectPointLayer(lyr, proj); // v2 compatible (invalid points are removed)
+        badPoints += projectPointLayer(lyr, proj); // v2 compatible (invalid points are removed)
       }
     });
     if (dataset.arcs) {
       if (opts.densify) {
-        errors = projectAndDensifyArcs(dataset.arcs, proj);
+        badArcs = projectAndDensifyArcs(dataset.arcs, proj);
       } else {
-        errors = projectArcs2(dataset.arcs, proj);
-      }
-      if (errors > 0) {
-        // TODO: implement this (null arcs have zero length)
-        // internal.removeShapesWithNullArcs(dataset);
+        badArcs = projectArcs2(dataset.arcs, proj);
       }
     }
+
+    if (clipped) {
+      // TODO: could more selective in cleaning clipped layers
+      // (probably only needed when clipped area crosses the antimeridian or includes a pole)
+      cleanProjectedLayers(dataset);
+    }
+
+    if (badArcs > 0 && !opts.quiet) {
+      message(`Removed ${badArcs} ${badArcs == 1 ? 'path' : 'paths'} containing unprojectable vertices.`);
+    }
+    if (badPoints > 0 && !opts.quiet) {
+      message(`Removed ${badPoints} unprojectable ${badPoints == 1 ? 'point' : 'points'}.`);
+    }
+    dataset.info.crs = dest;
   }
 
+  // * Heals cuts in previously split-apart polygons
+  // * Removes line intersections
+  // * TODO: what if a layer contains polygons with desired overlaps? should
+  //   we ignore overlaps between different features?
+  function cleanProjectedLayers(dataset) {
+    // TODO: only clean affected polygons (cleaning all polygons can be slow)
+    var polygonLayers = dataset.layers.filter(lyr => lyr.geometry_type == 'polygon');
+    // clean options: force a topology update (by default, this only happens when
+    // vertices change during cleaning, but reprojection can require a topology update
+    // even if clean does not change vertices)
+    var cleanOpts = {
+      allow_overlaps: true,
+      rebuild_topology: true,
+      no_arc_dissolve: true,
+      quiet: true,
+      verbose: false};
+    cleanLayers(polygonLayers, dataset, cleanOpts);
+   // remove unused arcs from polygon and polyline layers
+    // TODO: fix bug that leaves uncut arcs in the arc table
+    //   (e.g. when projecting a graticule)
+    dissolveArcs(dataset);
+  }
 
   // proj: function to project [x, y] point; should return null if projection fails
   // TODO: fatal error if no points project?
   function projectPointLayer(lyr, proj) {
+    var errors = 0;
     editShapes(lyr.shapes, function(p) {
-      return proj(p[0], p[1]); // removes points that fail to project
+      var p2 = proj(p[0], p[1]);
+      if (!p2) errors++;
+      return p2; // removes points that fail to project
     });
+    return errors;
   }
 
   function projectArcs(arcs, proj) {
@@ -27489,115 +33122,154 @@ ${svg}
     }
   }
 
-  function projectAndDensifyArcs(arcs, proj) {
-    var interval = getDefaultDensifyInterval(arcs, proj);
-    var p = [0, 0];
-    return editArcs(arcs, onPoint);
-
-    function onPoint(append, lng, lat, prevLng, prevLat, i) {
-      var prevX = p[0],
-          prevY = p[1];
-      p = proj(lng, lat);
-      if (!p) return false; // signal that current arc contains an error
-
-      // Don't try to densify shorter segments (optimization)
-      if (i > 0 && geom.distanceSq(p[0], p[1], prevX, prevY) > interval * interval * 25) {
-        densifySegment(prevLng, prevLat, prevX, prevY, lng, lat, p[0], p[1], proj, interval)
-          .forEach(append);
-      }
-      append(p);
-    }
-  }
-
-  function getDefaultDensifyInterval(arcs, proj) {
-    var xy = getAvgSegment2(arcs),
-        bb = arcs.getBounds(),
-        a = proj(bb.centerX(), bb.centerY()),
-        b = proj(bb.centerX() + xy[0], bb.centerY() + xy[1]),
-        c = proj(bb.centerX(), bb.ymin), // right center
-        d = proj(bb.xmax, bb.centerY()), // bottom center
-        // interval A: based on average segment length
-        intervalA = geom.distance2D(a[0], a[1], b[0], b[1]),
-        // interval B: a fraction of avg bbox side length
-        // (added this for bbox densification)
-        intervalB = (geom.distance2D(a[0], a[1], c[0], c[1]) +
-          geom.distance2D(a[0], a[1], d[0], d[1])) / 5000;
-    return Math.min(intervalA, intervalB);
-  }
-
-  // Interpolate points into a projected line segment if needed to prevent large
-  //   deviations from path of original unprojected segment.
-  // @points (optional) array of accumulated points
-  function densifySegment(lng0, lat0, x0, y0, lng2, lat2, x2, y2, proj, interval, points) {
-    // Find midpoint between two endpoints and project it (assumes longitude does
-    // not wrap). TODO Consider bisecting along great circle path -- although this
-    // would not be good for boundaries that follow line of constant latitude.
-    var lng1 = (lng0 + lng2) / 2,
-        lat1 = (lat0 + lat2) / 2,
-        p = proj(lng1, lat1),
-        distSq;
-    if (!p) return; // TODO: consider if this is adequate for handling proj. errors
-    distSq = geom.pointSegDistSq2(p[0], p[1], x0, y0, x2, y2); // sq displacement
-    points = points || [];
-    // Bisect current segment if the projected midpoint deviates from original
-    //   segment by more than the @interval parameter.
-    //   ... but don't bisect very small segments to prevent infinite recursion
-    //   (e.g. if projection function is discontinuous)
-    if (distSq > interval * interval * 0.25 && geom.distance2D(lng0, lat0, lng2, lat2) > 0.01) {
-      densifySegment(lng0, lat0, x0, y0, lng1, lat1, p[0], p[1], proj, interval, points);
-      points.push(p);
-      densifySegment(lng1, lat1, p[0], p[1], lng2, lat2, x2, y2, proj, interval, points);
-    }
-    return points;
-  }
-
   var Proj = /*#__PURE__*/Object.freeze({
     __proto__: null,
     getCrsInfo: getCrsInfo,
-    projectDataset: projectDataset
+    projectDataset: projectDataset,
+    cleanProjectedLayers: cleanProjectedLayers,
+    projectPointLayer: projectPointLayer,
+    projectArcs: projectArcs,
+    projectArcs2: projectArcs2
   });
 
   cmd.graticule = function(dataset, opts) {
-    var graticule = createGraticule(opts);
-    var dest, src;
-    if (dataset) {
+    var name = opts.polygon ? 'polygon' : 'graticule';
+    var graticule, dest;
+    if (dataset && !isLatLngDataset(dataset)) {
       // project graticule to match dataset
       dest = getDatasetCRS(dataset);
-      src = getCRS('wgs84');
       if (!dest) stop("Coordinate system is unknown, unable to create a graticule");
-      projectDataset(graticule, src, dest, {}); // TODO: densify?
+      graticule = opts.polygon ?
+        createProjectedPolygon(dest, opts) :
+        createProjectedGraticule(dest, opts);
+    } else {
+      graticule = opts.polygon ?
+        createUnprojectedPolygon(opts) :
+        createUnprojectedGraticule(opts);
     }
+    graticule.layers[0].name = name;
     return graticule;
   };
 
-  // create graticule as a dataset
-  function createGraticule(opts) {
-    var precision = 1; // degrees between each vertex
-    var step = 10;
-    var majorStep = 90;
-    var xn = Math.round(360 / step) + 1;
-    var yn = Math.round(180 / step) + 1;
-    var xx = utils.range(xn, -180, step);
-    var yy = utils.range(yn, -90, step);
-    var meridians = xx.map(function(x) {
-      var ymin = -90,
-          ymax = 90;
-      if (x % majorStep !== 0) {
-        ymin += step;
-        ymax -= step;
+  function createUnprojectedPolygon(opts) {
+    var crs = getCRS('wgs84');
+    return getPolygonDataset$1(crs, crs, opts);
+  }
+
+  function createProjectedPolygon(dest, opts) {
+    var src = getCRS('wgs84');
+    return getPolygonDataset$1(src, dest, opts);
+  }
+
+  function createUnprojectedGraticule(opts) {
+    var src = getCRS('wgs84');
+    var graticule = importGeoJSON(createGraticule(src, false, opts));
+    return graticule;
+  }
+
+  function createProjectedGraticule(dest, opts) {
+    var src = getCRS('wgs84');
+    // var outline = getOutlineDataset(src, dest, {inset: 0, geometry_type: 'polyline'});
+    var outline = getOutlineDataset(src, dest, {});
+    var graticule = importGeoJSON(createGraticule(dest, !!outline, opts));
+    projectDataset(graticule, src, dest, {no_clip: false}); // TODO: densify?
+    if (outline) {
+      graticule = addOutlineToGraticule(graticule, outline);
+    }
+    buildTopology(graticule); // needed for cleaning to work
+    cleanLayers(graticule.layers, graticule, {verbose: false});
+    return graticule;
+  }
+
+  function addOutlineToGraticule(graticule, outline) {
+    var merged = mergeDatasets([graticule, outline]);
+    var src = merged.layers.pop();
+    var dest = merged.layers[0];
+    var records = dest.data.getRecords();
+    src.shapes.forEach(function(shp) {
+      dest.shapes.push(shp);
+      records.push({type: 'outline', value: null});
+    });
+    return merged;
+  }
+
+  // Create graticule as a polyline dataset
+  //
+  function createGraticule(P, outlined, opts) {
+    var interval = opts.interval || 10;
+    if (![5,10,15,30,45].includes(interval)) stop('Invalid interval:', interval);
+    var lon0 = P.lam0 * 180 / Math.PI;
+    var precision = interval > 10 ? 1 : 0.5; // degrees between each vertex
+    var xstep = interval;
+    var ystep = interval;
+    var xstepMajor = 90;
+    var xn = Math.round(360 / xstep);
+    var yn = Math.round(180 / ystep) + 1;
+    var xx = utils.range(xn, -180 + xstep, xstep);
+    var yy = utils.range(yn, -90, ystep);
+    var meridians = [];
+    var parallels = [];
+    var edgeMeridians = isMeridianBounded(P) ? getEdgeMeridians(P) : null;
+    xx.forEach(function(x) {
+      if (edgeMeridians && (tooClose(x, edgeMeridians[0]) || tooClose(x, edgeMeridians[1]))) {
+        return;
       }
-      return createMeridian(x, ymin, ymax, precision);
+      createMeridian(x, x % xstepMajor === 0);
     });
-    var parallels = yy.map(function(y) {
-      return createParallel(y, -180, 180, precision);
+
+    if (edgeMeridians && !outlined) {
+      // add meridian lines that will appear on the left and right sides of the
+      // projected graticule
+      createMeridian(edgeMeridians[0], true);
+      createMeridian(edgeMeridians[1], true);
+    }
+
+    yy.forEach(function(y) {
+      createParallel(y);
     });
+
     var geojson = {
       type: 'FeatureCollection',
       features: meridians.concat(parallels)
     };
-    var graticule = importGeoJSON(geojson, {});
-    graticule.layers[0].name = 'graticule';
-    return graticule;
+    return geojson;
+
+    function tooClose(a, b) {
+      return Math.abs(a - b) < interval / 5;
+    }
+
+    function createMeridian(x, extended) {
+      var y0 = ystep <= 15 ? ystep : 0;
+      createMeridianPart(x, -90 + y0, 90 - y0);
+      if (extended && y0 > 0) {
+        // adding extensions as separate parts, so if the polar coordinates
+        // fail to project, at least the rest of the meridian line will remain
+        createMeridianPart(x, -90, -90 + y0);
+        createMeridianPart(x, 90 - y0, 90);
+      }
+    }
+
+    function createMeridianPart(x, ymin, ymax) {
+      var coords = densifyPathByInterval([[x, ymin], [x, ymax]], precision);
+      meridians.push(graticuleFeature(coords, {type: 'meridian', value: roundCoord(x)}));
+    }
+
+    function createParallel(y) {
+      var coords = densifyPathByInterval([[-180, y], [180, y]], precision);
+      parallels.push(graticuleFeature(coords, {type: 'parallel', value: y}));
+    }
+  }
+
+  // remove tiny offsets
+  function roundCoord(x) {
+    return +x.toFixed(3) || 0;
+  }
+
+  function getEdgeMeridians(P) {
+    var lon = getBoundingMeridian(P);
+    // offs must be larger than gutter width in mapshaper-spherical-cutting.js
+    var offs = 2e-8;
+    return lon == 180 ? [-180, 180] : [lon - offs, lon + offs];
   }
 
   function graticuleFeature(coords, o) {
@@ -27609,24 +33281,6 @@ ${svg}
         coordinates: coords
       }
     };
-  }
-
-  function createMeridian(x, ymin, ymax, precision) {
-    var coords = [];
-    for (var y = ymin; y < ymax; y += precision) {
-      coords.push([x, y]);
-    }
-    coords.push([x, ymax]);
-    return graticuleFeature(coords, {type: 'meridian', value: x});
-  }
-
-  function createParallel(y, xmin, xmax, precision) {
-    var coords = [];
-    for (var x = xmin; x < xmax; x += precision) {
-      coords.push([x, y]);
-    }
-    coords.push([xmax, y]);
-    return graticuleFeature(coords, {type: 'parallel', value: y});
   }
 
   cmd.include = function(opts) {
@@ -27897,281 +33551,6 @@ ${svg}
     return outputLayers;
   };
 
-  cmd.lines = function(lyr, dataset, opts) {
-    opts = opts || {};
-    if (opts.callouts) {
-      requirePointLayer(lyr);
-      return pointsToCallouts(lyr, dataset, opts);
-    } else if (lyr.geometry_type == 'point') {
-      return pointsToLines(lyr, dataset, opts);
-    } else if (opts.segments) {
-      return [convertShapesToSegments(lyr, dataset)];
-    } else if (opts.arcs) {
-      return [convertShapesToArcs(lyr, dataset)];
-    } else if (lyr.geometry_type == 'polygon') {
-      return polygonsToLines(lyr, dataset.arcs, opts);
-    } else {
-      requirePolygonLayer(lyr, "Command requires a polygon or point layer");
-    }
-  };
-
-  function convertShapesToArcs(lyr, dataset) {
-    var arcs = dataset.arcs;
-    var test = getArcPresenceTest(lyr.shapes, arcs);
-    var records = [];
-    var shapes = [];
-    for (var i=0, n=arcs.size(); i<n; i++) {
-      if (!test(i)) continue;
-      records.push({arcid: i});
-      shapes.push([[i]]);
-    }
-    return {
-      geometry_type: 'polyline',
-      data: new DataTable(records),
-      shapes: shapes
-    };
-  }
-
-  function convertShapesToSegments(lyr, dataset) {
-    var arcs = dataset.arcs;
-    var features = [];
-    var geojson = {type: 'FeatureCollection', features: []};
-    var test = getArcPresenceTest(lyr.shapes, arcs);
-    var arcId;
-    for (var i=0, n=arcs.size(); i<n; i++) {
-      arcId = i;
-      if (!test(arcId)) continue;
-      arcs.forEachArcSegment(arcId, onSeg);
-    }
-    function onSeg(i1, i2, xx, yy) {
-      var a = xx[i1],
-          b = yy[i1],
-          c = xx[i2],
-          d = yy[i2];
-      geojson.features.push({
-        type: 'Feature',
-        properties: {arc: arcId, i1: i1, i2: i2, x1: a, y1: b, x2: c, y2: d},
-        geometry: {type: 'LineString', coordinates: [[a, b], [c, d]]}
-      });
-    }
-    var merged = mergeDatasets([dataset, importGeoJSON(geojson, {})]);
-    dataset.arcs = merged.arcs;
-    // buildTopology(dataset);
-    return merged.layers.pop();
-  }
-
-  function pointsToLines(lyr, dataset, opts) {
-    var geojson = opts.groupby ?
-      groupedPointsToLineGeoJSON(lyr, opts.groupby, opts) :
-      pointShapesToLineGeometry(lyr.shapes); // no grouping: return single line with no attributes
-    var dataset2 = importGeoJSON(geojson);
-    var outputLayers = mergeDatasetsIntoDataset(dataset, [dataset2]);
-    if (!opts.no_replace) {
-      outputLayers[0].name = lyr.name || outputLayers[0].name;
-    }
-    return outputLayers;
-  }
-
-  function pointsToCallouts(lyr, dataset, opts) {
-    var records = lyr.data ? lyr.data.getRecords() : null;
-    var calloutLen = getLayerBounds(lyr).width() / 50;
-    var pointToSegment = function(p) {
-      return [p, [p[0] + calloutLen, p[1]]];
-    };
-    var geojson = {
-      type: 'FeatureCollection',
-      features: lyr.shapes.map(function(shp, i) {
-        return {
-          type: 'Feature',
-          properties: records ? records[i] : null,
-          geometry: {
-            type: 'MultiLineString',
-            coordinates: shp.map(pointToSegment)
-          }
-        };
-      })
-    };
-    var dataset2 = importGeoJSON(geojson);
-    var outputLayers = mergeDatasetsIntoDataset(dataset, [dataset2]);
-    if (!opts.no_replace) {
-      outputLayers[0].name = lyr.name || outputLayers[0].name;
-    }
-    return outputLayers;
-  }
-
-  function groupedPointsToLineGeoJSON(lyr, field, opts) {
-    var groups = [];
-    var getGroupId = getCategoryClassifier([field], lyr.data);
-    var dataOpts = utils.defaults({fields: [field]}, opts);
-    var records = aggregateDataRecords(lyr.data.getRecords(), getGroupId, dataOpts);
-    var features;
-    lyr.shapes.forEach(function(shape, i) {
-      var groupId = getGroupId(i);
-      if (groupId in groups === false) {
-        groups[groupId] = [];
-      }
-      groups[groupId].push(shape);
-    });
-    features = groups.map(function(shapes, i) {
-      return {
-        type: 'Feature',
-        properties: records[i],
-        geometry: shapes.length > 1 ? pointShapesToLineGeometry(shapes) : null
-      };
-    });
-    return {
-      type: 'FeatureCollection',
-      features: features
-    };
-  }
-
-  // TOOD: automatically convert rings into separate shape parts
-  function pointShapesToLineGeometry(shapes) {
-    var coords = [];
-    forEachPoint(shapes, function(p) {
-      coords.push(p.concat());
-    });
-    return {type: 'LineString', coordinates: coords};
-  }
-
-  function polygonsToLines(lyr, arcs, opts) {
-    opts = opts || {};
-    var filter = opts.where ? compileFeaturePairFilterExpression(opts.where, lyr, arcs) : null,
-        decorateRecord = opts.each ? getLineRecordDecorator(opts.each, lyr, arcs) : null,
-        classifier = getArcClassifier(lyr.shapes, arcs, {filter: filter}),
-        fields = utils.isArray(opts.fields) ? opts.fields : [],
-        rankId = 0,
-        shapes = [],
-        records = [],
-        outputLyr;
-
-    if (fields.length > 0 && !lyr.data) {
-      stop("Missing a data table");
-    }
-
-    addLines(extractOuterLines(lyr.shapes, classifier), 'outer');
-
-    fields.forEach(function(field) {
-      var data = lyr.data.getRecords();
-      var key = function(a, b) {
-        var arec = data[a];
-        var brec = data[b];
-        var aval, bval;
-        if (!arec || !brec || arec[field] === brec[field]) {
-          return null;
-        }
-        return a + '-' + b;
-      };
-      requireDataField(lyr, field);
-      addLines(extractLines(lyr.shapes, classifier(key)), field);
-    });
-
-    addLines(extractInnerLines(lyr.shapes, classifier), 'inner');
-    outputLyr = createLineLayer(shapes, records);
-    outputLyr.name = opts.no_replace ? null : lyr.name;
-    return outputLyr;
-
-    function addLines(lines, typeName) {
-      var attr = lines.map(function(shp, i) {
-        var rec = {RANK: rankId, TYPE: typeName};
-        if (decorateRecord) decorateRecord(rec, shp);
-        return rec;
-      });
-      shapes = utils.merge(lines, shapes);
-      records = utils.merge(attr, records);
-      rankId++;
-    }
-  }
-
-
-  // kludgy way to implement each= option of -lines command
-  function getLineRecordDecorator(exp, lyr, arcs) {
-    // repurpose arc classifier function to convert arc ids to shape ids of original polygons
-    var procArcId = getArcClassifier(lyr.shapes, arcs)(procShapeIds);
-    var compiled = compileFeaturePairExpression(exp, lyr, arcs);
-    var tmp;
-
-    function procShapeIds(shpA, shpB) {
-      compiled(shpA, shpB, tmp);
-    }
-
-    return function(rec, shp) {
-      tmp = rec;
-      procArcId(shp[0][0]);
-      return rec;
-    };
-  }
-
-
-  function createLineLayer(lines, records) {
-    return {
-      geometry_type: 'polyline',
-      shapes: lines,
-      data: records ? new DataTable(records) : null
-    };
-  }
-
-  function extractOuterLines(shapes, classifier) {
-    var key = function(a, b) {return b == -1 ? String(a) : null;};
-    return extractLines(shapes, classifier(key));
-  }
-
-  function extractInnerLines(shapes, classifier) {
-    var key = function(a, b) {return b > -1 ? a + '-' + b : null;};
-    return extractLines(shapes, classifier(key));
-  }
-
-  function extractLines(shapes, classify) {
-    var lines = [],
-        index = {},
-        prev = null,
-        prevKey = null,
-        part;
-
-    traversePaths(shapes, onArc, onPart);
-
-    function onArc(o) {
-      var arcId = o.arcId,
-          key = classify(arcId),
-          isContinuation, line;
-      if (!!key) {
-        line = key in index ? index[key] : null;
-        isContinuation = key == prevKey && o.shapeId == prev.shapeId && o.partId == prev.partId;
-        if (!line) {
-          line = [[arcId]]; // new shape
-          index[key] = line;
-          lines.push(line);
-        } else if (isContinuation) {
-          line[line.length-1].push(arcId); // extending prev part
-        } else {
-          line.push([arcId]); // new part
-        }
-
-        // if extracted line is split across endpoint of original polygon ring, then merge
-        if (o.i == part.arcs.length - 1 &&  // this is last arc in ring
-            line.length > 1 &&              // extracted line has more than one part
-            line[0][0] == part.arcs[0]) {   // first arc of first extracted part is first arc in ring
-          line[0] = line.pop().concat(line[0]);
-        }
-      }
-      prev = o;
-      prevKey = key;
-    }
-
-    function onPart(o) {
-      part = o;
-    }
-
-    return lines;
-  }
-
-  var Lines = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    polygonsToLines: polygonsToLines,
-    createLineLayer: createLineLayer,
-    extractInnerLines: extractInnerLines
-  });
-
   cmd.innerlines = function(lyr, arcs, opts) {
     opts = opts || {};
     requirePolygonLayer(lyr);
@@ -28183,7 +33562,7 @@ ${svg}
     if (lines.length === 0) {
       message("No shared boundaries were found");
     }
-    outputLyr.name = opts.no_replace ? null : lyr.name;
+    setOutputLayerName(outputLyr, lyr, null, opts);
     return outputLyr;
   };
 
@@ -28278,7 +33657,7 @@ ${svg}
     var mosaicIndex = new MosaicIndex(mergedLyr, nodes, {flat: false});
 
     var joinOpts = utils.extend({}, opts);
-    var joinFunction = getPolygonToPolygonFunction(targetLyr, sourceLyr, mosaicIndex);
+    var joinFunction = getPolygonToPolygonFunction(targetLyr, sourceLyr, mosaicIndex, opts);
     var retn = joinTables(targetLyr.data, sourceLyr.data, joinFunction, joinOpts);
 
     if (opts.interpolate) {
@@ -28287,22 +33666,44 @@ ${svg}
     return retn;
   }
 
+
   function interpolateFieldsByArea(destLyr, sourceLyr, mosaicIndex, opts) {
+    var mosaicRecords = getOverlapDataByTile(destLyr, sourceLyr, mosaicIndex, opts);
     var sourceFields = opts.interpolate;
+    var sourceRecords = sourceLyr.data.getRecords();
+
+    // for each destination polygon, calculate interpolated values,
+    // using the data calculated in previous steps
+    destLyr.data.getRecords().forEach(function(destRec, destId) {
+      var tileIds = mosaicIndex.getTileIdsByShapeId(destId);
+      var tileRecords = [], i, field;
+      for (i=0; i<tileIds.length; i++) {
+        tileRecords.push(mosaicRecords[tileIds[i]]);
+      }
+      for (i=0; i<sourceFields.length; i++) {
+        field = sourceFields[i];
+        destRec[field] = getInterpolatedValue(field, tileRecords, sourceRecords);
+      }
+    });
+  }
+
+  function getOverlapDataByTile(destLyr, sourceLyr, mosaicIndex, opts) {
     var getShapeArea = opts.planar ? geom.getPlanarShapeArea : geom.getShapeArea;
-    var sourceLen = sourceLyr.shapes.length;
     var destLen = destLyr.shapes.length;
     var mosaicShapes = mosaicIndex.mosaic;
     var arcs = mosaicIndex.nodes.arcs;
-    var mosaicRecords = mosaicShapes.map(function(shp, i) {
+    // initialize data objects for each mosaic tile
+    var mosaicRecords = mosaicShapes.map(function(tile, i) {
       var rec = {
-        area: getShapeArea(shp, arcs),
+        area: getShapeArea(tile, arcs),
         weight: 0,
         sourceId: -1
       };
       return rec;
     });
 
+    // identify the source polygon that overlaps each tile,
+    // and calculate the percentage of the source shape represented by each tile
     sourceLyr.shapes.forEach(function(sourceShp, sourceId) {
       var tileIds = mosaicIndex.getTileIdsByShapeId(sourceId + destLen);
       var shapeArea = getShapeArea(sourceShp, arcs);
@@ -28317,20 +33718,9 @@ ${svg}
         tileRec.sourceId = sourceId;
       }
     });
-
-    destLyr.data.getRecords().forEach(function(destRec, destId) {
-      var sourceRecords = sourceLyr.data.getRecords();
-      var tileIds = mosaicIndex.getTileIdsByShapeId(destId);
-      var tileRecords = [], i, field;
-      for (i=0; i<tileIds.length; i++) {
-        tileRecords.push(mosaicRecords[tileIds[i]]);
-      }
-      for (i=0; i<sourceFields.length; i++) {
-        field = sourceFields[i];
-        destRec[field] = getInterpolatedValue(field, tileRecords, sourceRecords);
-      }
-    });
+    return mosaicRecords;
   }
+
 
   function getInterpolatedValue(field, tileRecords, sourceRecords) {
     var value = 0, tileRec, sourceRec;
@@ -28354,18 +33744,60 @@ ${svg}
     };
   }
 
+  function getMaxOverlapFunction(destLyr, srcLyr, mosaicIndex) {
+    var arcs = mosaicIndex.nodes.arcs;
+    var destLen = destLyr.shapes.length;
+
+    function getTotalArea(tileIds) {
+      var area = 0;
+      for (var i=0; i<tileIds.length; i++) {
+        area += geom.getShapeArea(mosaicIndex.mosaic[tileIds[i]], arcs);
+      }
+      return area;
+    }
+
+    return function(destId, srcIds) {
+      var destTileIds = mosaicIndex.getTileIdsByShapeId(destId);
+      var maxArea = 0;
+      var maxId = -1;
+      srcIds.forEach(function(srcId, i) {
+        var srcTileIds = mosaicIndex.getTileIdsByShapeId(srcId + destLen);
+        var sharedIds = utils.intersection(destTileIds, srcTileIds);
+        var area = getTotalArea(sharedIds);
+        if (area >= maxArea) {
+          maxId = srcId;
+          maxArea = area;
+        }
+      });
+      if (maxId == -1) error('Geometry error');
+      return [maxId];
+    };
+  }
+
+
   // Returned function converts a target layer feature id to multiple source feature ids
-  function getPolygonToPolygonFunction(targetLyr, srcLyr, mosaicIndex) {
+  // TODO: option to join the source polygon with the greatest overlapping area
+  // TODO: option to ignore source polygon with small overlaps
+  //       (as a percentage of the area of one or the other polygon?)
+  function getPolygonToPolygonFunction(targetLyr, srcLyr, mosaicIndex, opts) {
     var mergedToSourceIds = getIdConversionFunction(targetLyr.shapes.length, srcLyr.shapes.length);
+    var selectMaxOverlap;
+    if (opts.largest_overlap) {
+      selectMaxOverlap = getMaxOverlapFunction(targetLyr, srcLyr, mosaicIndex);
+    }
+
     return function(targId) {
       var tileIds = mosaicIndex.getTileIdsByShapeId(targId);
-      var sourceIds = [], tmp;
+      var sourceIds = [], overlappingTiles = [], tmp;
       for (var i=0; i<tileIds.length; i++) {
         tmp = mosaicIndex.getSourceIdsByTileId(tileIds[i]);
         tmp = mergedToSourceIds(tmp);
         sourceIds = sourceIds.length > 0 ? sourceIds.concat(tmp) : tmp;
       }
       sourceIds = utils.uniq(sourceIds);
+      if (sourceIds.length > 1 && opts.largest_overlap) {
+        sourceIds = selectMaxOverlap(targId, sourceIds);
+      }
       return sourceIds;
     };
   }
@@ -28834,7 +34266,328 @@ ${svg}
     }
   }
 
-  cmd.join = function(targetLyr, dataset, src, opts) {
+  class TinyQueue {
+      constructor(data = [], compare = defaultCompare) {
+          this.data = data;
+          this.length = this.data.length;
+          this.compare = compare;
+
+          if (this.length > 0) {
+              for (let i = (this.length >> 1) - 1; i >= 0; i--) this._down(i);
+          }
+      }
+
+      push(item) {
+          this.data.push(item);
+          this.length++;
+          this._up(this.length - 1);
+      }
+
+      pop() {
+          if (this.length === 0) return undefined;
+
+          const top = this.data[0];
+          const bottom = this.data.pop();
+          this.length--;
+
+          if (this.length > 0) {
+              this.data[0] = bottom;
+              this._down(0);
+          }
+
+          return top;
+      }
+
+      peek() {
+          return this.data[0];
+      }
+
+      _up(pos) {
+          const {data, compare} = this;
+          const item = data[pos];
+
+          while (pos > 0) {
+              const parent = (pos - 1) >> 1;
+              const current = data[parent];
+              if (compare(item, current) >= 0) break;
+              data[pos] = current;
+              pos = parent;
+          }
+
+          data[pos] = item;
+      }
+
+      _down(pos) {
+          const {data, compare} = this;
+          const halfLength = this.length >> 1;
+          const item = data[pos];
+
+          while (pos < halfLength) {
+              let left = (pos << 1) + 1;
+              let best = data[left];
+              const right = left + 1;
+
+              if (right < this.length && compare(data[right], best) < 0) {
+                  left = right;
+                  best = data[right];
+              }
+              if (compare(best, item) >= 0) break;
+
+              data[pos] = best;
+              pos = left;
+          }
+
+          data[pos] = item;
+      }
+  }
+
+  function defaultCompare(a, b) {
+      return a < b ? -1 : a > b ? 1 : 0;
+  }
+
+  /*
+  ISC License
+
+  Copyright (c) 2017, Vladimir Agafonkin
+
+  Permission to use, copy, modify, and/or distribute this software for any purpose
+  with or without fee is hereby granted, provided that the above copyright notice
+  and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+  FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+  OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+  THIS SOFTWARE.
+  */
+
+  var earthRadius = 6371;
+  var rad = Math.PI / 180;
+
+  function around(index, lng, lat, maxResults, maxDistance, predicate) {
+      var maxHaverSinDist = 1, result = [];
+
+      if (maxResults === undefined) maxResults = Infinity;
+      if (maxDistance !== undefined) maxHaverSinDist = haverSin(maxDistance / earthRadius);
+
+      // a distance-sorted priority queue that will contain both points and kd-tree nodes
+      var q = new TinyQueue([], compareDist);
+
+      // an object that represents the top kd-tree node (the whole Earth)
+      var node = {
+          left: 0, // left index in the kd-tree array
+          right: index.ids.length - 1, // right index
+          axis: 0, // 0 for longitude axis and 1 for latitude axis
+          dist: 0, // will hold the lower bound of children's distances to the query point
+          minLng: -180, // bounding box of the node
+          minLat: -90,
+          maxLng: 180,
+          maxLat: 90
+      };
+
+      var cosLat = Math.cos(lat * rad);
+      var right, left, item;
+
+      while (node) {
+          right = node.right;
+          left = node.left;
+
+          if (right - left <= index.nodeSize) { // leaf node
+
+              // add all points of the leaf node to the queue
+              for (var i = left; i <= right; i++) {
+                  item = index.points[index.ids[i]];
+                  if (!predicate || predicate(item)) {
+                      q.push({
+                          i: index.ids[i],
+                          item: item,
+                          dist: haverSinDist(lng, lat, index.coords[2 * i], index.coords[2 * i + 1], cosLat)
+                      });
+                  }
+              }
+
+          } else { // not a leaf node (has child nodes)
+
+              var m = (left + right) >> 1; // middle index
+              var midLng = index.coords[2 * m];
+              var midLat = index.coords[2 * m + 1];
+
+              // add middle point to the queue
+              item = index.points[index.ids[m]];
+              if (!predicate || predicate(item)) {
+                  q.push({
+                      i: index.ids[m],
+                      item: item,
+                      dist: haverSinDist(lng, lat, midLng, midLat, cosLat)
+                  });
+              }
+
+              var nextAxis = (node.axis + 1) % 2;
+
+              // first half of the node
+              var leftNode = {
+                  left: left,
+                  right: m - 1,
+                  axis: nextAxis,
+                  minLng: node.minLng,
+                  minLat: node.minLat,
+                  maxLng: node.axis === 0 ? midLng : node.maxLng,
+                  maxLat: node.axis === 1 ? midLat : node.maxLat,
+                  dist: 0
+              };
+              // second half of the node
+              var rightNode = {
+                  left: m + 1,
+                  right: right,
+                  axis: nextAxis,
+                  minLng: node.axis === 0 ? midLng : node.minLng,
+                  minLat: node.axis === 1 ? midLat : node.minLat,
+                  maxLng: node.maxLng,
+                  maxLat: node.maxLat,
+                  dist: 0
+              };
+
+              leftNode.dist = boxDist(lng, lat, cosLat, leftNode);
+              rightNode.dist = boxDist(lng, lat, cosLat, rightNode);
+
+              // add child nodes to the queue
+              q.push(leftNode);
+              q.push(rightNode);
+          }
+
+          // fetch closest points from the queue; they're guaranteed to be closer
+          // than all remaining points (both individual and those in kd-tree nodes),
+          // since each node's distance is a lower bound of distances to its children
+          while (q.length && q.peek().item) {
+              var candidate = q.pop();
+              if (candidate.dist > maxHaverSinDist) return result;
+              // result.push(candidate.item);
+              result.push(candidate.i);
+              if (result.length === maxResults) return result;
+          }
+
+          // the next closest kd-tree node
+          node = q.pop();
+      }
+
+      return result;
+  }
+
+  // lower bound for distance from a location to points inside a bounding box
+  function boxDist(lng, lat, cosLat, node) {
+      var minLng = node.minLng;
+      var maxLng = node.maxLng;
+      var minLat = node.minLat;
+      var maxLat = node.maxLat;
+
+      // query point is between minimum and maximum longitudes
+      if (lng >= minLng && lng <= maxLng) {
+          if (lat < minLat) return haverSin((lat - minLat) * rad);
+          if (lat > maxLat) return haverSin((lat - maxLat) * rad);
+          return 0;
+      }
+
+      // query point is west or east of the bounding box;
+      // calculate the extremum for great circle distance from query point to the closest longitude;
+      var haverSinDLng = Math.min(haverSin((lng - minLng) * rad), haverSin((lng - maxLng) * rad));
+      var extremumLat = vertexLat(lat, haverSinDLng);
+
+      // if extremum is inside the box, return the distance to it
+      if (extremumLat > minLat && extremumLat < maxLat) {
+          return haverSinDistPartial(haverSinDLng, cosLat, lat, extremumLat);
+      }
+      // otherwise return the distan e to one of the bbox corners (whichever is closest)
+      return Math.min(
+          haverSinDistPartial(haverSinDLng, cosLat, lat, minLat),
+          haverSinDistPartial(haverSinDLng, cosLat, lat, maxLat)
+      );
+  }
+
+  function compareDist(a, b) {
+      return a.dist - b.dist;
+  }
+
+  function haverSin(theta) {
+      var s = Math.sin(theta / 2);
+      return s * s;
+  }
+
+  function haverSinDistPartial(haverSinDLng, cosLat1, lat1, lat2) {
+      return cosLat1 * Math.cos(lat2 * rad) * haverSinDLng + haverSin((lat1 - lat2) * rad);
+  }
+
+  function haverSinDist(lng1, lat1, lng2, lat2, cosLat1) {
+      var haverSinDLng = haverSin((lng1 - lng2) * rad);
+      return haverSinDistPartial(haverSinDLng, cosLat1, lat1, lat2);
+  }
+
+  function distance(lng1, lat1, lng2, lat2) {
+      var h = haverSinDist(lng1, lat1, lng2, lat2, Math.cos(lat1 * rad));
+      return 2 * earthRadius * Math.asin(Math.sqrt(h));
+  }
+
+  function vertexLat(lat, haverSinDLng) {
+      var cosDLng = 1 - 2 * haverSinDLng;
+      if (cosDLng <= 0) return lat > 0 ? 90 : -90;
+      return Math.atan(Math.tan(lat * rad) / cosDLng) / rad;
+  }
+
+  function PointIndex(srcLyr, crs, opts) {
+    requireSinglePointLayer(srcLyr);
+    var points = getPointsInLayer(srcLyr);
+    var maxDist = opts.max_distance ? convertDistanceParam(opts.max_distance, crs) : 1e-3;
+    var kdbush = require('kdbush');
+    var index = new kdbush(points);
+    var lookup = getLookupFunction(index, crs, maxDist);
+    var uniqIndex = new IdTestIndex(points.length);
+
+    this.lookupByMultiPoint = function(shape) {
+      var hits = [], p, i, j, n;
+      for (i=0, n=shape ? shape.length : 0; i<n; i++) {
+        p = shape[i];
+        hits = lookup(p);
+        for (j=0; j<hits.length; j++) {
+          uniqIndex.setId(hits[j]);
+        }
+      }
+      hits = uniqIndex.getIds();
+      uniqIndex.clear();
+      return hits;
+    };
+  }
+
+  function getLookupFunction(index, crs, meterDist) {
+    var geodetic = crs ? isLatLngCRS(crs) : false;
+    var toMeter = crs && crs.to_meter || 1;
+    if (geodetic) {
+      return function(p) {
+        // kdbush uses km
+        return around(index, p[0], p[1], Infinity, meterDist / 1000);
+      };
+    }
+    return function(p) {
+      return index.within(p[0], p[1], meterDist / toMeter);
+    };
+  }
+
+  function joinPointsToPoints(targetLyr, srcLyr, crs, opts) {
+    var joinFunction = getPointToPointFunction(targetLyr, srcLyr, crs, opts);
+    prepJoinLayers(targetLyr, srcLyr);
+    return joinTables(targetLyr.data, srcLyr.data, joinFunction, opts);
+  }
+
+  function getPointToPointFunction(targetLyr, srcLyr, crs, opts) {
+    var shapes = targetLyr.shapes;
+    var index = new PointIndex(srcLyr, crs, opts);
+    return function(targId) {
+      var matches = index.lookupByMultiPoint(shapes[targId]);
+      return matches.length > 0 ? matches : null;
+    };
+  }
+
+  cmd.join = function(targetLyr, targetDataset, src, opts) {
     var srcType, targetType, retn;
     if (!src || !src.layer.data || !src.dataset) {
       stop("Missing a joinable data source");
@@ -28847,16 +34600,17 @@ ${svg}
       retn = joinAttributesToFeatures(targetLyr, src.layer.data, opts);
     } else {
       // spatial join
+      requireDatasetsHaveCompatibleCRS([targetDataset, src.dataset]);
       srcType = src.layer.geometry_type;
       targetType = targetLyr.geometry_type;
       if (srcType == 'point' && targetType == 'polygon') {
-        retn = joinPointsToPolygons(targetLyr, dataset.arcs, src.layer, opts);
+        retn = joinPointsToPolygons(targetLyr, targetDataset.arcs, src.layer, opts);
       } else if (srcType == 'polygon' && targetType == 'point') {
         retn = joinPolygonsToPoints(targetLyr, src.layer, src.dataset.arcs, opts);
       } else if (srcType == 'point' && targetType == 'point') {
-        retn = joinPointsToPoints(targetLyr, src.layer, opts);
+        retn = joinPointsToPoints(targetLyr, src.layer, getDatasetCRS(targetDataset), opts);
       } else if (srcType == 'polygon' && targetType == 'polygon') {
-        retn = joinPolygonsToPolygons(targetLyr, dataset, src, opts);
+        retn = joinPolygonsToPolygons(targetLyr, targetDataset, src, opts);
       } else {
         stop(utils.format("Unable to join %s geometry to %s geometry",
             srcType || 'null', targetType || 'null'));
@@ -28864,10 +34618,10 @@ ${svg}
     }
 
     if (retn.unmatched) {
-      dataset.layers.push(retn.unmatched);
+      targetDataset.layers.push(retn.unmatched);
     }
     if (retn.unjoined) {
-      dataset.layers.push(retn.unjoined);
+      targetDataset.layers.push(retn.unjoined);
     }
   };
 
@@ -28884,6 +34638,12 @@ ${svg}
   // Return a function for translating a target id to an array of source ids based on values
   // of two key fields.
   function getJoinByKey(dest, destKey, src, srcKey) {
+    if (!dest) {
+      stop('Target layer is missing an attribute table');
+    }
+    if (!src) {
+      stop('Source layer is missing an attribute table');
+    }
     var destRecords = dest.getRecords();
     var srcRecords = src.getRecords();
     var index = createTableIndex(srcRecords, srcKey);
@@ -28968,23 +34728,10 @@ ${svg}
   cmd.polygonGrid = function(targetLayers, targetDataset, opts) {
     requireProjectedDataset(targetDataset);
     var params = getGridParams(targetLayers, targetDataset, opts);
-    var geojson;
-    if (params.type == 'square') {
-      geojson = getSquareGridGeoJSON(getSquareGridCoordinates(params));
-    } else if (params.type == 'hex') {
-      geojson = getHexGridGeoJSON(getHexGridCoordinates(params));
-    } else if (params.type == 'hex2') {
-      // use rotated grid
-      geojson = getHexGridGeoJSON(getHexGridCoordinates(swapGridParams(params)));
-      swapPolygonCoords(geojson);
-    } else {
-      stop('Unsupported grid type');
-    }
-    alignGridToBounds(geojson, params.bbox);
-    var gridDataset = importGeoJSON(geojson, {});
+    var gridDataset = makeGridDataset(params, opts);
+
     gridDataset.info = targetDataset.info; // copy CRS to grid dataset // TODO: improve
-    buildTopology(gridDataset);
-    gridDataset.layers[0].name = opts.name || 'grid';
+    setOutputLayerName(gridDataset.layers[0], null, 'grid', opts);
     if (opts.debug) gridDataset.layers.push(cmd.pointGrid2(targetLayers, targetDataset, opts));
     return gridDataset;
   };
@@ -29005,6 +34752,25 @@ ${svg}
     if (opts.name) gridDataset.layers[0].name = opts.name;
     return gridDataset.layers[0];
   };
+
+  function makeGridDataset(params, opts) {
+    var geojson, dataset;
+    if (params.type == 'square') {
+      geojson = getSquareGridGeoJSON(getSquareGridCoordinates(params));
+    } else if (params.type == 'hex') {
+      geojson = getHexGridGeoJSON(getHexGridCoordinates(params));
+    } else if (params.type == 'hex2') {
+      // use rotated grid
+      geojson = getHexGridGeoJSON(getHexGridCoordinates(swapGridParams(params)));
+      swapPolygonCoords(geojson);
+    } else {
+      stop('Unsupported grid type');
+    }
+    alignGridToBounds(geojson, params.bbox);
+    dataset = importGeoJSON(geojson, {});
+    buildTopology(dataset);
+    return dataset;
+  }
 
   function swapGridParams(params) {
     var bbox = params.bbox;
@@ -29198,7 +34964,9 @@ ${svg}
 
   cmd.pointGrid = function(dataset, opts) {
     var gridOpts = getPointGridParams(dataset, opts);
-    return createPointGridLayer(createPointGrid(gridOpts), opts);
+    var lyr = createPointGridLayer(createPointGrid(gridOpts), opts);
+    setOutputLayerName(lyr, null, 'grid', opts);
+    return lyr;
   };
 
   function getPointGridParams(dataset, opts) {
@@ -29229,12 +34997,10 @@ ${svg}
         points.push([row[i]]);
       }
     });
-    lyr = {
+    return {
       geometry_type: 'point',
       shapes: points
     };
-    if (opts.name) lyr.name = opts.name;
-    return lyr;
   }
 
 
@@ -29277,6 +35043,255 @@ ${svg}
       y += dy;
     }
     return rowsArr;
+  }
+
+  cmd.pointToGrid = function(targetLayers, targetDataset, opts) {
+    targetLayers.forEach(requirePointLayer);
+    if (opts.interval > 0 === false) {
+      stop('Expected a non-negative interval parameter');
+    }
+    if (opts.radius > 0 === false) {
+      stop('Expected a non-negative radius parameter');
+    }
+    // var bbox = getLayerBounds(pointLyr).toArray();
+    // Use target dataset, so grids are aligned between layers
+    // TODO: align grids between datasets
+    var bbox = getDatasetBounds(targetDataset).toArray();
+
+    var datasets = [targetDataset];
+    var outputLayers = targetLayers.map(function(pointLyr) {
+      if (countMultiPartFeatures(pointLyr) > 0) {
+        stop('This command requires single points');
+      }
+      var dataset = getPolygonDataset(pointLyr, bbox, opts);
+      var gridLyr = dataset.layers[0];
+      datasets.push(dataset);
+      setOutputLayerName(gridLyr, pointLyr, 'grid', opts);
+      return gridLyr;
+    });
+
+    var merged = mergeDatasets(datasets);
+    // build topology for the entire dataset, in case the command is used on
+    // multiple target layers.
+    buildTopology(merged);
+    targetDataset.arcs = merged.arcs;
+    return outputLayers;
+  };
+
+  function getPolygonDataset(pointLyr, gridBBox, opts) {
+    var interval = opts.interval;
+    var points = getPointsInLayer(pointLyr);
+    var grid = getGridData(gridBBox, interval);
+    var lookup = getPointIndex(points, grid, opts.radius);
+    var n = grid.cells();
+    var geojson = {
+      type: 'FeatureCollection',
+      features: []
+    };
+    var calc = null;
+    var cands, center, weight, d;
+    if (opts.calc) {
+      calc = getJoinCalc(pointLyr.data, opts.calc);
+    }
+
+    for (var i=0; i<n; i++) {
+      cands = lookup(i);
+      if (!cands.length) continue;
+      center = grid.idxToPoint(i);
+      d = calcCellProperties(center, cands, points, calc, opts);
+      // weight = calcCellWeight(center, cands, points, opts);
+      if (d.weight > 0.05 === false) continue;
+      d.id = i;
+      geojson.features.push({
+        type: 'Feature',
+        properties: d,
+        geometry: makeCellPolygon(i, grid, opts)
+      });
+    }
+    var dataset = importGeoJSON(geojson, {});
+    return dataset;
+  }
+
+  function calcCellProperties(center, cands, points, calc, opts) {
+    // radius of circle with same area as the cell
+    var interval = opts.interval;
+    var radius = interval * Math.sqrt(1 / Math.PI);
+    var circleArea = Math.PI * opts.radius * opts.radius;
+    var cellArea = interval * interval;
+    var ids = [];
+    var totArea = 0;
+    var intersection;
+    for (var i=0; i<cands.length; i++) {
+      intersection = twoCircleIntersection(center, radius, points[cands[i]], opts.radius);
+      if (intersection > 0 === false) continue;
+      totArea += intersection;
+      ids.push(cands[i]);
+    }
+    var d = {weight: totArea / cellArea};
+    if (calc) {
+      calc(ids, d);
+    }
+    return d;
+  }
+
+  // function calcCellWeight(center, ids, points, opts) {
+  //   // radius of circle with same area as the cell
+  //   var interval = opts.interval;
+  //   var radius = interval * Math.sqrt(1 / Math.PI);
+  //   var circleArea = Math.PI * opts.radius * opts.radius;
+  //   var cellArea = interval * interval;
+  //   var totArea = 0;
+  //   for (var i=0; i<ids.length; i++) {
+  //     totArea += twoCircleIntersection(center, radius, points[ids[i]], opts.radius);
+  //   }
+  //   return totArea / cellArea;
+  // }
+
+  // Source: https://diego.assencio.com/?index=8d6ca3d82151bad815f78addf9b5c1c6
+  function twoCircleIntersection(c1, r1, c2, r2) {
+    var d = distance2D(c1[0], c1[1], c2[0], c2[1]);
+    if (d >= r1 + r2) return 0;
+    var r1sq = r1 * r1,
+        r2sq = r2 * r2,
+        d1 = (r1sq - r2sq + d * d) / (2 * d),
+        d2 = d - d1;
+    if (d <= Math.abs(r1 - r2)) {
+      return Math.PI * Math.min(r1sq, r2sq);
+    }
+    return r1sq * Math.acos(d1/r1) - d1 * Math.sqrt(r1sq - d1 * d1) +
+      r2sq * Math.acos(d2/r2) - d2 * Math.sqrt(r2sq - d2 * d2);
+  }
+
+  function makeCellPolygon(idx, grid, opts) {
+    var coords = opts.circles ?
+      makeCircleCoords(grid.idxToPoint(idx), opts) :
+      makeCellCoords(grid.idxToBBox(idx), opts);
+    return {
+      type: 'Polygon',
+      coordinates: [coords]
+    };
+  }
+
+  function makeCellCoords(bbox, opts) {
+    var margin = opts.interval * (opts.cell_margin || 0);
+    var a = bbox[0] + margin,
+        b = bbox[1] + margin,
+        c = bbox[2] - margin,
+        d = bbox[3] - margin;
+    return [[a, b],[a, d],[c, d],[c, b],[a, b]];
+  }
+
+  function makeCircleCoords(center, opts) {
+    var margin = opts.cell_margin > 0 ? opts.cell_margin : 1e-6;
+    var radius = opts.interval / 2 * (1 - margin);
+    return getPointBufferCoordinates(center, radius, 20, getPlanarSegmentEndpoint);
+  }
+
+  function getPointIndex(points, grid, radius) {
+    var Flatbush = require('flatbush');
+    var gridIndex = new IdTestIndex(grid.cells());
+    var bboxIndex = new Flatbush(points.length);
+    var empty = [];
+    points.forEach(function(p) {
+      addPointToGridIndex(p, gridIndex, grid);
+      bboxIndex.add.apply(bboxIndex, getPointBounds(p, radius));
+    });
+    bboxIndex.finish();
+    return function(i) {
+      if (!gridIndex.hasId(i)) return empty;
+      var bbox = grid.idxToBBox(i);
+      return bboxIndex.search.apply(bboxIndex, bbox);
+    };
+  }
+
+  function addPointToGridIndex(p, index, grid) {
+    var i = grid.pointToIdx(p);
+    var c = grid.idxToCol(i);
+    var r = grid.idxToRow(i);
+    addCellToGridIndex(c+1, r+1, grid, index);
+    addCellToGridIndex(c+1, r, grid, index);
+    addCellToGridIndex(c+1, r-1, grid, index);
+    addCellToGridIndex(c, r+1, grid, index);
+    addCellToGridIndex(c, r, grid, index);
+    addCellToGridIndex(c, r-1, grid, index);
+    addCellToGridIndex(c-1, r+1, grid, index);
+    addCellToGridIndex(c-1, r, grid, index);
+    addCellToGridIndex(c-1, r-1, grid, index);
+  }
+
+  function addCellToGridIndex(c, r, grid, index) {
+    var i = grid.colRowToIdx(c, r);
+    if (i > -1) index.setId(i);
+  }
+
+  // TODO: support spherical coords
+  function getPointBounds(p, radius) {
+    return [p[0] - radius, p[1] - radius, p[0] + radius, p[1] + radius];
+  }
+
+  function getGridInterpolator(bbox, interval) {
+    var sparseArr = [];
+    var grid = getGridData(bbox, interval);
+
+  }
+
+  // TODO: put this in a separate file, use it for other grid-based commands
+  // like -dots
+  function getGridData(bbox, interval) {
+    var xmin = bbox[0] - interval;
+    var ymin = bbox[1] - interval;
+    var xmax = bbox[2] + interval;
+    var ymax = bbox[3] + interval;
+    var w = xmax - xmin;
+    var h = ymax - ymin;
+    var cols = Math.ceil(w / interval);
+    var rows = Math.ceil(h / interval);
+    function size() {
+      return [cols, rows];
+    }
+    function cells() {
+      return cols * rows;
+    }
+    function pointToCol(xy) {
+      var dx = xy[0] - xmin;
+      return Math.floor(dx / w * cols);
+    }
+    function pointToRow(xy) {
+      var dy = xy[1] - ymin;
+      return Math.floor(dy / h * rows);
+    }
+    function colRowToIdx(c, r) {
+      if (c < 0 || r < 0 || c >= cols || r >= rows) return -1;
+      return r * cols + c;
+    }
+    function pointToIdx(xy) {
+      var c = pointToCol(xy);
+      var r = pointToRow(xy);
+      return colRowToIdx(c, r);
+    }
+    function idxToCol(i) {
+      return i % cols;
+    }
+    function idxToRow(i) {
+      return Math.floor(i / cols);
+    }
+    function idxToPoint(idx) {
+      var x = xmin + (idxToCol(idx) + 0.5) * interval;
+      var y = ymin + (idxToRow(idx) + 0.5) * interval;
+      return [x, y];
+    }
+    function idxToBBox(idx) {
+      var c = idxToCol(idx);
+      var r = idxToRow(idx);
+      return [
+        xmin + c * interval, ymin + r * interval,
+        xmin + (c + 1) * interval, ymin + (r + 1) * interval
+      ];
+    }
+    return {
+      size, cells, pointToCol, pointToRow, colRowToIdx, pointToIdx,
+      idxToCol, idxToRow, idxToBBox, idxToPoint
+    };
   }
 
   function closeUndershoots(lyr, dataset, opts) {
@@ -29434,136 +35449,6 @@ ${svg}
     };
   }
 
-  // Create rectangles around each feature in a layer
-  cmd.rectangles = function(targetLyr, targetDataset, opts) {
-    if (!layerHasGeometry(targetLyr)) {
-      stop("Layer is missing geometric shapes");
-    }
-    var crs = getDatasetCRS(targetDataset);
-    var records = targetLyr.data ? targetLyr.data.getRecords() : null;
-    var geometries = targetLyr.shapes.map(function(shp) {
-      var bounds = targetLyr.geometryType == 'point' ?
-        getPointFeatureBounds(shp) : targetDataset.arcs.getMultiShapeBounds(shp);
-      bounds = applyRectangleOptions(bounds, crs, opts);
-      if (!bounds) return null;
-      return convertBboxToGeoJSON(bounds.toArray(), opts);
-    });
-    var geojson = {
-      type: 'FeatureCollection',
-      features: geometries.map(function(geom, i) {
-        var rec = records && records[i] || null;
-        if (rec && opts.no_replace) {
-          rec = utils.extend({}, rec); // make a copy
-        }
-        return {
-          type: 'Feature',
-          properties: rec,
-          geometry: geom
-        };
-      })
-    };
-    var dataset = importGeoJSON(geojson, {});
-    var outputLayers = mergeDatasetsIntoDataset(targetDataset, [dataset]);
-    if (!opts.no_replace) {
-      outputLayers[0].name = targetLyr.name || outputLayers[0].name;
-    }
-    return outputLayers;
-  };
-
-  // Create rectangles around one or more target layers
-  //
-  cmd.rectangle2 = function(target, opts) {
-    var datasets = target.layers.map(function(lyr) {
-      var dataset = cmd.rectangle({layer: lyr, dataset: target.dataset}, opts);
-      if (!opts.no_replace) {
-        dataset.layers[0].name = lyr.name || dataset.layers[0].name;
-      }
-      return dataset;
-    });
-    return mergeDatasetsIntoDataset(target.dataset, datasets);
-  };
-
-  cmd.rectangle = function(source, opts) {
-    var offsets, bounds, crs, coords, sourceInfo;
-    if (source) {
-      bounds = getLayerBounds(source.layer, source.dataset.arcs);
-      sourceInfo = source.dataset.info;
-      crs = getDatasetCRS(source.dataset);
-    } else if (opts.bbox) {
-      bounds = new Bounds(opts.bbox);
-      crs = getCRS('wgs84');
-    }
-    bounds = bounds && applyRectangleOptions(bounds, crs, opts);
-    if (!bounds || !bounds.hasBounds()) {
-      stop('Missing rectangle extent');
-    }
-    var geojson = convertBboxToGeoJSON(bounds.toArray(), opts);
-    var dataset = importGeoJSON(geojson, {});
-    dataset.layers[0].name = opts.name || 'rectangle';
-    if (sourceInfo) {
-      setDatasetCRS(dataset, sourceInfo);
-    }
-    return dataset;
-  };
-
-  function applyRectangleOptions(bounds, crs, opts) {
-    var isGeoBox = probablyDecimalDegreeBounds(bounds);
-    if (opts.offset) {
-      bounds = applyBoundsOffset(opts.offset, bounds, crs);
-    }
-    if (bounds.area() > 0 === false) return null;
-    if (opts.aspect_ratio) {
-      bounds = applyAspectRatio(opts.aspect_ratio, bounds);
-    }
-    if (isGeoBox) {
-      bounds = clampToWorldBounds(bounds);
-    }
-    return bounds;
-  }
-
-  // opt: aspect ratio as a single number or a range (e.g. "1,2");
-  function applyAspectRatio(opt, bounds) {
-    var range = String(opt).split(',').map(parseFloat),
-      aspectRatio = bounds.width() / bounds.height(),
-      min, max; // min is height limit, max is width limit
-    if (range.length == 1) {
-      range.push(range[0]);
-    } else if (range[0] > range[1]) {
-      range.reverse();
-    }
-    min = range[0];
-    max = range[1];
-    if (!min && !max) return bounds;
-    if (!min) min = -Infinity;
-    if (!max) max = Infinity;
-    if (aspectRatio < min) {
-      bounds.fillOut(min);
-    } else if (aspectRatio > max) {
-      bounds.fillOut(max);
-    }
-    return bounds;
-  }
-
-  function applyBoundsOffset(offsetOpt, bounds, crs) {
-    var offsets = convertFourSides(offsetOpt, crs, bounds);
-    bounds.padBounds(offsets[0], offsets[1], offsets[2], offsets[3]);
-    return bounds;
-  }
-
-  function convertBboxToGeoJSON(bbox, opts) {
-    var coords = [[bbox[0], bbox[1]], [bbox[0], bbox[3]], [bbox[2], bbox[3]],
-        [bbox[2], bbox[1]], [bbox[0], bbox[1]]];
-    return {
-      type: 'Polygon',
-      coordinates: [coords]
-    };
-  }
-
-  var Rectangle = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    applyAspectRatio: applyAspectRatio
-  });
-
   cmd.renameLayers = function(layers, names, catalog) {
     if (names && names.join('').indexOf('=') > -1) {
       renameByAssignment(names, catalog);
@@ -29625,10 +35510,15 @@ ${svg}
 
   function standardizeConsoleCommands(raw) {
     var str = raw.replace(/^mapshaper\b/, '').trim();
-    if (/^[a-z]/.test(str)) {
-      // add hyphen prefix to bare command
-      str = '-' + str;
-    }
+    var parser = getOptionParser();
+    // support multiline string of commands pasted into console
+    str = str.split(/\n+/g).map(function(str) {
+      var match = /^[a-z][\w-]*/.exec(str = str.trim());
+      if (match && parser.isCommandName(match[0])) {
+        str = '-' + str; // add hyphen prefix to bare command
+      }
+      return str;
+    }).join(' ');
     return str;
   }
 
@@ -30049,126 +35939,6 @@ ${svg}
     var endpoints = arcs.size() * 2;
     var nodes = new NodeCollection(arcs).size();
     return arcs.getPointCount() - endpoints + nodes;
-  }
-
-  // A minheap data structure used for computing Visvalingam simplification data.
-  //
-  function Heap() {
-    var heapBuf = utils.expandoBuffer(Int32Array),
-        indexBuf = utils.expandoBuffer(Int32Array),
-        itemsInHeap = 0,
-        dataArr,
-        heapArr,
-        indexArr;
-
-    this.init = function(values) {
-      var i;
-      dataArr = values;
-      itemsInHeap = values.length;
-      heapArr = heapBuf(itemsInHeap);
-      indexArr = indexBuf(itemsInHeap);
-      for (i=0; i<itemsInHeap; i++) {
-        insertValue(i, i);
-      }
-      // place non-leaf items
-      for (i=(itemsInHeap-2) >> 1; i >= 0; i--) {
-        downHeap(i);
-      }
-    };
-
-    this.size = function() {
-      return itemsInHeap;
-    };
-
-    // Update a single value and re-heap
-    this.updateValue = function(valIdx, val) {
-      var heapIdx = indexArr[valIdx];
-      dataArr[valIdx] = val;
-      if (!(heapIdx >= 0 && heapIdx < itemsInHeap)) {
-        error("Out-of-range heap index.");
-      }
-      downHeap(upHeap(heapIdx));
-    };
-
-    this.popValue = function() {
-      return dataArr[this.pop()];
-    };
-
-    // Return the idx of the lowest-value item in the heap
-    this.pop = function() {
-      var popIdx;
-      if (itemsInHeap <= 0) {
-        error("Tried to pop from an empty heap.");
-      }
-      popIdx = heapArr[0];
-      insertValue(0, heapArr[--itemsInHeap]); // move last item in heap into root position
-      downHeap(0);
-      return popIdx;
-    };
-
-    function upHeap(idx) {
-      var parentIdx;
-      // Move item up in the heap until it's at the top or is not lighter than its parent
-      while (idx > 0) {
-        parentIdx = (idx - 1) >> 1;
-        if (greaterThan(idx, parentIdx)) {
-          break;
-        }
-        swapItems(idx, parentIdx);
-        idx = parentIdx;
-      }
-      return idx;
-    }
-
-    // Swap item at @idx with any lighter children
-    function downHeap(idx) {
-      var minIdx = compareDown(idx);
-
-      while (minIdx > idx) {
-        swapItems(idx, minIdx);
-        idx = minIdx; // descend in the heap
-        minIdx = compareDown(idx);
-      }
-    }
-
-    function swapItems(a, b) {
-      var i = heapArr[a];
-      insertValue(a, heapArr[b]);
-      insertValue(b, i);
-    }
-
-    // Associate a heap idx with the index of a value in data arr
-    function insertValue(heapIdx, valId) {
-      indexArr[valId] = heapIdx;
-      heapArr[heapIdx] = valId;
-    }
-
-    // @a, @b: Indexes in @heapArr
-    function greaterThan(a, b) {
-      var idx1 = heapArr[a],
-          idx2 = heapArr[b],
-          val1 = dataArr[idx1],
-          val2 = dataArr[idx2];
-      // If values are equal, compare array indexes.
-      // This is not a requirement of the Visvalingam algorithm,
-      // but it generates output that matches Mahes Visvalingam's
-      // reference implementation.
-      // See https://hydra.hull.ac.uk/assets/hull:10874/content
-      return (val1 > val2 || val1 === val2 && idx1 > idx2);
-    }
-
-    function compareDown(idx) {
-      var a = 2 * idx + 1,
-          b = a + 1,
-          n = itemsInHeap;
-      if (a < n && greaterThan(idx, a)) {
-        idx = a;
-      }
-      if (b < n && greaterThan(idx, b)) {
-        idx = b;
-      }
-      return idx;
-    }
   }
 
   var Visvalingam = {};
@@ -31415,14 +37185,73 @@ ${svg}
     }
   };
 
-  cmd.shape = function(opts) {
-    var coords = opts.coordinates;
-    var offsets = opts.offsets || [];
-    var coordinates = [];
-    var geojson, dataset, type, i, x, y;
+  cmd.shape = function(targetDataset, opts) {
+    var geojson, dataset;
+    if (opts.coordinates) {
+      geojson = makeShapeFromCoords(opts);
+    } else if (opts.type == 'circle') {
+      geojson = makeCircle(opts);
+    } else if (opts.type == 'rectangle' && opts.bbox) {
+      geojson = getRectangleGeoJSON(opts);
+    } else {
+      stop('Missing coordinates parameter');
+    }
+    // TODO: project shape if targetDataset is projected
+    dataset = importGeoJSON(geojson, {});
+    if (opts.rotation) {
+      rotateDatasetCoords(dataset, opts.rotation);
+    }
+    dataset.layers[0].name = opts.name || opts.type || 'shape';
+    return dataset;
+  };
 
-    if (!coords || coords.length >= 2 === false) {
-      stop('Missing list of coordinates');
+  function getRectangleGeoJSON(opts) {
+    var bbox = opts.bbox,
+        xmin = bbox[0],
+        ymin = bbox[1],
+        xmax = bbox[2],
+        ymax = bbox[3],
+        interval = 0.5,
+        coords = [],
+        type = opts.geometry == 'polyline' ? 'LineString' : 'Polygon';
+    addSide(xmin, ymin, xmin, ymax);
+    addSide(xmin, ymax, xmax, ymax);
+    addSide(xmax, ymax, xmax, ymin);
+    addSide(xmax, ymin, xmin, ymin);
+    coords.push([xmin, ymin]);
+    return {
+      type: type,
+      coordinates: type == 'Polygon' ? [coords] : coords
+    };
+
+    function addSide(x1, y1, x2, y2) {
+      var dx = x2 - x1,
+          dy = y2 - y1,
+          n = Math.ceil(Math.max(Math.abs(dx) / interval, Math.abs(dy) / interval)),
+          xint = dx / n,
+          yint = dy / n;
+      for (var i=0; i<n; i++) {
+        coords.push([x1 + i * xint, y1 + i * yint]);
+      }
+    }
+  }
+
+  function makeCircle(opts) {
+    if (opts.radius > 0 === false && opts.radius_angle > 0 === false) {
+      stop('Missing required radius parameter.');
+    }
+    var cp = opts.center || [0, 0];
+    var radius = opts.radius || getCircleRadiusFromAngle(getCRS('wgs84'), opts.radius_angle);
+    return getCircleGeoJSON(cp, radius, null, {geometry_type : opts.geometry || 'polygon'});
+  }
+
+  function makeShapeFromCoords(opts) {
+    var coordinates = [];
+    var offsets = opts.offsets || [];
+    var coords = opts.coordinates;
+    var type, i, x, y;
+    if (coords.length >= 2 === false) {
+      stop('Invalid coordinates parameter.');
     }
     for (i=0; i<coords.length; i+= 2) {
       x = coords[i];
@@ -31442,14 +37271,12 @@ ${svg}
     } else {
       type = 'LineString';
     }
-    geojson = {
+    return {
       type: type,
       coordinates: type == 'Polygon' ? [coordinates] : coordinates
     };
-    dataset = importGeoJSON(geojson, {});
-    dataset.layers[0].name = opts.name || 'shape';
-    return dataset;
-  };
+
+  }
 
   cmd.variableSimplify = function(layers, dataset, opts) {
     var lyr = layers[0];
@@ -31579,7 +37406,7 @@ ${svg}
     properties = lyr.data.getRecords();
 
     lyr.shapes.forEach(function(shp, i) {
-      var bounds = type == 'point' ? getPointBounds([shp]) : arcs.getMultiShapeBounds(shp);
+      var bounds = type == 'point' ? getPointBounds$1([shp]) : arcs.getMultiShapeBounds(shp);
       var name = bounds.hasBounds() ? classify(bounds) : '';
       var rec = properties[i] = properties[i] || {};
       rec[fieldName] = name;
@@ -31720,7 +37547,7 @@ ${svg}
 
     try { // catch errors from synchronous functions
 
-      T.start();
+      T$1.start();
       if (!catalog) catalog = new Catalog();
 
       if (name == 'rename-layers') {
@@ -31735,7 +37562,7 @@ ${svg}
         // TODO: check that combine_layers is only used w/ GeoJSON output
         targets = catalog.findCommandTargets(opts.target || opts.combine_layers && '*');
 
-      } else if (name == 'info' || name == 'proj' || name == 'drop' || name == 'target') {
+      } else if (name == 'rotate' || name == 'info' || name == 'proj' || name == 'drop' || name == 'target') {
         // these commands accept multiple target datasets
         targets = catalog.findCommandTargets(opts.target);
 
@@ -31779,9 +37606,13 @@ ${svg}
       if (name == 'affine') {
         cmd.affine(targetLayers, targetDataset, opts);
 
+      } else if (name == 'alpha-shapes') {
+        outputLayers = applyCommandToEachLayer(cmd.alphaShapes, targetLayers, targetDataset, opts);
+        // outputLayers = null;
+
       } else if (name == 'buffer') {
-        // applyCommandToEachLayer(cmd.buffer, targetLayers, targetDataset, opts);
-        outputLayers = cmd.buffer(targetLayers, targetDataset, opts);
+         outputLayers = applyCommandToEachLayer(cmd.buffer, targetLayers, targetDataset, opts);
+        // outputLayers = cmd.buffer(targetLayers, targetDataset, opts);
 
       } else if (name == 'data-fill') {
         applyCommandToEachLayer(cmd.dataFill, targetLayers, arcs, opts);
@@ -31803,6 +37634,9 @@ ${svg}
 
       } else if (name == 'colorizer') {
         outputLayers = cmd.colorizer(opts);
+
+      } else if (name == 'define') {
+        cmd.define(opts);
 
       } else if (name == 'dissolve') {
         outputLayers = applyCommandToEachLayer(cmd.dissolve, targetLayers, arcs, opts);
@@ -31846,6 +37680,9 @@ ${svg}
 
       } else if (name == 'filter-islands2') {
         applyCommandToEachLayer(cmd.filterIslands2, targetLayers, targetDataset, opts);
+
+      } else if (name == 'filter-points') {
+        applyCommandToEachLayer(cmd.filterPoints, targetLayers, targetDataset, opts);
 
       } else if (name == 'filter-slivers') {
         applyCommandToEachLayer(cmd.filterSlivers, targetLayers, targetDataset, opts);
@@ -31895,7 +37732,8 @@ ${svg}
       } else if (name == 'merge-layers') {
         // returned layers are modified input layers
         // (assumes that targetLayers are replaced by outputLayers below)
-        outputLayers = cmd.mergeLayers(targetLayers, opts);
+        outputLayers = cmd.mergeAndFlattenLayers(targetLayers, targetDataset, opts);
+        // outputLayers = cmd.mergeLayers(targetLayers, opts);
 
       } else if (name == 'mosaic') {
         // opts.no_replace = true; // add mosaic as a new layer
@@ -31914,6 +37752,9 @@ ${svg}
         if (!targetDataset) {
           catalog.addDataset({layers: outputLayers});
         }
+
+      } else if (name == 'point-to-grid') {
+        outputLayers = cmd.pointToGrid(targetLayers, targetDataset, opts);
 
       } else if (name == 'grid') {
         outputDataset = cmd.polygonGrid(targetLayers, targetDataset, opts);
@@ -31957,6 +37798,11 @@ ${svg}
       } else if (name == 'require') {
         cmd.require(targets, opts);
 
+      } else if (name == 'rotate') {
+        targets.forEach(function(targ) {
+          cmd.rotate(targ.dataset, opts);
+        });
+
       } else if (name == 'run') {
         cmd.run(targets, catalog, opts, done);
         return;
@@ -31965,7 +37811,7 @@ ${svg}
         cmd.scalebar(catalog, opts);
 
       } else if (name == 'shape') {
-        catalog.addDataset(cmd.shape(opts));
+        catalog.addDataset(cmd.shape(targetDataset, opts));
 
       } else if (name == 'simplify') {
         if (opts.variable) {
@@ -32079,7 +37925,7 @@ ${svg}
     done(null);
 
     function done(err) {
-      T.stop('-');
+      verbose('-', T$1.stop());
       cb(err, err ? null : catalog);
     }
   }
@@ -32321,6 +38167,8 @@ ${svg}
 
     function nextCommand(catalog, cmd, next) {
       setStateVar('current_command', cmd.name); // for log msgs
+      setStateVar('verbose', !!cmd.options.verbose);
+      setStateVar('debug', !!cmd.options.debug);
       runCommand(cmd, catalog, next);
     }
 
@@ -32328,6 +38176,8 @@ ${svg}
       if (err) printError(err);
       cb(err, catalog);
       setStateVar('current_command', null);
+      setStateVar('verbose', false);
+      setStateVar('debug', false);
     }
   }
 
