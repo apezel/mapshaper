@@ -2,7 +2,7 @@ import { verbose } from '../utils/mapshaper-logging';
 import GeoJSON from '../geojson/geojson-common';
 import utils from '../utils/mapshaper-utils';
 import { PathImporter } from '../paths/mapshaper-path-import';
-import { getCRS } from '../geom/mapshaper-projections';
+import { getCRS } from '../crs/mapshaper-projections';
 
 
 export function GeoJSONParser(opts) {
