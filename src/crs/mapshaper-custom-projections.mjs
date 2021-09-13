@@ -117,3 +117,13 @@ function parseCustomParamValue(str) {
   }
   return val;
 }
+
+//parse projection urns like 
+export function parseProjectionUrn(str) {
+  const split = str.split(":");
+  let def = (split[split.length-3]+':'+split[split.length-1]).trim();
+  if (/^ogc\:crs84$/i.test(def)) { //CRS84 -> EPSG 84
+    def = "EPSG:4326";
+  }
+  return '+init=' + def.toLowerCase();
+}
