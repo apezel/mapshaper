@@ -5948,11 +5948,22 @@
     return val;
   }
 
+  //parse projection urns like 
+  function parseProjectionUrn(str) {
+    const split = str.split(":");
+    let def = (split[split.length-3]+':'+split[split.length-1]).trim();
+    if (/^ogc\:crs84$/i.test(def)) { //CRS84 -> EPSG 84
+      def = "EPSG:4326";
+    }
+    return '+init=' + def.toLowerCase();
+  }
+
   var CustomProjections = /*#__PURE__*/Object.freeze({
     __proto__: null,
     parseCustomProjection: parseCustomProjection,
     AlbersUSA: AlbersUSA,
-    parseCustomParams: parseCustomParams
+    parseCustomParams: parseCustomParams,
+    parseProjectionUrn: parseProjectionUrn
   });
 
   var asyncLoader = null;
@@ -6089,6 +6100,8 @@
     } else if (str in getStateVar('defs')) {
       // a proj4 alias could be dynamically created in a -calc expression
       defn = getStateVar('defs')[str];
+    } else if (/^urn\:/.test(str)) {
+      defn = parseProjectionUrn(str);
     } else {
       defn = parseCustomProjection(str);
     }

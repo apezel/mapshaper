@@ -1,4 +1,4 @@
-import { AlbersUSA, parseCustomProjection } from '../crs/mapshaper-custom-projections';
+import { AlbersUSA, parseCustomProjection, parseProjectionUrn } from '../crs/mapshaper-custom-projections';
 import { stop, print } from '../utils/mapshaper-logging';
 import { probablyDecimalDegreeBounds } from '../geom/mapshaper-latlon';
 import { getDatasetBounds } from '../dataset/mapshaper-dataset-utils';
@@ -140,6 +140,8 @@ export function getProjDefn(str) {
   } else if (str in getStateVar('defs')) {
     // a proj4 alias could be dynamically created in a -calc expression
     defn = getStateVar('defs')[str];
+  } else if (/^urn\:/.test(str)) {
+    defn = parseProjectionUrn(str);
   } else {
     defn = parseCustomProjection(str);
   }
