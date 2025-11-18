@@ -8,6 +8,9 @@ import { parseGeoJSON } from '../geojson/json-parser';
 import { bufferToString } from '../text/mapshaper-encodings';
 import { importJSONTable } from '../datatable/mapshaper-json-table';
 import { Buffer } from '../utils/mapshaper-node-buffer';
+import { importCRS } from '../geojson/geojson-import';
+
+import { parse } from "partial-json";
 
 // Identify JSON type from the initial subset of a JSON string
 export function identifyJSONString(str, opts) {
@@ -58,8 +61,10 @@ function readJSONFile(reader, opts) {
   var str = readFirstChars(reader, 1000);
   var type = identifyJSONString(str, opts);
   var dataset, retn;
-  if (type == 'geojson' && false) { // consider only for larger files, DEACTIVATED
+  if (type == 'geojson') { // consider only for larger files
     dataset = importGeoJSONFile(reader, opts);
+    // try parse header to identify crs
+    importCRS(dataset, parse(str));
     retn = {
       dataset: dataset,
       format: 'geojson'

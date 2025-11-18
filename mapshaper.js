@@ -29027,6 +29027,321 @@ ${svg}
     }
   }
 
+  var dist$1 = {};
+
+  var options = {};
+
+  var hasRequiredOptions;
+
+  function requireOptions () {
+  	if (hasRequiredOptions) return options;
+  	hasRequiredOptions = 1;
+  	(function (exports$1) {
+  		/**
+  		 * Sometimes you don't allow every type to be partially parsed.
+  		 * For example, you may not want a partial number because it may increase its size gradually before it's complete.
+  		 * In this case, you can use the `Allow` object to control what types you allow to be partially parsed.
+  		 * @module
+  		 */
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.Allow = exports$1.ALL = exports$1.COLLECTION = exports$1.ATOM = exports$1.SPECIAL = exports$1.INF = exports$1._INFINITY = exports$1.INFINITY = exports$1.NAN = exports$1.BOOL = exports$1.NULL = exports$1.OBJ = exports$1.ARR = exports$1.NUM = exports$1.STR = void 0;
+  		/**
+  		 * allow partial strings like `"hello \u12` to be parsed as `"hello "`
+  		 */
+  		exports$1.STR = 0b000000001;
+  		/**
+  		 * allow partial numbers like `123.` to be parsed as `123`
+  		 */
+  		exports$1.NUM = 0b000000010;
+  		/**
+  		 * allow partial arrays like `[1, 2,` to be parsed as `[1, 2]`
+  		 */
+  		exports$1.ARR = 0b000000100;
+  		/**
+  		 * allow partial objects like `{"a": 1, "b":` to be parsed as `{"a": 1}`
+  		 */
+  		exports$1.OBJ = 0b000001000;
+  		/**
+  		 * allow `nu` to be parsed as `null`
+  		 */
+  		exports$1.NULL = 0b000010000;
+  		/**
+  		 * allow `tr` to be parsed as `true`, and `fa` to be parsed as `false`
+  		 */
+  		exports$1.BOOL = 0b000100000;
+  		/**
+  		 * allow `Na` to be parsed as `NaN`
+  		 */
+  		exports$1.NAN = 0b001000000;
+  		/**
+  		 * allow `Inf` to be parsed as `Infinity`
+  		 */
+  		exports$1.INFINITY = 0b010000000;
+  		/**
+  		 * allow `-Inf` to be parsed as `-Infinity`
+  		 */
+  		exports$1._INFINITY = 0b100000000;
+  		exports$1.INF = exports$1.INFINITY | exports$1._INFINITY;
+  		exports$1.SPECIAL = exports$1.NULL | exports$1.BOOL | exports$1.INF | exports$1.NAN;
+  		exports$1.ATOM = exports$1.STR | exports$1.NUM | exports$1.SPECIAL;
+  		exports$1.COLLECTION = exports$1.ARR | exports$1.OBJ;
+  		exports$1.ALL = exports$1.ATOM | exports$1.COLLECTION;
+  		/**
+  		 * Control what types you allow to be partially parsed.
+  		 * The default is to allow all types to be partially parsed, which in most casees is the best option.
+  		 * @example
+  		 * If you don't want to allow partial objects, you can use the following code:
+  		 * ```ts
+  		 * import { Allow, parse } from "partial-json";
+  		 * parse(`[{"a": 1, "b": 2}, {"a": 3,`, Allow.ARR); // [ { a: 1, b: 2 } ]
+  		 * ```
+  		 * Or you can use `~` to disallow a type:
+  		 * ```ts
+  		 * parse(`[{"a": 1, "b": 2}, {"a": 3,`, ~Allow.OBJ); // [ { a: 1, b: 2 } ]
+  		 * ```
+  		 * @example
+  		 * If you don't want to allow partial strings, you can use the following code:
+  		 * ```ts
+  		 * import { Allow, parse } from "partial-json";
+  		 * parse(`["complete string", "incompl`, ~Allow.STR); // [ 'complete string' ]
+  		 * ```
+  		 */
+  		exports$1.Allow = { STR: exports$1.STR, NUM: exports$1.NUM, ARR: exports$1.ARR, OBJ: exports$1.OBJ, NULL: exports$1.NULL, BOOL: exports$1.BOOL, NAN: exports$1.NAN, INFINITY: exports$1.INFINITY, _INFINITY: exports$1._INFINITY, INF: exports$1.INF, SPECIAL: exports$1.SPECIAL, ATOM: exports$1.ATOM, COLLECTION: exports$1.COLLECTION, ALL: exports$1.ALL };
+  		exports$1.default = exports$1.Allow; 
+  	} (options));
+  	return options;
+  }
+
+  var hasRequiredDist;
+
+  function requireDist () {
+  	if (hasRequiredDist) return dist$1;
+  	hasRequiredDist = 1;
+  	(function (exports$1) {
+  		var __createBinding = (dist$1 && dist$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  		    if (k2 === undefined) k2 = k;
+  		    var desc = Object.getOwnPropertyDescriptor(m, k);
+  		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+  		      desc = { enumerable: true, get: function() { return m[k]; } };
+  		    }
+  		    Object.defineProperty(o, k2, desc);
+  		}) : (function(o, m, k, k2) {
+  		    if (k2 === undefined) k2 = k;
+  		    o[k2] = m[k];
+  		}));
+  		var __exportStar = (dist$1 && dist$1.__exportStar) || function(m, exports$1) {
+  		    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports$1, p)) __createBinding(exports$1, m, p);
+  		};
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.Allow = exports$1.MalformedJSON = exports$1.PartialJSON = exports$1.parseJSON = exports$1.parse = void 0;
+  		const options_1 = requireOptions();
+  		Object.defineProperty(exports$1, "Allow", { enumerable: true, get: function () { return options_1.Allow; } });
+  		__exportStar(requireOptions(), exports$1);
+  		class PartialJSON extends Error {
+  		}
+  		exports$1.PartialJSON = PartialJSON;
+  		class MalformedJSON extends Error {
+  		}
+  		exports$1.MalformedJSON = MalformedJSON;
+  		/**
+  		 * Parse incomplete JSON
+  		 * @param {string} jsonString Partial JSON to be parsed
+  		 * @param {number} allowPartial Specify what types are allowed to be partial, see {@link Allow} for details
+  		 * @returns The parsed JSON
+  		 * @throws {PartialJSON} If the JSON is incomplete (related to the `allow` parameter)
+  		 * @throws {MalformedJSON} If the JSON is malformed
+  		 */
+  		function parseJSON(jsonString, allowPartial = options_1.Allow.ALL) {
+  		    if (typeof jsonString !== "string") {
+  		        throw new TypeError(`expecting str, got ${typeof jsonString}`);
+  		    }
+  		    if (!jsonString.trim()) {
+  		        throw new Error(`${jsonString} is empty`);
+  		    }
+  		    return _parseJSON(jsonString.trim(), allowPartial);
+  		}
+  		exports$1.parseJSON = parseJSON;
+  		const _parseJSON = (jsonString, allow) => {
+  		    const length = jsonString.length;
+  		    let index = 0;
+  		    const markPartialJSON = (msg) => {
+  		        throw new PartialJSON(`${msg} at position ${index}`);
+  		    };
+  		    const throwMalformedError = (msg) => {
+  		        throw new MalformedJSON(`${msg} at position ${index}`);
+  		    };
+  		    const parseAny = () => {
+  		        skipBlank();
+  		        if (index >= length)
+  		            markPartialJSON("Unexpected end of input");
+  		        if (jsonString[index] === '"')
+  		            return parseStr();
+  		        if (jsonString[index] === "{")
+  		            return parseObj();
+  		        if (jsonString[index] === "[")
+  		            return parseArr();
+  		        if (jsonString.substring(index, index + 4) === "null" || (options_1.Allow.NULL & allow && length - index < 4 && "null".startsWith(jsonString.substring(index)))) {
+  		            index += 4;
+  		            return null;
+  		        }
+  		        if (jsonString.substring(index, index + 4) === "true" || (options_1.Allow.BOOL & allow && length - index < 4 && "true".startsWith(jsonString.substring(index)))) {
+  		            index += 4;
+  		            return true;
+  		        }
+  		        if (jsonString.substring(index, index + 5) === "false" || (options_1.Allow.BOOL & allow && length - index < 5 && "false".startsWith(jsonString.substring(index)))) {
+  		            index += 5;
+  		            return false;
+  		        }
+  		        if (jsonString.substring(index, index + 8) === "Infinity" || (options_1.Allow.INFINITY & allow && length - index < 8 && "Infinity".startsWith(jsonString.substring(index)))) {
+  		            index += 8;
+  		            return Infinity;
+  		        }
+  		        if (jsonString.substring(index, index + 9) === "-Infinity" || (options_1.Allow._INFINITY & allow && 1 < length - index && length - index < 9 && "-Infinity".startsWith(jsonString.substring(index)))) {
+  		            index += 9;
+  		            return -Infinity;
+  		        }
+  		        if (jsonString.substring(index, index + 3) === "NaN" || (options_1.Allow.NAN & allow && length - index < 3 && "NaN".startsWith(jsonString.substring(index)))) {
+  		            index += 3;
+  		            return NaN;
+  		        }
+  		        return parseNum();
+  		    };
+  		    const parseStr = () => {
+  		        const start = index;
+  		        let escape = false;
+  		        index++; // skip initial quote
+  		        while (index < length && (jsonString[index] !== '"' || (escape && jsonString[index - 1] === "\\"))) {
+  		            escape = jsonString[index] === "\\" ? !escape : false;
+  		            index++;
+  		        }
+  		        if (jsonString.charAt(index) == '"') {
+  		            try {
+  		                return JSON.parse(jsonString.substring(start, ++index - Number(escape)));
+  		            }
+  		            catch (e) {
+  		                throwMalformedError(String(e));
+  		            }
+  		        }
+  		        else if (options_1.Allow.STR & allow) {
+  		            try {
+  		                return JSON.parse(jsonString.substring(start, index - Number(escape)) + '"');
+  		            }
+  		            catch (e) {
+  		                // SyntaxError: Invalid escape sequence
+  		                return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("\\")) + '"');
+  		            }
+  		        }
+  		        markPartialJSON("Unterminated string literal");
+  		    };
+  		    const parseObj = () => {
+  		        index++; // skip initial brace
+  		        skipBlank();
+  		        const obj = {};
+  		        try {
+  		            while (jsonString[index] !== "}") {
+  		                skipBlank();
+  		                if (index >= length && options_1.Allow.OBJ & allow)
+  		                    return obj;
+  		                const key = parseStr();
+  		                skipBlank();
+  		                index++; // skip colon
+  		                try {
+  		                    const value = parseAny();
+  		                    obj[key] = value;
+  		                }
+  		                catch (e) {
+  		                    if (options_1.Allow.OBJ & allow)
+  		                        return obj;
+  		                    else
+  		                        throw e;
+  		                }
+  		                skipBlank();
+  		                if (jsonString[index] === ",")
+  		                    index++; // skip comma
+  		            }
+  		        }
+  		        catch (e) {
+  		            if (options_1.Allow.OBJ & allow)
+  		                return obj;
+  		            else
+  		                markPartialJSON("Expected '}' at end of object");
+  		        }
+  		        index++; // skip final brace
+  		        return obj;
+  		    };
+  		    const parseArr = () => {
+  		        index++; // skip initial bracket
+  		        const arr = [];
+  		        try {
+  		            while (jsonString[index] !== "]") {
+  		                arr.push(parseAny());
+  		                skipBlank();
+  		                if (jsonString[index] === ",") {
+  		                    index++; // skip comma
+  		                }
+  		            }
+  		        }
+  		        catch (e) {
+  		            if (options_1.Allow.ARR & allow) {
+  		                return arr;
+  		            }
+  		            markPartialJSON("Expected ']' at end of array");
+  		        }
+  		        index++; // skip final bracket
+  		        return arr;
+  		    };
+  		    const parseNum = () => {
+  		        if (index === 0) {
+  		            if (jsonString === "-")
+  		                throwMalformedError("Not sure what '-' is");
+  		            try {
+  		                return JSON.parse(jsonString);
+  		            }
+  		            catch (e) {
+  		                if (options_1.Allow.NUM & allow)
+  		                    try {
+  		                        return JSON.parse(jsonString.substring(0, jsonString.lastIndexOf("e")));
+  		                    }
+  		                    catch (e) { }
+  		                throwMalformedError(String(e));
+  		            }
+  		        }
+  		        const start = index;
+  		        if (jsonString[index] === "-")
+  		            index++;
+  		        while (jsonString[index] && ",]}".indexOf(jsonString[index]) === -1)
+  		            index++;
+  		        if (index == length && !(options_1.Allow.NUM & allow))
+  		            markPartialJSON("Unterminated number literal");
+  		        try {
+  		            return JSON.parse(jsonString.substring(start, index));
+  		        }
+  		        catch (e) {
+  		            if (jsonString.substring(start, index) === "-")
+  		                markPartialJSON("Not sure what '-' is");
+  		            try {
+  		                return JSON.parse(jsonString.substring(start, jsonString.lastIndexOf("e")));
+  		            }
+  		            catch (e) {
+  		                throwMalformedError(String(e));
+  		            }
+  		        }
+  		    };
+  		    const skipBlank = () => {
+  		        while (index < length && " \n\r\t".includes(jsonString[index])) {
+  		            index++;
+  		        }
+  		    };
+  		    return parseAny();
+  		};
+  		const parse = parseJSON;
+  		exports$1.parse = parse; 
+  	} (dist$1));
+  	return dist$1;
+  }
+
+  var distExports = requireDist();
+
   // Identify JSON type from the initial subset of a JSON string
   function identifyJSONString(str, opts) {
     var maxChars = 1000;
@@ -29072,9 +29387,17 @@ ${svg}
   //
   function readJSONFile(reader, opts) {
     var str = readFirstChars(reader, 1000);
-    identifyJSONString(str, opts);
-    var retn;
-    {
+    var type = identifyJSONString(str, opts);
+    var dataset, retn;
+    if (type == 'geojson') { // consider only for larger files
+      dataset = importGeoJSONFile(reader, opts);
+      // try parse header to identify crs
+      importCRS(dataset, distExports.parse(str));
+      retn = {
+        dataset: dataset,
+        format: 'geojson'
+      };
+    } else {
       retn = {
         // content: cli.readFile(path, 'utf8')}
         content: reader.toString('utf8')
@@ -46964,7 +47287,7 @@ ${svg}
     });
   }
 
-  var version = "0.5.46";
+  var version = "0.6.113";
 
   // Parse command line args into commands and run them
   // Function takes an optional Node-style callback. A Promise is returned if no callback is given.

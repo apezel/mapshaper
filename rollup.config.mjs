@@ -26,24 +26,26 @@ export default [{
     format: 'iife',
     file: 'www/mapshaper-gui.js'
   }]
-}, {
-  treeshake: false,
-  input: 'src/mapshaper-gui-modules.mjs',
-  output: {
-    file: 'www/modules.js',
-    format: 'iife',
-    name: 'modules' // Global variable name when loaded via script tag
-  },
-  plugins: [
-    nodeResolve({
-      browser: true, // Use browser versions of packages when available
-      preferBuiltins: false
-    }),
-    commonjs(),
-    json(),
-    nodePolyfills()
-  ]
-}, {
+},
+// {
+//   treeshake: false,
+//   input: 'src/mapshaper-gui-modules.mjs',
+//   output: {
+//     file: 'www/modules.js',
+//     format: 'iife',
+//     name: 'modules' // Global variable name when loaded via script tag
+//   },
+//   plugins: [
+//     nodeResolve({
+//       browser: true, // Use browser versions of packages when available
+//       preferBuiltins: false
+//     }),
+//     commonjs(),
+//     json(),
+//     nodePolyfills()
+//   ]
+// },
+{
   treeshake: true,
   context: 'null', // prevent a Rollup warning from msgpack
   input: 'src/mapshaper.mjs',
@@ -52,5 +54,5 @@ export default [{
     format: 'iife',
     file: 'mapshaper.js'
   }],
-  plugins: [onBundle, nodeResolve(), json()]
+  plugins: [onBundle, nodeResolve(), commonjs(), json()]
 }];
